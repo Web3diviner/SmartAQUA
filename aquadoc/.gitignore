@@ -1,0 +1,30 @@
+# Secrets — never commit (07_SECURITY_ARCHITECTURE.md section 4)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Uploaded source documents — content is governed in the database, not in git
+uploads/
+storage/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

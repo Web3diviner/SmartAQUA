@@ -1,0 +1,65 @@
+# Local development stack for AquaDoc.
+#   docker compose -f docker-compose.dev.yml up
+#
+# Expected local architecture (15_AQUADOC_FRONTEND.md section 16):
+#   PostgreSQL + pgvector -> AquaDoc FastAPI :8001 -> React/Vite :5173
+#
+# The Go backend (:8080) is added later for integration testing.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: aquadoc
+      POSTGRES_PASSWORD: aquadoc
+      POSTGRES_DB: aquadoc
+    ports:
+      - "5432:5432"
+    volumes:
+      - aquadoc-pgdata:/var/lib/postgresql/data
+      - ./aquadoc/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquadoc -d aquadoc"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  aquadoc:
+    build:
+      context: ./aquadoc
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://aquadoc:aquadoc@postgres:5432/aquadoc
+      CORS_ALLOW_ORIGINS: http://localhost:5173
+      # Secrets come from the host environment — never hardcode them here.
+      AQUADOC_DEV_TOKEN: ${AQUADOC_DEV_TOKEN:-}
+      AQUADOC_INTERNAL_SERVICE_SECRET: ${AQUADOC_INTERNAL_SERVICE_SECRET:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-echo}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-hashing}
+      VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+    ports:
+      - "8001:8001"
+
+  aquadoc-web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_AQUADOC_API_URL: http://localhost:8001
+      VITE_APP_ENV: development
+      VITE_ENABLE_DEBUG_PANEL: "true"
+    volumes:
+      - ./aquadoc-web:/app
+      - aquadoc-web-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - aquadoc
+
+volumes:
+  aquadoc-pgdata:
+  aquadoc-web-modules:

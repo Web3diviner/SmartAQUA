@@ -1,0 +1,19 @@
+# Secrets — never commit. Browser env vars are public to the browser
+# (15_AQUADOC_FRONTEND.md section 6).
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+npm-debug.log*
+yarn-error.log*
