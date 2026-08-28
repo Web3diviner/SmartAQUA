@@ -13,10 +13,13 @@ import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { useAppState } from '@/app/providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ChatPage } from '@/pages/ChatPage'
+import { DiseaseTestPage } from '@/pages/DiseaseTestPage'
+import { EvaluationPage } from '@/pages/EvaluationPage'
 import { FarmSimulatorPage } from '@/pages/FarmSimulatorPage'
+import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage'
 
 export function App() {
-  const { config, debugAvailable } = useAppState()
+  const { config, debugAvailable, theme, toggleTheme } = useAppState()
 
   return (
     <div className="app">
@@ -39,10 +42,35 @@ export function App() {
             <span className="nav-label--wide">Farm Simulator</span>
             <span className="nav-label--compact">Farm</span>
           </NavLink>
+          <NavLink to="/knowledge" className={({ isActive }) => (isActive ? 'active' : '')}>
+            <KnowledgeIcon />
+            <span className="nav-label--wide">Knowledge Base</span>
+            <span className="nav-label--compact">RAG</span>
+          </NavLink>
+          <NavLink to="/disease" className={({ isActive }) => (isActive ? 'active' : '')}>
+            <HealthIcon />
+            <span className="nav-label--wide">Disease Triage</span>
+            <span className="nav-label--compact">Health</span>
+          </NavLink>
+          <NavLink to="/eval" className={({ isActive }) => (isActive ? 'active' : '')}>
+            <EvalIcon />
+            <span className="nav-label--wide">Evaluation</span>
+            <span className="nav-label--compact">Eval</span>
+          </NavLink>
         </nav>
 
         <div className="app__status">
-          <span className="app__environment"><span aria-hidden="true" /> Development</span>
+          <button
+            type="button"
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
+
+          <span className="app__environment"><span aria-hidden="true" /> Dev</span>
           <code title="AquaDoc API endpoint">{config.baseUrl}</code>
           {!config.devToken && (
             <span className="app__warning" title="Set VITE_AQUADOC_DEV_TOKEN in .env">
@@ -59,6 +87,9 @@ export function App() {
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/simulator" element={<FarmSimulatorPage />} />
+            <Route path="/knowledge" element={<KnowledgeBasePage />} />
+            <Route path="/disease" element={<DiseaseTestPage />} />
+            <Route path="/eval" element={<EvaluationPage />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>
         </ErrorBoundary>
@@ -102,3 +133,46 @@ function PondIcon() {
     </svg>
   )
 }
+
+function KnowledgeIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" strokeWidth="1.8" fill="none" />
+    </svg>
+  )
+}
+
+function HealthIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" strokeWidth="1.8" fill="none" />
+    </svg>
+  )
+}
+
+function EvalIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SunIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function MoonIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="1.8" fill="none" />
+    </svg>
+  )
+}
+

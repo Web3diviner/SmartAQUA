@@ -24,12 +24,17 @@ const STORAGE_KEY = 'aquadoc.farmContextForm.v1'
 /** 15_AQUADOC_FRONTEND.md section 5, "Farm-Aware Chat Modes". */
 export type ChatMode = 'general' | 'simulated_pond'
 
+export type ThemeMode = 'dark' | 'light'
+
 interface AppState {
   config: ClientConfig
   /** Debug panels are opt-in via VITE_ENABLE_DEBUG_PANEL. */
   debugAvailable: boolean
   devMode: boolean
   setDevMode: (value: boolean) => void
+  theme: ThemeMode
+  setTheme: (theme: ThemeMode) => void
+  toggleTheme: () => void
   chatMode: ChatMode
   setChatMode: (mode: ChatMode) => void
   farmForm: FarmContextForm
@@ -57,6 +62,22 @@ export function AppProviders({ children }: { children: ReactNode }) {
   const [devMode, setDevMode] = useState(debugAvailable)
   const [chatMode, setChatMode] = useState<ChatMode>('general')
   const [farmForm, setFarmForm] = useState<FarmContextForm>(loadStoredForm)
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
+    return (window.localStorage.getItem('aquadoc.theme') as ThemeMode) || 'dark'
+  })
+
+  const setTheme = useCallback((newTheme: ThemeMode) => {
+    setThemeState(newTheme)
+    window.localStorage.setItem('aquadoc.theme', newTheme)
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }, [theme, setTheme])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
 
   useEffect(() => {
     try {
@@ -75,13 +96,16 @@ export function AppProviders({ children }: { children: ReactNode }) {
       // Debug output stays off entirely when the build disables it.
       devMode: debugAvailable && devMode,
       setDevMode,
+      theme,
+      setTheme,
+      toggleTheme,
       chatMode,
       setChatMode,
       farmForm,
       setFarmForm,
       resetFarmForm,
     }),
-    [config, debugAvailable, devMode, chatMode, farmForm, resetFarmForm],
+    [config, debugAvailable, devMode, theme, setTheme, toggleTheme, chatMode, farmForm, resetFarmForm],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
