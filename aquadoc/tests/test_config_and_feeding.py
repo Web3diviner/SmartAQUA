@@ -22,11 +22,13 @@ class TestProductionGates:
     def _production(self, **overrides):
         base = dict(
             app_env="production",
+            aquadoc_dev_token="",
             aquadoc_internal_service_secret="x" * 40,
             llm_provider="claude",
             anthropic_api_key="sk-test",
             embedding_provider="voyage",
             voyage_api_key="vk-test",
+            _env_file=None,
         )
         return Settings(**{**base, **overrides})
 

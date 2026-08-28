@@ -1,0 +1,113 @@
+import React, { useState, useEffect } from 'react'
+import { Header } from './components/Header'
+import { AnalyticsOverview } from './components/AnalyticsOverview'
+import { BookingsManager } from './components/BookingsManager'
+import { EvaluationHub } from './components/EvaluationHub'
+import { AdminAnalyticsResponse, Booking } from './types'
+
+const BASE_URL = import.meta.env.VITE_AQUADOC_BASE_URL || 'http://127.0.0.1:8001'
+const DEV_TOKEN = import.meta.env.VITE_AQUADOC_DEV_TOKEN || 'aqua-dev-token-2026'
+
+export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'bookings' | 'evaluation'>('analytics')
+  const [analytics, setAnalytics] = useState<AdminAnalyticsResponse | null>(null)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/dev/v1/admin/analytics`, {
+        headers: { Authorization: `Bearer ${DEV_TOKEN}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAnalytics(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin analytics:', err)
+    }
+  }
+
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/dev/v1/admin/bookings`, {
+        headers: { Authorization: `Bearer ${DEV_TOKEN}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setBookings(data.bookings || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch bookings:', err)
+    }
+  }
+
+  const loadAll = async () => {
+    setLoading(true)
+    await Promise.all([fetchAnalytics(), fetchBookings()])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadAll()
+    const interval = setInterval(loadAll, 15000) // Poll every 15s for live updates
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleUpdateBooking = async (id: string, update: Partial<Booking>) => {
+    try {
+      const res = await fetch(`${BASE_URL}/dev/v1/admin/bookings/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${DEV_TOKEN}`,
+        },
+        body: JSON.stringify(update),
+      })
+      if (res.ok) {
+        await Promise.all([fetchBookings(), fetchAnalytics()])
+      }
+    } catch (err) {
+      console.error('Failed to update booking:', err)
+    }
+  }
+
+  const pendingCount = bookings.filter((b) => b.status === 'pending').length
+
+  return (
+    <div className="admin-app">
+      <Header
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        pendingBookingsCount={pendingCount}
+      />
+
+      <main className="admin-main">
+        {activeTab === 'analytics' && (
+          <AnalyticsOverview data={analytics} loading={loading} />
+        )}
+
+        {activeTab === 'bookings' && (
+          <BookingsManager
+            bookings={bookings}
+            onUpdateBooking={handleUpdateBooking}
+            loading={loading}
+          />
+        )}
+
+        {activeTab === 'evaluation' && (
+          <EvaluationHub benchmarks={analytics?.system_benchmarks} />
+        )}
+      </main>
+
+      <footer className="admin-footer">
+        <div>
+          <strong>AquaDoc AI Enterprise Admin Portal</strong> &bull; Smart Aqua Ecosystem
+        </div>
+        <div>
+          Continuous Telemetry &bull; Port 5174 &bull; Backend: <code>{BASE_URL}</code>
+        </div>
+      </footer>
+    </div>
+  )
+}

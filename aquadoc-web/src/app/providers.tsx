@@ -14,12 +14,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 
 import { type ClientConfig, readClientConfig } from '@/api/client'
+import { DEFAULT_MODEL_ID } from '@/constants/models'
 import {
   DEFAULT_FARM_CONTEXT_FORM,
   type FarmContextForm,
 } from '@/schemas/farmContext'
 
 const STORAGE_KEY = 'aquadoc.farmContextForm.v1'
+const MODEL_STORAGE_KEY = 'aquadoc.selectedModel.v1'
 
 /** 15_AQUADOC_FRONTEND.md section 5, "Farm-Aware Chat Modes". */
 export type ChatMode = 'general' | 'simulated_pond'
@@ -37,6 +39,8 @@ interface AppState {
   toggleTheme: () => void
   chatMode: ChatMode
   setChatMode: (mode: ChatMode) => void
+  selectedModel: string
+  setSelectedModel: (model: string) => void
   farmForm: FarmContextForm
   setFarmForm: (form: FarmContextForm) => void
   resetFarmForm: () => void
@@ -55,16 +59,35 @@ function loadStoredForm(): FarmContextForm {
   }
 }
 
+function loadStoredModel(): string {
+  try {
+    const stored = window.localStorage.getItem(MODEL_STORAGE_KEY)
+    return stored || DEFAULT_MODEL_ID
+  } catch {
+    return DEFAULT_MODEL_ID
+  }
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
   const config = useMemo(readClientConfig, [])
   const debugAvailable = import.meta.env.VITE_ENABLE_DEBUG_PANEL === 'true'
 
-  const [devMode, setDevMode] = useState(debugAvailable)
+  const [devMode, setDevMode] = useState(false)
   const [chatMode, setChatMode] = useState<ChatMode>('general')
+  const [selectedModel, setSelectedModelState] = useState<string>(loadStoredModel)
   const [farmForm, setFarmForm] = useState<FarmContextForm>(loadStoredForm)
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     return (window.localStorage.getItem('aquadoc.theme') as ThemeMode) || 'dark'
   })
+
+  const setSelectedModel = useCallback((model: string) => {
+    setSelectedModelState(model)
+    try {
+      window.localStorage.setItem(MODEL_STORAGE_KEY, model)
+    } catch {
+      // Ignored if storage disabled
+    }
+  }, [])
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme)
@@ -101,11 +124,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
       toggleTheme,
       chatMode,
       setChatMode,
+      selectedModel,
+      setSelectedModel,
       farmForm,
       setFarmForm,
       resetFarmForm,
     }),
-    [config, debugAvailable, devMode, theme, setTheme, toggleTheme, chatMode, farmForm, resetFarmForm],
+    [config, debugAvailable, devMode, theme, setTheme, toggleTheme, chatMode, selectedModel, setSelectedModel, farmForm, resetFarmForm],
   )
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

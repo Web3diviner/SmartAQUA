@@ -8,14 +8,15 @@
  */
 
 import { useCallback, useRef, useState } from 'react'
-
-import { sendChat } from '@/api/chat'
+import { sendChat, transcribeAudio, punctuateText } from '@/api/chat'
 import { useAppState } from '@/app/providers'
 import { AssistantMessage, PendingMessage, UserMessage } from '@/components/ChatMessage'
 import { ErrorPanel } from '@/components/ErrorPanel'
 import { RetrievalInspector } from '@/components/RetrievalInspector'
+import { GROQ_MODELS } from '@/constants/models'
 import type { ChatResponse } from '@/schemas/aquadoc'
 import { formToFarmContext } from '@/schemas/farmContext'
+import { formatSpokenText } from '@/utils/speechPunctuation'
 
 interface Turn {
   id: string
@@ -24,15 +25,161 @@ interface Turn {
   error: unknown
 }
 
+function isSourceRequested(text: string): boolean {
+  const lower = text.toLowerCase()
+  return (
+    lower.includes('source') ||
+    lower.includes('reference') ||
+    lower.includes('citation') ||
+    lower.includes('cite') ||
+    lower.includes('where did you get') ||
+    lower.includes('where is this from') ||
+    lower.includes('manual') ||
+    lower.includes('research paper')
+  )
+}
+
 export function ChatPage() {
-  const { config, chatMode, setChatMode, farmForm, devMode, debugAvailable, setDevMode } =
+  const { config, chatMode, setChatMode, farmForm, devMode, debugAvailable, setDevMode, selectedModel } =
     useAppState()
 
   const [turns, setTurns] = useState<Turn[]>([])
   const [question, setQuestion] = useState('')
   const [pending, setPending] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
   const inFlight = useRef<AbortController | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const speechRecognizerRef = useRef<any>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  const currentModelInfo = GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0]!
+
+  const startVoiceRecording = async () => {
+    // 1. Try Browser Native SpeechRecognition for instant, real-time speech-to-text
+    const SpeechRecognitionClass =
+      (window as unknown as { SpeechRecognition?: any }).SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition
+
+    if (SpeechRecognitionClass) {
+      try {
+        const recognition = new SpeechRecognitionClass()
+        recognition.continuous = true
+        recognition.interimResults = true
+        recognition.lang = 'en-US'
+
+        const startingText = question ? `${question.trim()} ` : ''
+
+        recognition.onresult = (event: any) => {
+          let liveTranscript = ''
+          for (let i = 0; i < event.results.length; i++) {
+            liveTranscript += event.results[i][0].transcript
+          }
+          // Live display raw transcript as user speaks
+          setQuestion(startingText + liveTranscript)
+        }
+
+        recognition.onerror = (event: any) => {
+          console.warn('Speech recognition notice:', event.error)
+          if (event.error === 'not-allowed') {
+            alert('Microphone access was denied. Please allow microphone permissions in your browser.')
+            setRecording(false)
+          }
+        }
+
+        recognition.onend = async () => {
+          setQuestion((prev) => {
+            const formatted = formatSpokenText(prev)
+            // Asynchronously enhance via AI punctuation restorer if connected
+            void punctuateText(config, formatted).then((aiText) => {
+              if (aiText && aiText !== formatted) {
+                setQuestion(aiText)
+              }
+            })
+            return formatted
+          })
+          setRecording(false)
+        }
+
+        recognition.start()
+        speechRecognizerRef.current = recognition
+        setRecording(true)
+        return
+      } catch (e) {
+        console.warn('Native SpeechRecognition unavailable, falling back to Whisper audio recording:', e)
+      }
+    }
+
+    // 2. Fallback: Record audio and send to Groq Whisper endpoint
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      audioChunksRef.current = []
+      const recorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data)
+        }
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+        setTranscribing(true)
+        try {
+          const res = await transcribeAudio(config, audioBlob, 'whisper-large-v3-turbo')
+          if (res.text) {
+            let formatted = formatSpokenText(res.text)
+            try {
+              const aiPunct = await punctuateText(config, formatted)
+              if (aiPunct) formatted = aiPunct
+            } catch {
+              // Ignore AI punctuate error and use formatted
+            }
+            setQuestion((prev) => (prev ? `${prev.trim()} ${formatted}` : formatted))
+          }
+        } catch (err: any) {
+          console.error('Voice transcription error:', err)
+          alert(err.message || 'Audio transcription failed. Please check your GROQ_API_KEY in aquadoc/.env')
+        } finally {
+          setTranscribing(false)
+        }
+      }
+
+      recorder.start()
+      setRecording(true)
+    } catch (err) {
+      console.error('Failed to access microphone:', err)
+      alert('Microphone access is required for voice queries. Please allow microphone access in your browser settings.')
+    }
+  }
+
+  const stopVoiceRecording = () => {
+    if (speechRecognizerRef.current) {
+      try {
+        speechRecognizerRef.current.stop()
+      } catch {
+        // Ignored if already stopped
+      }
+      speechRecognizerRef.current = null
+    }
+
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop()
+    }
+    setQuestion((prev) => {
+      const formatted = formatSpokenText(prev)
+      void punctuateText(config, formatted).then((aiText) => {
+        if (aiText && aiText !== formatted) {
+          setQuestion(aiText)
+        }
+      })
+      return formatted
+    })
+    setRecording(false)
+  }
 
   const ask = useCallback(
     async (text: string, replaceTurnId?: string) => {
@@ -61,6 +208,7 @@ export function ChatPage() {
           // General mode sends no context at all — an empty object would read
           // as a pond where everything happens to be unmeasured.
           farmContext: chatMode === 'simulated_pond' ? formToFarmContext(farmForm) : null,
+          model: selectedModel,
           signal: controller.signal,
         })
         setConversationId(response.conversation_id)
@@ -76,7 +224,7 @@ export function ChatPage() {
         inFlight.current = null
       }
     },
-    [chatMode, config, conversationId, farmForm, pending],
+    [chatMode, config, conversationId, farmForm, pending, selectedModel],
   )
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -117,9 +265,7 @@ export function ChatPage() {
             <option value="simulated_pond">Simulated Pond</option>
           </select>
           <span className="chat-page__context-note">
-            {chatMode === 'general'
-              ? 'Question → RAG → LLM'
-              : 'Question + Farm Context + RAG + Rules → LLM'}
+            {currentModelInfo.name} · {currentModelInfo.badge}
           </span>
         </div>
 
@@ -162,8 +308,17 @@ export function ChatPage() {
                 "Calculate today's feeding rate",
                 'What could cause fish to swim slowly?',
               ].map((suggestion) => (
-                <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
-                  <span>{suggestion}</span><span aria-hidden="true">↗</span>
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => {
+                    setQuestion(suggestion)
+                    void ask(suggestion)
+                  }}
+                  title="Click to ask this question"
+                >
+                  <span>{suggestion}</span>
+                  <span aria-hidden="true">↗</span>
                 </button>
               ))}
             </div>
@@ -189,7 +344,11 @@ export function ChatPage() {
 
             {turn.response && (
               <>
-                <AssistantMessage response={turn.response} devMode={devMode} />
+                <AssistantMessage
+                  response={turn.response}
+                  devMode={devMode}
+                  showSources={isSourceRequested(turn.question)}
+                />
                 {devMode && <RetrievalInspector response={turn.response} />}
               </>
             )}
@@ -201,25 +360,72 @@ export function ChatPage() {
         <label className="visually-hidden" htmlFor="question">
           Ask AquaDoc
         </label>
-        <textarea
-          id="question"
-          className="chat-page__input"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={(event) => {
-            // Enter sends; Shift+Enter is a newline.
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              handleSubmit(event)
-            }
-          }}
-          placeholder="Ask AquaDoc about feeding, water quality, fish health…"
-          rows={2}
-          disabled={pending}
-        />
-        <button type="submit" className="button button--primary" disabled={pending || !question.trim()}>
-          {pending ? 'Thinking…' : 'Ask AquaDoc'}
-        </button>
+        
+        {recording && (
+          <div className="voice-recording-banner">
+            <span className="recording-pulse-dot" aria-hidden="true" />
+            <span>Listening... Speak your aquaculture question (Groq Whisper)</span>
+            <button
+              type="button"
+              className="button button--ghost button--sm"
+              onClick={stopVoiceRecording}
+            >
+              Done
+            </button>
+          </div>
+        )}
+
+        <div className="composer-input-row">
+          <textarea
+            id="question"
+            className="chat-page__input"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter sends; Shift+Enter is a newline.
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                handleSubmit(event)
+              }
+            }}
+            rows={2}
+            disabled={pending || recording || transcribing}
+          />
+
+          <div className="composer-actions">
+            <button
+              type="button"
+              className={`button-mic ${recording ? 'button-mic--recording' : ''}`}
+              onClick={recording ? stopVoiceRecording : startVoiceRecording}
+              disabled={pending || transcribing}
+              title={recording ? 'Stop recording' : 'Speak question with Whisper'}
+              aria-label={recording ? 'Stop recording' : 'Voice input'}
+            >
+              {transcribing ? (
+                <span className="spinner-sm" />
+              ) : (
+                <svg viewBox="0 0 24 24" className="mic-icon" aria-hidden="true">
+                  <path
+                    d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              )}
+            </button>
+
+            <button
+              type="submit"
+              className="button button--primary"
+              disabled={pending || recording || transcribing || !question.trim()}
+            >
+              {pending ? 'Thinking…' : 'Ask AquaDoc'}
+            </button>
+          </div>
+        </div>
       </form>
     </div>
   )

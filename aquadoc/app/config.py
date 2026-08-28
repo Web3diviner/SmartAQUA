@@ -13,7 +13,7 @@ from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 AppEnv = Literal["development", "staging", "production"]
-LLMProviderName = Literal["claude", "echo"]
+LLMProviderName = Literal["claude", "groq", "echo"]
 EmbeddingProviderName = Literal["hashing", "voyage"]
 EffortLevel = Literal["low", "medium", "high", "xhigh", "max"]
 
@@ -45,13 +45,15 @@ class Settings(BaseSettings):
     aquadoc_dev_token: str = ""
 
     # -- LLM provider --------------------------------------------------------
-    llm_provider: LLMProviderName = "echo"
-    llm_model: str = "claude-opus-5"
-    llm_max_tokens: int = 8000
+    llm_provider: LLMProviderName = "groq"
+    llm_model: str = "openai/gpt-oss-120b"
+    llm_max_tokens: int = 2000
     llm_effort: EffortLevel = "high"
     llm_timeout_seconds: float = 120.0
     llm_enable_refusal_fallback: bool = True
     anthropic_api_key: str = ""
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
 
     # -- Embedding provider --------------------------------------------------
     embedding_provider: EmbeddingProviderName = "hashing"
@@ -62,7 +64,7 @@ class Settings(BaseSettings):
 
     # -- Retrieval -----------------------------------------------------------
     retrieval_candidates: int = Field(default=40, ge=1, le=200)
-    retrieval_top_k: int = Field(default=6, ge=1, le=50)
+    retrieval_top_k: int = Field(default=4, ge=1, le=50)
     retrieval_min_similarity: float = Field(default=0.15, ge=0.0, le=1.0)
     retrieval_enable_lexical: bool = True
 
@@ -126,6 +128,8 @@ class Settings(BaseSettings):
             )
         if self.llm_provider == "claude" and not self.anthropic_api_key:
             problems.append("ANTHROPIC_API_KEY is required when LLM_PROVIDER=claude")
+        if self.llm_provider == "groq" and not self.groq_api_key:
+            problems.append("GROQ_API_KEY is required when LLM_PROVIDER=groq")
         if self.embedding_provider == "voyage" and not self.voyage_api_key:
             problems.append("VOYAGE_API_KEY is required when EMBEDDING_PROVIDER=voyage")
 

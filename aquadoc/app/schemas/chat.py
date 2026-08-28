@@ -38,6 +38,8 @@ class ChatRequest(BaseModel):
     farm_context: FarmContext | None = None
     # Free-form metadata filters, e.g. {"species": ["Clarias gariepinus"]}.
     filters: dict[str, list[str]] = Field(default_factory=dict)
+    # Optional LLM model override, e.g. openai/gpt-oss-120b, qwen/qwen3.8-27b
+    model: str | None = Field(default=None, max_length=128)
 
 
 class SourceReference(BaseModel):

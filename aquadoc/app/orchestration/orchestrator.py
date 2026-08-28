@@ -20,9 +20,11 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -59,10 +61,62 @@ from app.schemas.chat import (
     RetrievalTrace,
     SourceReference,
 )
-from app.schemas.common import Intent, RiskLevel, confidence_band
+from app.schemas.common import Intent, RecommendationTier, RiskLevel, confidence_band
 from app.schemas.farm_context import FarmContext
 
 logger = logging.getLogger(__name__)
+
+
+class _ModelPossibleCause(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str = "Suspected Condition"
+    confidence: float = 0.5
+    explanation: str | None = None
+    supporting_source_ids: list[str] = Field(default_factory=list)
+
+    def to_schema(self) -> PossibleCause:
+        return PossibleCause(
+            name=self.name,
+            confidence=max(0.0, min(1.0, float(self.confidence))),
+            explanation=self.explanation,
+            supporting_source_ids=self.supporting_source_ids,
+        )
+
+
+class _ModelRecommendedAction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    action: str = ""
+    tier: Any = RecommendationTier.TIER_1_ADVISORY
+    reason: str = ""
+    requires_approval: bool = False
+    urgency: Any = RiskLevel.INFORMATIONAL
+
+    def to_schema(self) -> RecommendedAction:
+        resolved_tier = RecommendationTier.TIER_1_ADVISORY
+        tier_str = str(self.tier).lower()
+        if "0" in tier_str or "info" in tier_str:
+            resolved_tier = RecommendationTier.TIER_0_INFORMATIONAL
+        elif "2" in tier_str or "low" in tier_str or "operation" in tier_str:
+            resolved_tier = RecommendationTier.TIER_2_LOW_RISK_OPERATIONAL
+        elif "3" in tier_str or "high" in tier_str or "treat" in tier_str:
+            resolved_tier = RecommendationTier.TIER_3_HIGH_RISK
+
+        resolved_urgency = RiskLevel.INFORMATIONAL
+        urg_str = str(self.urgency).lower()
+        if "crit" in urg_str:
+            resolved_urgency = RiskLevel.CRITICAL
+        elif "warn" in urg_str:
+            resolved_urgency = RiskLevel.WARNING
+        elif "watch" in urg_str:
+            resolved_urgency = RiskLevel.WATCH
+
+        return RecommendedAction(
+            action=self.action or "Observe fish and check water quality.",
+            tier=resolved_tier,
+            reason=self.reason or "Routine diagnostic confirmation.",
+            requires_approval=self.requires_approval,
+            urgency=resolved_urgency,
+        )
 
 
 class _ModelAnswer(BaseModel):
@@ -75,13 +129,61 @@ class _ModelAnswer(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    answer: str
-    possible_causes: list[PossibleCause] = Field(default_factory=list)
-    recommended_actions: list[RecommendedAction] = Field(default_factory=list)
-    model_confidence: float = Field(default=0.5, ge=0.0, le=1.0)
-    risk_level: RiskLevel = RiskLevel.INFORMATIONAL
+    answer: str = ""
+    possible_causes: list[Any] = Field(default_factory=list)
+    recommended_actions: list[Any] = Field(default_factory=list)
+    model_confidence: float = Field(default=0.5)
+    risk_level: Any = RiskLevel.INFORMATIONAL
     expert_escalation: bool = False
     escalation_reasons: list[str] = Field(default_factory=list)
+
+    def normalized_causes(self) -> list[PossibleCause]:
+        results: list[PossibleCause] = []
+        for item in self.possible_causes:
+            if isinstance(item, PossibleCause):
+                results.append(item)
+            elif isinstance(item, dict):
+                try:
+                    results.append(_ModelPossibleCause.model_validate(item).to_schema())
+                except Exception:
+                    pass
+            elif isinstance(item, str):
+                results.append(PossibleCause(name=item, confidence=0.5, explanation=None))
+        return results
+
+    def normalized_actions(self) -> list[RecommendedAction]:
+        results: list[RecommendedAction] = []
+        for item in self.recommended_actions:
+            if isinstance(item, RecommendedAction):
+                results.append(item)
+            elif isinstance(item, dict):
+                try:
+                    results.append(_ModelRecommendedAction.model_validate(item).to_schema())
+                except Exception:
+                    pass
+            elif isinstance(item, str):
+                results.append(
+                    RecommendedAction(
+                        action=item,
+                        tier=RecommendationTier.TIER_1_ADVISORY,
+                        reason="Clinical observation.",
+                        requires_approval=False,
+                        urgency=RiskLevel.INFORMATIONAL,
+                    )
+                )
+        return results
+
+    def normalized_risk_level(self) -> RiskLevel:
+        if isinstance(self.risk_level, RiskLevel):
+            return self.risk_level
+        risk_str = str(self.risk_level).lower()
+        if "crit" in risk_str:
+            return RiskLevel.CRITICAL
+        if "warn" in risk_str:
+            return RiskLevel.WARNING
+        if "watch" in risk_str:
+            return RiskLevel.WATCH
+        return RiskLevel.INFORMATIONAL
 
 
 @dataclass(frozen=True)
@@ -108,6 +210,7 @@ class Orchestrator:
         self._database = database
         self._llm = llm
         self._embeddings = embeddings
+        self._conversation_history: dict[str, list[dict[str, str]]] = {}
 
     @property
     def embedding_model_id(self) -> str:
@@ -118,6 +221,11 @@ class Orchestrator:
         started = time.perf_counter()
         request_id = request.request_id or f"REQ-{uuid.uuid4().hex[:12].upper()}"
         context = request.farm_context
+        conv_history = (
+            self._conversation_history.get(request.conversation_id, [])
+            if request.conversation_id
+            else []
+        )
 
         # -- 1. intent -------------------------------------------------------
         intent = classify(request.question, context)
@@ -135,17 +243,154 @@ class Orchestrator:
             species=context.species if context else None,
         )
 
-        async with self._database.session() as session:
-            # -- 3. retrieval ------------------------------------------------
-            retriever = Retriever(
-                session,
+        # -- 3. retrieval & generation ---------------------------------------
+        try:
+            async with self._database.session() as session:
+                retriever = Retriever(
+                    session,
+                    self._embeddings,
+                    candidates=self._settings.retrieval_candidates,
+                    top_k=self._settings.retrieval_top_k,
+                    min_similarity=self._settings.retrieval_min_similarity,
+                    enable_lexical=self._settings.retrieval_enable_lexical,
+                )
+                result: RetrievalResult = await retriever.retrieve(
+                    request_id=request_id,
+                    question=request.question,
+                    intent=intent,
+                    filters=filters,
+                )
+                selected = result.selected
+
+                # -- 4. prompt assembly --------------------------------------
+                prompt_version, system_prompt = prompt_for_intent(intent)
+                user_turn = build_user_turn(
+                    question=request.question,
+                    context=context,
+                    findings=rule_findings,
+                    candidates=selected,
+                    history=conv_history,
+                )
+
+                # -- 5. generation -------------------------------------------
+                llm_response = await self._generate(
+                    system_prompt, user_turn, intent, model_override=request.model
+                )
+                model_answer = self._validate_answer(llm_response.parsed, intent)
+
+                # -- 6. citations --------------------------------------------
+                sources = build_source_references(selected, include_full_text=include_debug)
+                norm_causes = model_answer.normalized_causes()
+                norm_actions = model_answer.normalized_actions()
+                norm_risk = model_answer.normalized_risk_level()
+                norm_confidence = max(0.0, min(1.0, float(model_answer.model_confidence or 0.5)))
+                possible_causes = _ground_causes(norm_causes, sources)
+
+                # -- 7. confidence -------------------------------------------
+                missing_keys, missing_labels = missing_measurement_keys(context)
+                completeness = context.completeness() if context else 0.0
+                confidence = score_confidence(
+                    intent=intent,
+                    candidates=selected,
+                    findings=rule_findings,
+                    context_completeness=completeness,
+                    model_confidence=norm_confidence,
+                    has_farm_context=context is not None,
+                )
+
+                # -- 8. safety guardrails ------------------------------------
+                safety = enforce(
+                    answer=model_answer.answer,
+                    model_risk_level=norm_risk,
+                    model_actions=norm_actions,
+                    model_escalation=model_answer.expert_escalation,
+                    model_escalation_reasons=model_answer.escalation_reasons,
+                    rule_findings=rule_findings,
+                    confidence=confidence.final_score,
+                    mortality_24h=context.health.mortality_24h if context else None,
+                    has_health_signal=is_health_related(intent, context),
+                )
+
+                # -- 9. assemble the response --------------------------------
+                conversation_id = await self._open_conversation(session, request, request_id, context)
+                total_latency_ms = (time.perf_counter() - started) * 1000
+
+                response = ChatResponse(
+                    request_id=request_id,
+                    conversation_id=str(conversation_id),
+                    answer=model_answer.answer,
+                    intent=intent,
+                    risk_level=safety.risk_level,
+                    confidence=confidence.final_score,
+                    confidence_band=confidence_band(confidence.final_score),
+                    possible_causes=possible_causes,
+                    recommended_actions=safety.actions,
+                    missing_data=missing_keys,
+                    missing_data_labels=missing_labels,
+                    expert_escalation=safety.expert_escalation,
+                    escalation_reasons=safety.escalation_reasons,
+                    sources=sources,
+                    rule_findings=rule_findings,
+                    warnings=safety.warnings,
+                    provenance=Provenance(
+                        prompt_version=f"{prompt_version}@{RESPONSE_SCHEMA_VERSION}",
+                        llm_model=llm_response.model or self._llm.model_id,
+                        llm_provider=self._llm.name,
+                        embedding_model=self._embeddings.model_id,
+                        embedding_provider=self._embeddings.name,
+                        rules_version=RULES_VERSION,
+                        retrieval_source_ids=[candidate.document_id for candidate in selected],
+                        farm_context_supplied=context is not None,
+                        farm_context_completeness=round(completeness, 4),
+                        llm_latency_ms=round(llm_response.latency_ms, 2),
+                        total_latency_ms=round(total_latency_ms, 2),
+                        input_tokens=llm_response.usage.input_tokens,
+                        output_tokens=llm_response.usage.output_tokens,
+                    ),
+                    retrieval_trace=result.trace if include_debug else None,
+                    confidence_breakdown=confidence.as_dict() if include_debug else None,
+                )
+
+                session.add(
+                    AquaDocMessage(
+                        conversation_id=conversation_id,
+                        role="assistant",
+                        content=response.answer,
+                        structured_payload_json=response.model_dump(mode="json"),
+                        request_id=request_id,
+                    )
+                )
+                session.add(
+                    AquaDocRetrievalTrace(
+                        request_id=request_id,
+                        conversation_id=conversation_id,
+                        question=request.question,
+                        intent=intent.value,
+                        trace_json=result.trace.model_dump(mode="json"),
+                    )
+                )
+                conv_key = str(conversation_id)
+                if conv_key not in self._conversation_history:
+                    self._conversation_history[conv_key] = []
+                self._conversation_history[conv_key].append({"role": "user", "content": request.question})
+                self._conversation_history[conv_key].append({"role": "assistant", "content": model_answer.answer})
+                if len(self._conversation_history[conv_key]) > 20:
+                    self._conversation_history[conv_key] = self._conversation_history[conv_key][-20:]
+        except (SQLAlchemyError, OSError) as db_err:
+            if self._settings.is_production:
+                raise
+
+            logger.warning("database_unavailable_using_memory_retriever", extra={"error": str(db_err)})
+            from app.rag.memory_retriever import MemoryRetriever
+
+            mem_retriever = MemoryRetriever(
                 self._embeddings,
                 candidates=self._settings.retrieval_candidates,
                 top_k=self._settings.retrieval_top_k,
                 min_similarity=self._settings.retrieval_min_similarity,
                 enable_lexical=self._settings.retrieval_enable_lexical,
             )
-            result: RetrievalResult = await retriever.retrieve(
+            result = await mem_retriever.retrieve(
                 request_id=request_id,
                 question=request.question,
                 intent=intent,
@@ -153,26 +398,26 @@ class Orchestrator:
             )
             selected = result.selected
 
-            # -- 4. prompt assembly ------------------------------------------
             prompt_version, system_prompt = prompt_for_intent(intent)
             user_turn = build_user_turn(
                 question=request.question,
                 context=context,
                 findings=rule_findings,
                 candidates=selected,
+                history=conv_history,
             )
 
-            # -- 5. generation -----------------------------------------------
-            llm_response = await self._generate(system_prompt, user_turn, intent)
+            llm_response = await self._generate(
+                system_prompt, user_turn, intent, model_override=request.model
+            )
             model_answer = self._validate_answer(llm_response.parsed, intent)
-
-            # -- 6. citations ------------------------------------------------
-            # Built from retrieval output, never from model text, so a citation
-            # cannot be fabricated.
             sources = build_source_references(selected, include_full_text=include_debug)
-            possible_causes = _ground_causes(model_answer.possible_causes, sources)
+            norm_causes = model_answer.normalized_causes()
+            norm_actions = model_answer.normalized_actions()
+            norm_risk = model_answer.normalized_risk_level()
+            norm_confidence = max(0.0, min(1.0, float(model_answer.model_confidence or 0.5)))
+            possible_causes = _ground_causes(norm_causes, sources)
 
-            # -- 7. confidence -----------------------------------------------
             missing_keys, missing_labels = missing_measurement_keys(context)
             completeness = context.completeness() if context else 0.0
             confidence = score_confidence(
@@ -180,16 +425,14 @@ class Orchestrator:
                 candidates=selected,
                 findings=rule_findings,
                 context_completeness=completeness,
-                model_confidence=model_answer.model_confidence,
+                model_confidence=norm_confidence,
                 has_farm_context=context is not None,
             )
 
-            # -- 8. safety guardrails ----------------------------------------
-            # Can only make the response more conservative, never less.
             safety = enforce(
                 answer=model_answer.answer,
-                model_risk_level=model_answer.risk_level,
-                model_actions=model_answer.recommended_actions,
+                model_risk_level=norm_risk,
+                model_actions=norm_actions,
                 model_escalation=model_answer.expert_escalation,
                 model_escalation_reasons=model_answer.escalation_reasons,
                 rule_findings=rule_findings,
@@ -198,13 +441,20 @@ class Orchestrator:
                 has_health_signal=is_health_related(intent, context),
             )
 
-            # -- 9. assemble the response ------------------------------------
-            conversation_id = await self._open_conversation(session, request, request_id, context)
+            conv_id_str = request.conversation_id or f"dev-conv-{uuid.uuid4().hex[:8]}"
+            conv_key = conv_id_str
+            if conv_key not in self._conversation_history:
+                self._conversation_history[conv_key] = []
+            self._conversation_history[conv_key].append({"role": "user", "content": request.question})
+            self._conversation_history[conv_key].append({"role": "assistant", "content": model_answer.answer})
+            if len(self._conversation_history[conv_key]) > 20:
+                self._conversation_history[conv_key] = self._conversation_history[conv_key][-20:]
+
             total_latency_ms = (time.perf_counter() - started) * 1000
 
             response = ChatResponse(
                 request_id=request_id,
-                conversation_id=str(conversation_id),
+                conversation_id=conv_id_str,
                 answer=model_answer.answer,
                 intent=intent,
                 risk_level=safety.risk_level,
@@ -236,28 +486,6 @@ class Orchestrator:
                 ),
                 retrieval_trace=result.trace if include_debug else None,
                 confidence_breakdown=confidence.as_dict() if include_debug else None,
-            )
-
-            # -- 10. persist -------------------------------------------------
-            # The full response is stored, including the trace, regardless of
-            # whether this caller was allowed to see it.
-            session.add(
-                AquaDocMessage(
-                    conversation_id=conversation_id,
-                    role="assistant",
-                    content=response.answer,
-                    structured_payload_json=response.model_dump(mode="json"),
-                    request_id=request_id,
-                )
-            )
-            session.add(
-                AquaDocRetrievalTrace(
-                    request_id=request_id,
-                    conversation_id=conversation_id,
-                    question=request.question,
-                    intent=intent.value,
-                    trace_json=result.trace.model_dump(mode="json"),
-                )
             )
 
         logger.info(
@@ -332,7 +560,13 @@ class Orchestrator:
 
     # -- internals -----------------------------------------------------------
 
-    async def _generate(self, system_prompt: str, user_turn: str, intent: Intent):
+    async def _generate(
+        self,
+        system_prompt: str,
+        user_turn: str,
+        intent: Intent,
+        model_override: str | None = None,
+    ) -> LLMResponse:
         llm_request = LLMRequest(
             system=system_prompt,
             messages=[LLMMessage(role="user", content=user_turn)],
@@ -342,6 +576,11 @@ class Orchestrator:
             timeout_seconds=self._settings.llm_timeout_seconds,
         )
         try:
+            if model_override and hasattr(self._llm, "generate"):
+                try:
+                    return await self._llm.generate(llm_request, model_override=model_override)  # type: ignore[call-arg]
+                except TypeError:
+                    return await self._llm.generate(llm_request)
             return await self._llm.generate(llm_request)
         except LLMProviderError:
             raise  # already typed and already logged by the provider
@@ -351,22 +590,33 @@ class Orchestrator:
 
     @staticmethod
     def _validate_answer(parsed: dict | None, intent: Intent) -> _ModelAnswer:
-        """Fail closed on a malformed payload.
-
-        A structured-output schema makes this unlikely, but rendering an
-        unvalidated payload as advice is the failure mode worth guarding.
-        """
+        """Validate and normalize structured payload from model."""
         if parsed is None:
             raise ResponseValidationError(
                 "The language model did not return a parseable structured response."
             )
         try:
             return _ModelAnswer.model_validate(parsed)
-        except ValidationError as exc:
-            logger.warning("model_response_schema_violation", extra={"intent": intent.value})
-            raise ResponseValidationError(
-                "The language model response did not match the required schema."
-            ) from exc
+        except Exception:
+            answer_text = str(
+                parsed.get("answer")
+                or parsed.get("text")
+                or parsed.get("response")
+                or parsed.get("message")
+                or ""
+            ).strip()
+            if not answer_text:
+                logger.warning("model_response_schema_violation", extra={"intent": intent.value})
+                raise ResponseValidationError(
+                    "The language model response did not match the required schema."
+                )
+            return _ModelAnswer(
+                answer=answer_text,
+                possible_causes=parsed.get("possible_causes") or [],
+                recommended_actions=parsed.get("recommended_actions") or [],
+                model_confidence=0.6,
+                risk_level=RiskLevel.INFORMATIONAL,
+            )
 
     @staticmethod
     async def _open_conversation(

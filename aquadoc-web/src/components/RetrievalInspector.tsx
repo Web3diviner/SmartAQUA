@@ -201,26 +201,6 @@ function ProvenanceTable({ response }: { response: ChatResponse }) {
   return (
     <dl className="inspector__facts">
       <div>
-        <dt>Prompt version</dt>
-        <dd><code>{provenance.prompt_version}</code></dd>
-      </div>
-      <div>
-        <dt>LLM</dt>
-        <dd>
-          {provenance.llm_provider} / <code>{provenance.llm_model}</code>
-        </dd>
-      </div>
-      <div>
-        <dt>Embeddings</dt>
-        <dd>
-          {provenance.embedding_provider} / <code>{provenance.embedding_model}</code>
-        </dd>
-      </div>
-      <div>
-        <dt>Rules version</dt>
-        <dd><code>{provenance.rules_version}</code></dd>
-      </div>
-      <div>
         <dt>Farm context</dt>
         <dd>
           {provenance.farm_context_supplied

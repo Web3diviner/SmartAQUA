@@ -135,3 +135,7 @@ def get_app() -> FastAPI:
     constructing an application or reading the environment.
     """
     return create_app()
+
+
+# Standard ASGI instance for `uvicorn app.main:app`
+app = get_app()

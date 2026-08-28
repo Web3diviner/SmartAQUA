@@ -31,7 +31,7 @@ from app.schemas.farm_context import FarmContext
 _TAG_LIKE = re.compile(r"<\s*/?\s*(?:source|sources|question|pond_state|rule_findings|"
                        r"missing_measurements|system|instructions?)\b[^>]*>", re.IGNORECASE)
 
-_MAX_SOURCE_CHARS = 4000
+_MAX_SOURCE_CHARS = 1200
 
 
 def sanitize_untrusted(text: str) -> str:
@@ -150,15 +150,33 @@ def build_rule_findings_block(findings: list[RuleFinding]) -> str:
     return "\n".join(lines)
 
 
+def build_conversation_history_block(history: list[dict[str, str]] | None) -> str:
+    """Render recent dialogue turns so the model maintains conversational continuity."""
+    if not history:
+        return ""
+    lines = ["<conversation_history>"]
+    for turn in history[-6:]:  # Keep up to last 6 dialogue turns for context memory
+        role = "farmer" if turn.get("role") == "user" else "doctor"
+        content = sanitize_untrusted(turn.get("content", ""))
+        lines.append(f"<{role}>\n{content}\n</{role}>")
+    lines.append("</conversation_history>")
+    return "\n".join(lines)
+
+
 def build_user_turn(
     *,
     question: str,
     context: FarmContext | None,
     findings: list[RuleFinding],
     candidates: list[Candidate],
+    history: list[dict[str, str]] | None = None,
 ) -> str:
-    """Assemble the complete user-turn payload."""
-    return "\n\n".join(
+    """Assemble the complete user-turn payload with conversation memory."""
+    blocks = []
+    hist_block = build_conversation_history_block(history)
+    if hist_block:
+        blocks.append(hist_block)
+    blocks.extend(
         [
             f"<question>\n{sanitize_untrusted(question)}\n</question>",
             build_pond_state_block(context),
@@ -167,6 +185,7 @@ def build_user_turn(
             build_sources_block(candidates),
         ]
     )
+    return "\n\n".join(blocks)
 
 
 def missing_measurement_keys(context: FarmContext | None) -> tuple[list[str], list[str]]:

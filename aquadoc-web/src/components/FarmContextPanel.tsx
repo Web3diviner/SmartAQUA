@@ -185,7 +185,6 @@ function Field({
         inputMode="decimal"
         className="field__input"
         value={value}
-        placeholder="Not measured"
         onChange={(event) => onChange(event.target.value)}
       />
     </div>

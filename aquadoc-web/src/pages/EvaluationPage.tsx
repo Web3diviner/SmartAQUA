@@ -12,8 +12,6 @@ export interface TraceMetric {
   id: string
   question: string
   intent: string
-  model: string
-  prompt_version: string
   retrieval_ms: number
   llm_ms: number
   total_ms: number
@@ -29,8 +27,6 @@ const MOCK_TRACES: TraceMetric[] = [
     id: 'REQ-9014',
     question: 'What causes surface piping in catfish ponds during early morning hours?',
     intent: 'water_quality_triage',
-    model: 'claude-opus-5',
-    prompt_version: 'v1.4_farm_aware',
     retrieval_ms: 112,
     llm_ms: 640,
     total_ms: 752,
@@ -44,8 +40,6 @@ const MOCK_TRACES: TraceMetric[] = [
     id: 'REQ-9015',
     question: 'Calculate daily feed ration for 500kg biomass at 28.5 deg C.',
     intent: 'feeding_calculation',
-    model: 'claude-opus-5',
-    prompt_version: 'v1.4_farm_aware',
     retrieval_ms: 85,
     llm_ms: 420,
     total_ms: 505,
@@ -59,8 +53,6 @@ const MOCK_TRACES: TraceMetric[] = [
     id: 'REQ-9016',
     question: 'Is 0.5 mg/L dissolved oxygen safe for fingerlings?',
     intent: 'safety_boundary',
-    model: 'claude-opus-5',
-    prompt_version: 'v1.4_farm_aware',
     retrieval_ms: 98,
     llm_ms: 510,
     total_ms: 608,
@@ -73,17 +65,17 @@ const MOCK_TRACES: TraceMetric[] = [
 ]
 
 export function EvaluationPage() {
-  const [selectedTrace, setSelectedTrace] = useState<TraceMetric>(MOCK_TRACES[0])
+  const [selectedTrace, setSelectedTrace] = useState<TraceMetric>(MOCK_TRACES[0]!)
 
   return (
     <div className="eval-page">
       <header className="page-header">
         <div>
-          <span className="page-eyebrow">Developer & AI Telemetry Console</span>
-          <h2>AquaDoc RAG & LLM Evaluation Hub</h2>
+          <span className="page-eyebrow">Performance & AI Telemetry Console</span>
+          <h2>AquaDoc Evaluation Hub</h2>
         </div>
         <p>
-          Inspect prompt versions, token consumption, vector retrieval latency, reranking scores, and safety rule passes.
+          Inspect token consumption, vector retrieval latency, grounding accuracy, and safety rule passes.
         </p>
       </header>
 
@@ -109,7 +101,7 @@ export function EvaluationPage() {
         <div className="eval-card">
           <span className="eval-card__label">Est. Cost / 1k Queries</span>
           <div className="eval-card__value">$3.10</div>
-          <span className="eval-card__sub">Claude Opus 5 + Voyage-3</span>
+          <span className="eval-card__sub">Production telemetry</span>
         </div>
       </div>
 
@@ -171,28 +163,6 @@ export function EvaluationPage() {
               <span>Intent Classification</span>
               <strong>{selectedTrace.intent}</strong>
             </div>
-          </div>
-
-          <div className="detail-group">
-            <h4>Model & Provenance</h4>
-            <dl className="kv-grid">
-              <div>
-                <dt>LLM Model</dt>
-                <dd>{selectedTrace.model}</dd>
-              </div>
-              <div>
-                <dt>Prompt Version</dt>
-                <dd>{selectedTrace.prompt_version}</dd>
-              </div>
-              <div>
-                <dt>Embedding Provider</dt>
-                <dd>Voyage-3 (1536 dim)</dd>
-              </div>
-              <div>
-                <dt>Rules Engine</dt>
-                <dd>water_quality/v1</dd>
-              </div>
-            </dl>
           </div>
 
           <div className="detail-group">

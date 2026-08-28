@@ -12,11 +12,10 @@ import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 
 import { useAppState } from '@/app/providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ModelSelector } from '@/components/ModelSelector'
 import { ChatPage } from '@/pages/ChatPage'
 import { DiseaseTestPage } from '@/pages/DiseaseTestPage'
-import { EvaluationPage } from '@/pages/EvaluationPage'
 import { FarmSimulatorPage } from '@/pages/FarmSimulatorPage'
-import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage'
 
 export function App() {
   const { config, debugAvailable, theme, toggleTheme } = useAppState()
@@ -42,24 +41,16 @@ export function App() {
             <span className="nav-label--wide">Farm Simulator</span>
             <span className="nav-label--compact">Farm</span>
           </NavLink>
-          <NavLink to="/knowledge" className={({ isActive }) => (isActive ? 'active' : '')}>
-            <KnowledgeIcon />
-            <span className="nav-label--wide">Knowledge Base</span>
-            <span className="nav-label--compact">RAG</span>
-          </NavLink>
           <NavLink to="/disease" className={({ isActive }) => (isActive ? 'active' : '')}>
             <HealthIcon />
             <span className="nav-label--wide">Disease Triage</span>
             <span className="nav-label--compact">Health</span>
           </NavLink>
-          <NavLink to="/eval" className={({ isActive }) => (isActive ? 'active' : '')}>
-            <EvalIcon />
-            <span className="nav-label--wide">Evaluation</span>
-            <span className="nav-label--compact">Eval</span>
-          </NavLink>
         </nav>
 
         <div className="app__status">
+          <ModelSelector />
+
           <button
             type="button"
             className="theme-toggle-btn"
@@ -87,9 +78,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/simulator" element={<FarmSimulatorPage />} />
-            <Route path="/knowledge" element={<KnowledgeBasePage />} />
             <Route path="/disease" element={<DiseaseTestPage />} />
-            <Route path="/eval" element={<EvaluationPage />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>
         </ErrorBoundary>
@@ -134,15 +123,6 @@ function PondIcon() {
   )
 }
 
-function KnowledgeIcon() {
-  return (
-    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" strokeWidth="1.8" fill="none" />
-    </svg>
-  )
-}
-
 function HealthIcon() {
   return (
     <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -151,13 +131,6 @@ function HealthIcon() {
   )
 }
 
-function EvalIcon() {
-  return (
-    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 function SunIcon() {
   return (

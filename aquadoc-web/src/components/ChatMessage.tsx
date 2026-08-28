@@ -46,9 +46,11 @@ export function PendingMessage() {
 export function AssistantMessage({
   response,
   devMode,
+  showSources = false,
 }: {
   response: ChatResponse
   devMode: boolean
+  showSources?: boolean
 }) {
   // Missing-data reporting only makes sense when farm context was expected.
   const contextual = response.provenance.farm_context_supplied
@@ -60,18 +62,20 @@ export function AssistantMessage({
       {/* Text is rendered as React elements, never as an HTML string. */}
       <div className="message__answer">{renderAnswer(response.answer)}</div>
 
-      <div className="message__badges">
-        <ConfidenceBadge
-          band={response.confidence_band}
-          score={response.confidence}
-          showNumeric={devMode}
-        />
-        <RiskBadge level={response.risk_level} />
-        <span className="badge badge--intent">
-          <span className="badge__label">Intent</span>
-          <span className="badge__value">{response.intent.replace(/_/g, ' ')}</span>
-        </span>
-      </div>
+      {devMode && (
+        <div className="message__badges">
+          <ConfidenceBadge
+            band={response.confidence_band}
+            score={response.confidence}
+            showNumeric={devMode}
+          />
+          <RiskBadge level={response.risk_level} />
+          <span className="badge badge--intent">
+            <span className="badge__label">Intent</span>
+            <span className="badge__value">{response.intent.replace(/_/g, ' ')}</span>
+          </span>
+        </div>
+      )}
 
       {response.expert_escalation && (
         <div className="escalation" role="note">
@@ -84,7 +88,7 @@ export function AssistantMessage({
         </div>
       )}
 
-      {response.possible_causes.length > 0 && (
+      {devMode && response.possible_causes.length > 0 && (
         <div className="causes">
           <h4>Possible causes</h4>
           <ol className="causes__list">
@@ -104,7 +108,7 @@ export function AssistantMessage({
         </div>
       )}
 
-      {response.recommended_actions.length > 0 && (
+      {devMode && response.recommended_actions.length > 0 && (
         <div className="actions">
           <h4>Recommended actions</h4>
           <p className="actions__note">
@@ -126,9 +130,9 @@ export function AssistantMessage({
         </div>
       )}
 
-      <MissingDataPanel labels={response.missing_data_labels} hidden={!contextual} />
+      {devMode && <MissingDataPanel labels={response.missing_data_labels} hidden={!contextual} />}
 
-      {response.warnings.length > 0 && (
+      {devMode && response.warnings.length > 0 && (
         <div className="warnings" role="note">
           <h4>Safety notes</h4>
           <ul>
@@ -154,7 +158,9 @@ export function AssistantMessage({
         </details>
       )}
 
-      <SourceList sources={response.sources} showDetails={devMode} />
+      {(showSources || devMode) && response.sources && response.sources.length > 0 && (
+        <SourceList sources={response.sources} showDetails={devMode} />
+      )}
     </div>
   )
 }
