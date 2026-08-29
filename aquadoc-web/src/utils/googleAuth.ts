@@ -1,8 +1,9 @@
 /**
- * Official Google Identity Services (GIS) & OAuth 2.0 Integration.
+ * Google Identity Services (GIS) & OAuth 2.0 Integration.
  *
- * Automatically displays Google accounts available on the user's browser/device
- * using Google One Tap and Google Account Chooser popup.
+ * Checks for a verified Google OAuth Client ID before triggering Google's popup.
+ * If not configured, gracefully falls back to direct Gmail identity sign-in
+ * to prevent "Access blocked: Authorization Error" from Google's servers.
  */
 
 export interface GoogleProfile {
@@ -10,6 +11,19 @@ export interface GoogleProfile {
   name: string
   picture?: string
   sub?: string
+}
+
+export function isValidGoogleClientId(clientId?: string): boolean {
+  if (!clientId) return false
+  if (
+    clientId.includes('YOUR_') ||
+    clientId.includes('placeholder') ||
+    clientId.includes('smart-aqua-aquaculture') ||
+    !clientId.includes('.apps.googleusercontent.com')
+  ) {
+    return false
+  }
+  return true
 }
 
 export function parseJwt(token: string): any {
@@ -32,91 +46,25 @@ export function parseJwt(token: string): any {
 }
 
 /**
- * Render official Google Sign-In button and initialize One-Tap prompt on device.
- */
-export function mountGoogleButton(
-  container: HTMLElement,
-  clientId: string,
-  onSuccess: (profile: GoogleProfile) => void,
-  onError?: (error: string) => void,
-) {
-  const google = (window as any).google
-
-  if (!google?.accounts?.id) {
-    return false
-  }
-
-  const effectiveClientId =
-    clientId && !clientId.includes('YOUR_')
-      ? clientId
-      : '772918837012-smart-aqua-aquaculture.apps.googleusercontent.com'
-
-  try {
-    google.accounts.id.initialize({
-      client_id: effectiveClientId,
-      callback: (response: any) => {
-        if (response.credential) {
-          const payload = parseJwt(response.credential)
-          if (payload?.email) {
-            onSuccess({
-              email: payload.email,
-              name: payload.name || payload.given_name || payload.email.split('@')[0],
-              picture: payload.picture,
-              sub: payload.sub,
-            })
-            return
-          }
-        }
-        onError?.('Google account authorization was not completed.')
-      },
-      auto_select: false,
-      cancel_on_tap_outside: true,
-    })
-
-    // Render Google's native button directly inside the container
-    google.accounts.id.renderButton(container, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: 'continue_with',
-      shape: 'rectangular',
-      logo_alignment: 'left',
-      width: container.offsetWidth || 340,
-    })
-
-    // Trigger Google One Tap account chooser popup on the device
-    google.accounts.id.prompt((notification: any) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        console.info('Google One Tap status:', notification.getNotDisplayedReason?.())
-      }
-    })
-
-    return true
-  } catch (err: any) {
-    console.warn('mountGoogleButton error:', err)
-    return false
-  }
-}
-
-/**
- * Launch the authentic Google OAuth 2.0 Account Chooser Popup.
+ * Launch Google OAuth popup ONLY if a verified Google Cloud Client ID is configured.
  */
 export async function launchGoogleOAuthPopup(
   clientId: string,
   onSuccess: (profile: GoogleProfile) => void,
   onError: (error: string) => void,
-) {
+): Promise<boolean> {
+  // Guard against unconfigured or dummy client IDs that trigger Google's Authorization Error
+  if (!isValidGoogleClientId(clientId)) {
+    return false
+  }
+
   const google = (window as any).google
-  const effectiveClientId =
-    clientId && !clientId.includes('YOUR_')
-      ? clientId
-      : '772918837012-smart-aqua-aquaculture.apps.googleusercontent.com'
 
   // Try Google Token Client if available
   if (google?.accounts?.oauth2) {
     try {
       const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: effectiveClientId,
+        client_id: clientId,
         scope: 'email profile openid',
         prompt: 'select_account',
         callback: async (tokenResponse: any) => {
@@ -152,6 +100,7 @@ export async function launchGoogleOAuthPopup(
       return true
     } catch (err: any) {
       console.warn('Google TokenClient init failed:', err)
+      return false
     }
   }
 
@@ -159,7 +108,7 @@ export async function launchGoogleOAuthPopup(
   if (google?.accounts?.id) {
     try {
       google.accounts.id.initialize({
-        client_id: effectiveClientId,
+        client_id: clientId,
         callback: (response: any) => {
           if (response.credential) {
             const payload = parseJwt(response.credential)
