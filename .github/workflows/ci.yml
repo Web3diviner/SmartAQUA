@@ -1,0 +1,61 @@
+name: SmartAQUA CI & Automated Quality Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend Pytest Suite (Python 3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Backend Dependencies
+        working-directory: ./aquadoc
+        run: |
+          pip install --upgrade pip
+          pip install . pytest pytest-asyncio anyio httpx
+
+      - name: Run Backend Unit & RAG Tests
+        working-directory: ./aquadoc
+        run: |
+          pytest tests/test_retrieval_and_grounding.py tests/test_safety_guardrails.py tests/test_config_and_feeding.py tests/test_ingestion.py
+
+  frontend-builds:
+    name: Frontend Typecheck & Production Builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: |
+            aquadoc-web/package.json
+            aquadoc-admin/package.json
+
+      - name: Build Farmer Web Application
+        working-directory: ./aquadoc-web
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+
+      - name: Build Admin Operations Portal
+        working-directory: ./aquadoc-admin
+        run: |
+          npm ci
+          npm run build
