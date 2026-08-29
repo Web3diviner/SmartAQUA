@@ -158,6 +158,24 @@ export function AssistantMessage({
         </details>
       )}
 
+      {/* Fish Health Consultant Helpline & Booking Action Card */}
+      <div className="consultant-callout-card">
+        <div className="consultant-callout-content">
+          <div className="consultant-callout-icon" aria-hidden="true">👨‍⚕️</div>
+          <div className="consultant-callout-text">
+            <div className="consultant-callout-title">
+              <strong>Need Direct Veterinary or Nutritional Field Support?</strong>
+            </div>
+            <p>
+              Speak directly with an aquaculture consultant at <strong style={{ color: 'var(--accent-cyan)' }}>+234 813 456 7890</strong> or book an on-farm physical inspection / virtual consultation.
+            </p>
+          </div>
+        </div>
+        <a href="/disease" className="consultant-callout-btn">
+          📅 Book a Consultation
+        </a>
+      </div>
+
       {(showSources || devMode) && response.sources && response.sources.length > 0 && (
         <SourceList sources={response.sources} showDetails={devMode} />
       )}
