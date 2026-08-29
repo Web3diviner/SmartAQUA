@@ -3,7 +3,7 @@ import { Header } from './components/Header'
 import { AnalyticsOverview } from './components/AnalyticsOverview'
 import { BookingsManager } from './components/BookingsManager'
 import { EvaluationHub } from './components/EvaluationHub'
-import { AdminAnalyticsResponse, Booking } from './types'
+import { AdminAnalyticsResponse, Booking, TraceMetric } from './types'
 
 const BASE_URL = import.meta.env.VITE_AQUADOC_BASE_URL || 'http://127.0.0.1:8001'
 const DEV_TOKEN = import.meta.env.VITE_AQUADOC_DEV_TOKEN || 'aqua-dev-token-2026'
@@ -12,6 +12,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'bookings' | 'evaluation'>('analytics')
   const [analytics, setAnalytics] = useState<AdminAnalyticsResponse | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [traces, setTraces] = useState<TraceMetric[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
   const fetchAnalytics = async () => {
@@ -42,9 +43,23 @@ export const App: React.FC = () => {
     }
   }
 
+  const fetchTraces = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/dev/v1/admin/traces`, {
+        headers: { Authorization: `Bearer ${DEV_TOKEN}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTraces(data.traces || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch evaluation traces:', err)
+    }
+  }
+
   const loadAll = async () => {
     setLoading(true)
-    await Promise.all([fetchAnalytics(), fetchBookings()])
+    await Promise.all([fetchAnalytics(), fetchBookings(), fetchTraces()])
     setLoading(false)
   }
 
@@ -96,7 +111,7 @@ export const App: React.FC = () => {
         )}
 
         {activeTab === 'evaluation' && (
-          <EvaluationHub benchmarks={analytics?.system_benchmarks} />
+          <EvaluationHub benchmarks={analytics?.system_benchmarks} traces={traces} />
         )}
       </main>
 

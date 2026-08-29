@@ -22,24 +22,28 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
   // Chart dimensions & polyline calculations
   const chartHeight = 220
   const chartWidth = 720
-  const maxDau = Math.max(...daily_users_trend.map((d) => d.active_users)) * 1.15
-  const maxNew = Math.max(...daily_users_trend.map((d) => d.new_onboarded)) * 1.4
+  const maxDau = Math.max(1, ...daily_users_trend.map((d) => d.active_users)) * 1.15
+  const maxNew = Math.max(1, ...daily_users_trend.map((d) => d.new_onboarded)) * 1.4
 
-  const dauPoints = daily_users_trend
-    .map((d, i) => {
-      const x = (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
-      const y = chartHeight - 30 - (d.active_users / maxDau) * (chartHeight - 60)
-      return `${x},${y}`
-    })
-    .join(' ')
+  const dauPoints = daily_users_trend.length > 1
+    ? daily_users_trend
+        .map((d, i) => {
+          const x = (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
+          const y = chartHeight - 30 - (d.active_users / maxDau) * (chartHeight - 60)
+          return `${x},${y}`
+        })
+        .join(' ')
+    : '40,190 700,190'
 
-  const newPoints = daily_users_trend
-    .map((d, i) => {
-      const x = (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
-      const y = chartHeight - 30 - (d.new_onboarded / maxNew) * (chartHeight - 60)
-      return `${x},${y}`
-    })
-    .join(' ')
+  const newPoints = daily_users_trend.length > 1
+    ? daily_users_trend
+        .map((d, i) => {
+          const x = (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
+          const y = chartHeight - 30 - (d.new_onboarded / maxNew) * (chartHeight - 60)
+          return `${x},${y}`
+        })
+        .join(' ')
+    : '40,190 700,190'
 
   const activeTrend = hoveredDay !== null
     ? daily_users_trend[hoveredDay]
@@ -55,8 +59,8 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
             <span className="kpi-card__icon">👥</span>
           </div>
           <div className="kpi-card__value">{kpis.total_users_onboarded.toLocaleString()}</div>
-          <div className="kpi-card__growth kpi-card__growth--up">
-            ▲ +{kpis.onboarded_growth_mom_pct}% MoM growth
+          <div className="kpi-card__growth kpi-card__growth--neutral">
+            {kpis.total_users_onboarded === 0 ? 'Awaiting registrations' : 'Live registered accounts'}
           </div>
         </div>
 
@@ -68,8 +72,8 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
           <div className="kpi-card__value" style={{ color: 'var(--accent-cyan)' }}>
             {kpis.daily_active_users.toLocaleString()}
           </div>
-          <div className="kpi-card__growth kpi-card__growth--up">
-            ▲ +{kpis.dau_growth_wow_pct}% vs last week
+          <div className="kpi-card__growth kpi-card__growth--neutral">
+            {kpis.daily_active_users === 0 ? '0 active today' : 'Active user telemetry'}
           </div>
         </div>
 
@@ -80,7 +84,7 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
           </div>
           <div className="kpi-card__value">{kpis.total_ponds_monitored.toLocaleString()}</div>
           <div className="kpi-card__growth kpi-card__growth--neutral">
-            Across {regional_distribution.length} Agricultural Zones
+            {regional_distribution.length === 0 ? 'No registered hubs yet' : `Across ${regional_distribution.length} Agricultural Zones`}
           </div>
         </div>
 
@@ -98,12 +102,12 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
 
       {/* Analytics Main Layout */}
       <div className="analytics-layout">
-        {/* Left Column: 14-Day DAU & Onboarding Curve */}
+        {/* Left Column: 7-Day DAU & Onboarding Curve */}
         <div className="chart-card">
           <div className="chart-card__header">
             <div>
-              <h3 className="chart-card__title">📈 14-Day Daily Active Users & Onboarding Velocity</h3>
-              <span className="chart-card__sub">Continuous engagement and growth tracking</span>
+              <h3 className="chart-card__title">📈 7-Day Daily Active Users & Onboarding Velocity</h3>
+              <span className="chart-card__sub">Continuous live engagement and onboarding telemetry</span>
             </div>
             <div className="chart-legend">
               <span className="legend-item">
@@ -124,7 +128,7 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
               {/* Grid Lines */}
               <line x1="40" y1={chartHeight - 30} x2={chartWidth - 20} y2={chartHeight - 30} stroke="rgba(255,255,255,0.08)" />
               <line x1="40" y1={chartHeight / 2} x2={chartWidth - 20} y2={chartHeight / 2} stroke="rgba(255,255,255,0.04)" />
-              <line x1="40" y1="30" x2={chartWidth - 20} y2="30" stroke="rgba(255,255,255,0.04)" />
+              <line x1="40" y1={30} x2={chartWidth - 20} y2={30} stroke="rgba(255,255,255,0.04)" />
 
               {/* Polylines */}
               <polyline
@@ -144,7 +148,9 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
 
               {/* Hover nodes */}
               {daily_users_trend.map((d, i) => {
-                const x = (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
+                const x = daily_users_trend.length > 1
+                  ? (i / (daily_users_trend.length - 1)) * (chartWidth - 60) + 40
+                  : 360
                 const y = chartHeight - 30 - (d.active_users / maxDau) * (chartHeight - 60)
                 return (
                   <circle
@@ -181,9 +187,9 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
                   </strong>
                 </div>
                 <div className="insp-item">
-                  <span className="insp-label">System Load</span>
+                  <span className="insp-label">System Status</span>
                   <strong className="insp-val" style={{ color: 'var(--accent-emerald)' }}>
-                    Optimal
+                    Live
                   </strong>
                 </div>
               </div>
@@ -198,22 +204,28 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
             <span className="chart-card__sub">Registered farm density across aquaculture hubs</span>
           </div>
 
-          <div className="breakdown-list">
-            {regional_distribution.map((reg) => (
-              <div key={reg.region} className="breakdown-item">
-                <div className="breakdown-header">
-                  <span>{reg.region}</span>
-                  <strong>{reg.count} ({reg.percentage}%)</strong>
+          {regional_distribution.length === 0 ? (
+            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              No regional registrations recorded yet. Farmer signups will populate regional density automatically.
+            </div>
+          ) : (
+            <div className="breakdown-list">
+              {regional_distribution.map((reg) => (
+                <div key={reg.region} className="breakdown-item">
+                  <div className="breakdown-header">
+                    <span>{reg.region}</span>
+                    <strong>{reg.count} ({reg.percentage}%)</strong>
+                  </div>
+                  <div className="breakdown-bar-bg">
+                    <div
+                      className="breakdown-bar-fill"
+                      style={{ width: `${reg.percentage}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="breakdown-bar-bg">
-                  <div
-                    className="breakdown-bar-fill"
-                    style={{ width: `${reg.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -224,40 +236,46 @@ export const AnalyticsOverview: React.FC<Props> = ({ data, loading }) => {
           <span className="chart-card__sub">Aggregated diagnostic frequency from farm triage reports</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-          {top_diagnosed_conditions.map((item) => (
-            <div
-              key={item.condition}
-              style={{
-                padding: '16px',
-                background: 'var(--bg-surface-subtle)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-app)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: '0.9rem', display: 'block' }}>{item.condition}</strong>
-                <small style={{ color: 'var(--text-muted)' }}>{item.cases} verified farm cases</small>
-              </div>
-              <span
+        {top_diagnosed_conditions.length === 0 ? (
+          <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            No clinical pathology records yet. Disease assessments submitted by farmers will appear here in real-time.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {top_diagnosed_conditions.map((item) => (
+              <div
+                key={item.condition}
                 style={{
-                  fontSize: '0.72rem',
-                  padding: '3px 8px',
-                  borderRadius: '9999px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  background: item.severity === 'critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                  color: item.severity === 'critical' ? '#ef4444' : '#f59e0b',
+                  padding: '16px',
+                  background: 'var(--bg-surface-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-app)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}
               >
-                {item.severity}
-              </span>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <strong style={{ fontSize: '0.9rem', display: 'block' }}>{item.condition}</strong>
+                  <small style={{ color: 'var(--text-muted)' }}>{item.cases} verified farm cases</small>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '3px 8px',
+                    borderRadius: '9999px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: item.severity === 'critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    color: item.severity === 'critical' ? '#ef4444' : '#f59e0b',
+                  }}
+                >
+                  {item.severity}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
