@@ -1,8 +1,9 @@
 /**
- * Google Identity Services (GIS) & Account Chooser Utility.
+ * Real Google Identity Services (GIS) & OAuth 2.0 Client.
  *
- * Facilitates selecting from signed-in Google accounts on the user's browser/device,
- * decoding Google JWT credentials, and provisioning farmer sessions.
+ * Opens the native Google Account Chooser popup on the user's browser/device,
+ * prompts account selection from real signed-in Google profiles, and fetches
+ * verified user details from Google's UserInfo API.
  */
 
 export interface GoogleProfile {
@@ -32,55 +33,100 @@ export function parseJwt(token: string): any {
 }
 
 /**
- * Initialize Google Identity Services with Account Chooser prompt.
+ * Launch the authentic Google OAuth 2.0 Account Chooser Popup.
+ * Opens Google's official account selection window where the user selects
+ * their real Google/Gmail accounts logged into this browser or device.
  */
-export function promptGoogleAccountPicker(
+export async function launchGoogleOAuthPopup(
   clientId: string,
   onSuccess: (profile: GoogleProfile) => void,
-  onError?: (error: string) => void,
+  onError: (error: string) => void,
 ) {
   const google = (window as any).google
 
-  if (!google?.accounts?.id) {
-    // If GIS script hasn't loaded or is blocked, fallback to simulated account chooser
-    onError?.('Google Identity Services unavailable')
-    return false
-  }
-
-  try {
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (response: any) => {
-        if (response.credential) {
-          const payload = parseJwt(response.credential)
-          if (payload && payload.email) {
-            onSuccess({
-              email: payload.email,
-              name: payload.name || payload.given_name || payload.email.split('@')[0],
-              picture: payload.picture,
-              sub: payload.sub,
-            })
+  // If GIS is available and a Client ID is present, use Google Token Client
+  if (google?.accounts?.oauth2 && clientId && !clientId.includes('YOUR_')) {
+    try {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'email profile openid',
+        prompt: 'select_account',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse.error) {
+            onError(tokenResponse.error_description || tokenResponse.error || 'Google authentication cancelled')
             return
           }
-        }
-        onError?.('Google credential verification failed')
-      },
-      auto_select: false,
-      cancel_on_tap_outside: true,
-      prompt_parent_id: 'google-onetap-anchor',
-    })
 
-    // Display Google One Tap & Account Chooser overlay
-    google.accounts.id.prompt((notification: any) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        console.info('Google One Tap not displayed:', notification.getNotDisplayedReason?.())
-      }
-    })
+          if (tokenResponse.access_token) {
+            try {
+              // Fetch real verified user info from Google's UserInfo endpoint
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              })
+              if (!res.ok) {
+                throw new Error(`Google UserInfo returned ${res.status}`)
+              }
+              const info = await res.json()
+              onSuccess({
+                email: info.email,
+                name: info.name || info.given_name || info.email.split('@')[0],
+                picture: info.picture,
+                sub: info.sub,
+              })
+            } catch (fetchErr: any) {
+              console.error('Failed to fetch Google profile info:', fetchErr)
+              onError('Could not retrieve Google profile details.')
+            }
+          }
+        },
+      })
 
-    return true
-  } catch (err: any) {
-    console.warn('Google GIS initialize error:', err)
-    onError?.(err?.message || 'Failed to initialize Google Account Chooser')
-    return false
+      // Prompt account selection
+      tokenClient.requestAccessToken({ prompt: 'select_account' })
+      return true
+    } catch (err: any) {
+      console.warn('Google TokenClient init failed:', err)
+      onError(err?.message || 'Failed to open Google Account Chooser')
+      return false
+    }
   }
+
+  // If GIS ID button is available, try id.prompt
+  if (google?.accounts?.id && clientId && !clientId.includes('YOUR_')) {
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: any) => {
+          if (response.credential) {
+            const payload = parseJwt(response.credential)
+            if (payload?.email) {
+              onSuccess({
+                email: payload.email,
+                name: payload.name || payload.given_name || payload.email.split('@')[0],
+                picture: payload.picture,
+                sub: payload.sub,
+              })
+              return
+            }
+          }
+          onError('Google credential verification failed')
+        },
+        auto_select: false,
+        prompt_parent_id: 'google-btn-container',
+      })
+
+      google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.info('Google One-Tap dismissed/unavailable:', notification.getNotDisplayedReason?.())
+        }
+      })
+      return true
+    } catch (err: any) {
+      console.warn('Google One-Tap failed:', err)
+      onError(err?.message || 'Google Sign-In failed')
+      return false
+    }
+  }
+
+  return false
 }

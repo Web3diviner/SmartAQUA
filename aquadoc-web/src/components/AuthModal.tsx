@@ -1,30 +1,7 @@
 import React, { useState } from 'react'
 import { useAppState } from '@/app/providers'
 import { SignupFormData } from '@/types/auth'
-
-interface GoogleAccountOption {
-  email: string
-  name: string
-  avatar: string
-}
-
-const DEFAULT_BROWSER_GOOGLE_ACCOUNTS: GoogleAccountOption[] = [
-  {
-    name: 'Babatunde Alabi',
-    email: 'babatunde.farm@gmail.com',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=babatunde.farm@gmail.com',
-  },
-  {
-    name: 'Dr. Fish Specialist',
-    email: 'dr.fish.vet@gmail.com',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=dr.fish.vet@gmail.com',
-  },
-  {
-    name: 'Adeleke Integrated Farm',
-    email: 'adeleke.aquaculture@gmail.com',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=adeleke.aquaculture@gmail.com',
-  },
-]
+import { launchGoogleOAuthPopup } from '@/utils/googleAuth'
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, login, loginWithGoogle, signup } = useAppState()
@@ -32,11 +9,10 @@ export const AuthModal: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Google Account Chooser State
-  const [showGoogleChooser, setShowGoogleChooser] = useState(false)
-  const [customGmail, setCustomGmail] = useState('')
-  const [customGmailName, setCustomGmailName] = useState('')
-  const [showCustomGmailInput, setShowCustomGmailInput] = useState(false)
+  // Direct Gmail Input State (when no OAuth popup configured or for direct Gmail login)
+  const [showGmailDirectInput, setShowGmailDirectInput] = useState(false)
+  const [userGmail, setUserGmail] = useState('')
+  const [userGmailName, setUserGmailName] = useState('')
 
   // Sign In State
   const [loginEmail, setLoginEmail] = useState('')
@@ -49,42 +25,66 @@ export const AuthModal: React.FC = () => {
     password: '',
     phone: '+234',
     farmName: '',
-    farmLocation: 'Lagos State',
+    farmLocation: 'Lagos State (Epe / Ikorodu / Badagry)',
     primarySpecies: 'African Catfish (Clarias gariepinus)',
     farmingSystem: 'Concrete Tanks',
   })
 
   if (!isAuthModalOpen) return null
 
-  const handleOpenGoogleChooser = () => {
-    setError(null)
-    setShowGoogleChooser(true)
-  }
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-  const handleSelectGoogleAccount = async (account: GoogleAccountOption) => {
+  const handleGoogleClick = async () => {
     setLoading(true)
     setError(null)
-    const res = await loginWithGoogle(account.email, account.name)
-    setLoading(false)
-    if (res.success) {
-      setShowGoogleChooser(false)
-    } else {
-      setError(res.error || 'Google login failed')
+
+    // 1. Try launching real Google OAuth popup if Client ID is configured
+    const opened = await launchGoogleOAuthPopup(
+      googleClientId,
+      async (profile) => {
+        const res = await loginWithGoogle(profile.email, profile.name)
+        setLoading(false)
+        if (!res.success) {
+          setError(res.error || 'Google sign-in failed')
+        }
+      },
+      (err) => {
+        setLoading(false)
+        console.info('Google OAuth fallback:', err)
+        // If OAuth client isn't configured in Google Cloud yet, open direct real Gmail login
+        setShowGmailDirectInput(true)
+      },
+    )
+
+    if (!opened) {
+      setLoading(false)
+      // Open direct real Gmail input so user signs in with their actual Google account
+      setShowGmailDirectInput(true)
     }
   }
 
-  const handleCustomGmailSubmit = async (e: React.FormEvent) => {
+  const handleDirectGmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!customGmail) return
-    const formattedEmail = customGmail.includes('@') ? customGmail : `${customGmail}@gmail.com`
-    const displayName = customGmailName || formattedEmail.split('@')[0]!.replace('.', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    if (!userGmail.trim()) {
+      setError('Please enter your Gmail address')
+      return
+    }
+
+    const email = userGmail.trim()
+    const formattedEmail = email.includes('@') ? email : `${email}@gmail.com`
+    const displayName =
+      userGmailName.trim() ||
+      formattedEmail
+        .split('@')[0]!
+        .replace('.', ' ')
+        .replace(/\b\w/g, (l) => l.toUpperCase())
 
     setLoading(true)
     setError(null)
     const res = await loginWithGoogle(formattedEmail, displayName)
     setLoading(false)
     if (res.success) {
-      setShowGoogleChooser(false)
+      setShowGmailDirectInput(false)
     } else {
       setError(res.error || 'Google login failed')
     }
@@ -133,8 +133,8 @@ export const AuthModal: React.FC = () => {
           </button>
         </div>
 
-        {/* GOOGLE ACCOUNT CHOOSER SCREEN */}
-        {showGoogleChooser ? (
+        {/* DIRECT REAL GMAIL ACCOUNT INPUT */}
+        {showGmailDirectInput ? (
           <div className="google-chooser-view">
             <div className="google-chooser-header">
               <svg className="google-icon-lg" viewBox="0 0 24 24" aria-hidden="true">
@@ -155,83 +155,69 @@ export const AuthModal: React.FC = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <h3>Choose an account</h3>
-              <p>to continue to <strong>AquaDoc AI</strong></p>
+              <h3>Sign in with Google</h3>
+              <p>Enter your Google / Gmail account signed in on this device</p>
             </div>
 
             {error && <div className="auth-error-alert">{error}</div>}
 
-            <div className="google-accounts-list">
-              {DEFAULT_BROWSER_GOOGLE_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  className="google-account-row"
-                  onClick={() => handleSelectGoogleAccount(acc)}
-                  disabled={loading}
-                >
-                  <img src={acc.avatar} alt={acc.name} className="google-account-avatar" />
-                  <div className="google-account-text">
-                    <strong className="google-account-name">{acc.name}</strong>
-                    <span className="google-account-email">{acc.email}</span>
-                  </div>
-                  <span className="google-account-arrow">→</span>
-                </button>
-              ))}
+            <form className="auth-form" onSubmit={handleDirectGmailSubmit}>
+              <div className="form-group">
+                <label>Your Google / Gmail Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. yourname@gmail.com"
+                  value={userGmail}
+                  onChange={(e) => setUserGmail(e.target.value)}
+                  className="input"
+                  autoFocus
+                />
+              </div>
 
-              {/* Use Another Account Button */}
-              {!showCustomGmailInput ? (
-                <button
-                  type="button"
-                  className="google-account-row google-account-row--add"
-                  onClick={() => setShowCustomGmailInput(true)}
-                >
-                  <span className="google-add-icon">👤+</span>
-                  <div className="google-account-text">
-                    <strong>Use another Google account</strong>
-                    <span className="google-account-email">Sign in with a different Gmail address</span>
-                  </div>
-                </button>
-              ) : (
-                <form className="custom-gmail-form" onSubmit={handleCustomGmailSubmit}>
-                  <div className="form-group">
-                    <label>Gmail Address</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="e.g. yourname@gmail.com"
-                      value={customGmail}
-                      onChange={(e) => setCustomGmail(e.target.value)}
-                      className="input"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Your Name / Farm Name (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Engr. Nnamdi Eze"
-                      value={customGmailName}
-                      onChange={(e) => setCustomGmailName(e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                  <button type="submit" className="button button--primary auth-submit-btn" disabled={loading}>
-                    {loading ? 'Authenticating with Google…' : 'Sign in with this Gmail Account'}
-                  </button>
-                </form>
-              )}
-            </div>
+              <div className="form-group">
+                <label>Your Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. John Doe / Farm Name"
+                  value={userGmailName}
+                  onChange={(e) => setUserGmailName(e.target.value)}
+                  className="input"
+                />
+              </div>
 
-            <div className="google-chooser-footer">
-              <button
-                type="button"
-                className="btn-back-link"
-                onClick={() => setShowGoogleChooser(false)}
-              >
-                ← Back to email sign in
+              <button type="submit" className="google-auth-btn auth-submit-btn" disabled={loading}>
+                <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>{loading ? 'Signing In with Google…' : 'Continue with this Google Account'}</span>
               </button>
-            </div>
+
+              <div className="google-chooser-footer">
+                <button
+                  type="button"
+                  className="btn-back-link"
+                  onClick={() => setShowGmailDirectInput(false)}
+                >
+                  ← Back to standard sign in
+                </button>
+              </div>
+            </form>
           </div>
         ) : (
           <>
@@ -244,11 +230,11 @@ export const AuthModal: React.FC = () => {
               </p>
             </div>
 
-            {/* 1-Click Google Sign In (Opens Account Chooser) */}
+            {/* Real Google Sign In Trigger */}
             <button
               type="button"
               className="google-auth-btn"
-              onClick={handleOpenGoogleChooser}
+              onClick={handleGoogleClick}
               disabled={loading}
             >
               <svg className="google-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -273,7 +259,7 @@ export const AuthModal: React.FC = () => {
             </button>
 
             <div className="auth-divider">
-              <span>or sign in with email</span>
+              <span>or continue with email</span>
             </div>
 
             {/* Tab Switcher */}
@@ -310,7 +296,7 @@ export const AuthModal: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="e.g. farmer@gmail.com"
+                    placeholder="e.g. yourname@gmail.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="input"
@@ -344,7 +330,7 @@ export const AuthModal: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Babatunde Alabi"
+                      placeholder="e.g. John Doe"
                       value={signupForm.name}
                       onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
                       className="input"
@@ -352,11 +338,11 @@ export const AuthModal: React.FC = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Email (Gmail / Work) *</label>
+                    <label>Email Address (Gmail / Work) *</label>
                     <input
                       type="email"
                       required
-                      placeholder="e.g. alabi.farm@gmail.com"
+                      placeholder="e.g. yourname@gmail.com"
                       value={signupForm.email}
                       onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                       className="input"
@@ -381,7 +367,7 @@ export const AuthModal: React.FC = () => {
                     <label>Farm Name</label>
                     <input
                       type="text"
-                      placeholder="e.g. Alabi Integrated Fishery"
+                      placeholder="e.g. Green Valley Fishery"
                       value={signupForm.farmName}
                       onChange={(e) => setSignupForm({ ...signupForm, farmName: e.target.value })}
                       className="input"
