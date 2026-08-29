@@ -206,11 +206,20 @@ class Orchestrator:
         llm: LLMProvider,
         embeddings: EmbeddingProvider,
     ) -> None:
+        from app.rag.memory_retriever import MemoryRetriever
+
         self._settings = settings
         self._database = database
         self._llm = llm
         self._embeddings = embeddings
         self._conversation_history: dict[str, list[dict[str, str]]] = {}
+        self._memory_retriever = MemoryRetriever(
+            self._embeddings,
+            candidates=self._settings.retrieval_candidates,
+            top_k=self._settings.retrieval_top_k,
+            min_similarity=self._settings.retrieval_min_similarity,
+            enable_lexical=self._settings.retrieval_enable_lexical,
+        )
 
     @property
     def embedding_model_id(self) -> str:
@@ -381,16 +390,7 @@ class Orchestrator:
                 raise
 
             logger.warning("database_unavailable_using_memory_retriever", extra={"error": str(db_err)})
-            from app.rag.memory_retriever import MemoryRetriever
-
-            mem_retriever = MemoryRetriever(
-                self._embeddings,
-                candidates=self._settings.retrieval_candidates,
-                top_k=self._settings.retrieval_top_k,
-                min_similarity=self._settings.retrieval_min_similarity,
-                enable_lexical=self._settings.retrieval_enable_lexical,
-            )
-            result = await mem_retriever.retrieve(
+            result = await self._memory_retriever.retrieve(
                 request_id=request_id,
                 question=request.question,
                 intent=intent,
@@ -538,16 +538,29 @@ class Orchestrator:
         intent = classify(query, None)
         resolved_filters = build_filters(intent, filters)
 
-        async with self._database.session() as session:
-            retriever = Retriever(
-                session,
-                self._embeddings,
-                candidates=self._settings.retrieval_candidates,
-                top_k=top_k,
-                min_similarity=self._settings.retrieval_min_similarity,
-                enable_lexical=self._settings.retrieval_enable_lexical,
+        try:
+            async with self._database.session() as session:
+                retriever = Retriever(
+                    session,
+                    self._embeddings,
+                    candidates=self._settings.retrieval_candidates,
+                    top_k=top_k,
+                    min_similarity=self._settings.retrieval_min_similarity,
+                    enable_lexical=self._settings.retrieval_enable_lexical,
+                )
+                result = await retriever.retrieve(
+                    request_id=request_id,
+                    question=query,
+                    intent=intent,
+                    filters=resolved_filters,
+                    top_k=top_k,
+                )
+        except Exception as exc:
+            logger.warning(
+                "database_unavailable_using_memory_retriever_for_search",
+                extra={"error": str(exc)},
             )
-            result = await retriever.retrieve(
+            result = await self._memory_retriever.retrieve(
                 request_id=request_id,
                 question=query,
                 intent=intent,

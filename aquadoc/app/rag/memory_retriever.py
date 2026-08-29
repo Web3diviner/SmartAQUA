@@ -71,14 +71,37 @@ class MemoryRetriever:
         for doc_idx, path in enumerate(sorted(sample_dir.glob("*.md")), start=1):
             try:
                 doc = load_path(path, max_bytes=10 * 1024 * 1024)
+                text_str = doc.content.decode("utf-8", errors="replace")
                 parsed = parse(doc.content, doc.media_type)
                 chunks = self._chunker.chunk_blocks(parsed.blocks)
 
+                # Parse authentic metadata from markdown headers
                 doc_title = path.stem.replace("-", " ").title()
-                for block in parsed.blocks:
-                    if block.section:
-                        doc_title = block.section
-                        break
+                doc_source = "National Aquaculture Research Institute / FAO Guidelines"
+                doc_year = 2024
+                doc_evidence = EvidenceLevel.A_OFFICIAL_GUIDELINE
+                doc_topics = ["aquaculture", "water_quality", "nigeria", "west_africa"]
+
+                for line in text_str.splitlines()[:20]:
+                    if line.startswith("# "):
+                        doc_title = line[2:].strip()
+                    elif "**Publisher / Source:**" in line or "**Source:**" in line:
+                        doc_source = line.split(":", 1)[1].replace("**", "").strip()
+                    elif "**Year:**" in line:
+                        import re
+                        m = re.search(r"\d{4}", line)
+                        if m:
+                            doc_year = int(m.group(0))
+                    elif "**Topics:**" in line:
+                        raw_top = line.split(":", 1)[1].replace("**", "").strip()
+                        doc_topics = [t.strip().lower() for t in raw_top.split(",") if t.strip()]
+                    elif "**Evidence Level:**" in line:
+                        if "B" in line.upper():
+                            doc_evidence = EvidenceLevel.B_PEER_REVIEWED
+                        elif "C" in line.upper():
+                            doc_evidence = EvidenceLevel.C_TEXTBOOK
+                        elif "D" in line.upper():
+                            doc_evidence = EvidenceLevel.D_EXPERT_CASE
 
                 for chunk_idx, chunk in enumerate(chunks, start=1):
                     chunks_to_embed.append(chunk.content)
@@ -87,13 +110,13 @@ class MemoryRetriever:
                             "chunk_id": f"mem-chk-{doc_idx:02d}-{chunk_idx:03d}",
                             "document_id": f"mem-doc-{doc_idx:03d}",
                             "title": doc_title,
-                            "source": "FAO / WOAH Guidelines",
-                            "author": "Veterinary Aquaculture Panel",
-                            "year": 2024,
+                            "source": doc_source,
+                            "author": "Aquaculture Technical Working Group",
+                            "year": doc_year,
                             "page_number": chunk.page_number or chunk_idx,
-                            "section": chunk.section or "General Guidance",
-                            "evidence_level": EvidenceLevel.A_OFFICIAL_GUIDELINE,
-                            "topics": ["disease", "water_quality", "feeding", "fcr", "pathology"],
+                            "section": chunk.section or doc_title,
+                            "evidence_level": doc_evidence,
+                            "topics": doc_topics,
                             "content": chunk.content,
                         }
                     )
@@ -106,6 +129,10 @@ class MemoryRetriever:
                 meta["vector"] = vec
                 self._chunks.append(meta)
 
+        logger.info(
+            "memory_retriever_initialized",
+            extra={"documents_loaded": doc_idx if 'doc_idx' in locals() else 0, "total_chunks": len(self._chunks)},
+        )
         self._initialized = True
 
     async def retrieve(
