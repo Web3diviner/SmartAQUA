@@ -12,7 +12,6 @@ import { sendChat, transcribeAudio, punctuateText } from '@/api/chat'
 import { useAppState } from '@/app/providers'
 import { AssistantMessage, PendingMessage, UserMessage } from '@/components/ChatMessage'
 import { ErrorPanel } from '@/components/ErrorPanel'
-import { RetrievalInspector } from '@/components/RetrievalInspector'
 import { GROQ_MODELS } from '@/constants/models'
 import type { ChatResponse } from '@/schemas/aquadoc'
 import { formToFarmContext } from '@/schemas/farmContext'
@@ -45,9 +44,6 @@ export function ChatPage() {
     chatMode,
     setChatMode,
     farmForm,
-    devMode,
-    debugAvailable,
-    setDevMode,
     selectedModel,
     user,
     isAuthenticated,
@@ -294,16 +290,6 @@ export function ChatPage() {
         </div>
 
         <div className="chat-page__controls">
-          {debugAvailable && (
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={devMode}
-                onChange={(event) => setDevMode(event.target.checked)}
-              />
-              Developer details
-            </label>
-          )}
           <button
             type="button"
             className="button button--ghost"
@@ -387,20 +373,17 @@ export function ChatPage() {
             {turn.error !== null && (
               <ErrorPanel
                 error={turn.error}
-                showDetails={devMode}
+                showDetails={false}
                 onRetry={() => void ask(turn.question, turn.id)}
               />
             )}
 
             {turn.response && (
-              <>
-                <AssistantMessage
-                  response={turn.response}
-                  devMode={devMode}
-                  showSources={isSourceRequested(turn.question)}
-                />
-                {devMode && <RetrievalInspector response={turn.response} />}
-              </>
+              <AssistantMessage
+                response={turn.response}
+                devMode={false}
+                showSources={isSourceRequested(turn.question)}
+              />
             )}
           </section>
         ))}
