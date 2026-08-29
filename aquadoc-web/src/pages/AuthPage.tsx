@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '@/app/providers'
 import { SignupFormData } from '@/types/auth'
-import { launchGoogleOAuthPopup, mountGoogleButton } from '@/utils/googleAuth'
+import { launchGoogleOAuthPopup } from '@/utils/googleAuth'
 
 export const AuthPage: React.FC = () => {
   const { user, isAuthenticated, login, loginWithGoogle, signup } = useAppState()
@@ -31,7 +31,6 @@ export const AuthPage: React.FC = () => {
     farmingSystem: 'Concrete Tanks',
   })
 
-  const googleBtnRef = useRef<HTMLDivElement | null>(null)
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
   // If already authenticated, redirect to chat
@@ -40,30 +39,6 @@ export const AuthPage: React.FC = () => {
       navigate('/chat', { replace: true })
     }
   }, [isAuthenticated, navigate])
-
-  // Mount Google button on page load
-  useEffect(() => {
-    if (googleBtnRef.current) {
-      mountGoogleButton(
-        googleBtnRef.current,
-        googleClientId,
-        async (profile) => {
-          setLoading(true)
-          setError(null)
-          const res = await loginWithGoogle(profile.email, profile.name)
-          setLoading(false)
-          if (res.success) {
-            navigate('/chat', { replace: true })
-          } else {
-            setError(res.error || 'Google login failed')
-          }
-        },
-        (err) => {
-          console.info('Google GSI info:', err)
-        },
-      )
-    }
-  }, [googleClientId, loginWithGoogle, navigate])
 
   const handleGoogleClick = async () => {
     setLoading(true)
@@ -166,10 +141,7 @@ export const AuthPage: React.FC = () => {
 
         {/* 1. GOOGLE SIGN-IN OPTION */}
         <div className="google-auth-section">
-          {/* Mount point for official Google Identity Services button */}
-          <div ref={googleBtnRef} className="google-btn-mount" />
-
-          {/* Custom Google SSO Action Button */}
+          {/* Google SSO Action Button */}
           <button
             type="button"
             className="google-auth-btn"
