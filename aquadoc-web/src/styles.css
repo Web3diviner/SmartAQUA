@@ -2351,6 +2351,24 @@ select:focus, input:focus, textarea:focus {
   margin-bottom: 20px;
 }
 
+.google-auth-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.google-btn-mount {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.google-btn-mount:empty {
+  display: none;
+}
+
 .google-auth-btn {
   width: 100%;
   display: flex;

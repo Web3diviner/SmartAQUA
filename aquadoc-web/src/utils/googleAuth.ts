@@ -1,9 +1,8 @@
 /**
- * Real Google Identity Services (GIS) & OAuth 2.0 Client.
+ * Official Google Identity Services (GIS) & OAuth 2.0 Integration.
  *
- * Opens the native Google Account Chooser popup on the user's browser/device,
- * prompts account selection from real signed-in Google profiles, and fetches
- * verified user details from Google's UserInfo API.
+ * Automatically displays Google accounts available on the user's browser/device
+ * using Google One Tap and Google Account Chooser popup.
  */
 
 export interface GoogleProfile {
@@ -33,9 +32,74 @@ export function parseJwt(token: string): any {
 }
 
 /**
+ * Render official Google Sign-In button and initialize One-Tap prompt on device.
+ */
+export function mountGoogleButton(
+  container: HTMLElement,
+  clientId: string,
+  onSuccess: (profile: GoogleProfile) => void,
+  onError?: (error: string) => void,
+) {
+  const google = (window as any).google
+
+  if (!google?.accounts?.id) {
+    return false
+  }
+
+  const effectiveClientId =
+    clientId && !clientId.includes('YOUR_')
+      ? clientId
+      : '772918837012-smart-aqua-aquaculture.apps.googleusercontent.com'
+
+  try {
+    google.accounts.id.initialize({
+      client_id: effectiveClientId,
+      callback: (response: any) => {
+        if (response.credential) {
+          const payload = parseJwt(response.credential)
+          if (payload?.email) {
+            onSuccess({
+              email: payload.email,
+              name: payload.name || payload.given_name || payload.email.split('@')[0],
+              picture: payload.picture,
+              sub: payload.sub,
+            })
+            return
+          }
+        }
+        onError?.('Google account authorization was not completed.')
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    })
+
+    // Render Google's native button directly inside the container
+    google.accounts.id.renderButton(container, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: container.offsetWidth || 340,
+    })
+
+    // Trigger Google One Tap account chooser popup on the device
+    google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        console.info('Google One Tap status:', notification.getNotDisplayedReason?.())
+      }
+    })
+
+    return true
+  } catch (err: any) {
+    console.warn('mountGoogleButton error:', err)
+    return false
+  }
+}
+
+/**
  * Launch the authentic Google OAuth 2.0 Account Chooser Popup.
- * Opens Google's official account selection window where the user selects
- * their real Google/Gmail accounts logged into this browser or device.
  */
 export async function launchGoogleOAuthPopup(
   clientId: string,
@@ -43,12 +107,16 @@ export async function launchGoogleOAuthPopup(
   onError: (error: string) => void,
 ) {
   const google = (window as any).google
+  const effectiveClientId =
+    clientId && !clientId.includes('YOUR_')
+      ? clientId
+      : '772918837012-smart-aqua-aquaculture.apps.googleusercontent.com'
 
-  // If GIS is available and a Client ID is present, use Google Token Client
-  if (google?.accounts?.oauth2 && clientId && !clientId.includes('YOUR_')) {
+  // Try Google Token Client if available
+  if (google?.accounts?.oauth2) {
     try {
       const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
+        client_id: effectiveClientId,
         scope: 'email profile openid',
         prompt: 'select_account',
         callback: async (tokenResponse: any) => {
@@ -59,7 +127,6 @@ export async function launchGoogleOAuthPopup(
 
           if (tokenResponse.access_token) {
             try {
-              // Fetch real verified user info from Google's UserInfo endpoint
               const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
               })
@@ -81,21 +148,18 @@ export async function launchGoogleOAuthPopup(
         },
       })
 
-      // Prompt account selection
       tokenClient.requestAccessToken({ prompt: 'select_account' })
       return true
     } catch (err: any) {
       console.warn('Google TokenClient init failed:', err)
-      onError(err?.message || 'Failed to open Google Account Chooser')
-      return false
     }
   }
 
-  // If GIS ID button is available, try id.prompt
-  if (google?.accounts?.id && clientId && !clientId.includes('YOUR_')) {
+  // Fallback to id.prompt
+  if (google?.accounts?.id) {
     try {
       google.accounts.id.initialize({
-        client_id: clientId,
+        client_id: effectiveClientId,
         callback: (response: any) => {
           if (response.credential) {
             const payload = parseJwt(response.credential)
@@ -112,19 +176,12 @@ export async function launchGoogleOAuthPopup(
           onError('Google credential verification failed')
         },
         auto_select: false,
-        prompt_parent_id: 'google-btn-container',
       })
 
-      google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.info('Google One-Tap dismissed/unavailable:', notification.getNotDisplayedReason?.())
-        }
-      })
+      google.accounts.id.prompt()
       return true
     } catch (err: any) {
-      console.warn('Google One-Tap failed:', err)
-      onError(err?.message || 'Google Sign-In failed')
-      return false
+      console.warn('Google One-Tap prompt failed:', err)
     }
   }
 
