@@ -271,12 +271,12 @@ export const AuthModal: React.FC = () => {
                   onChange={(e) => setSignupForm({ ...signupForm, farmLocation: e.target.value })}
                   className="input"
                 >
-                  <option value="Lagos State (Epe / Ikorodu / Badagry)">Lagos (Epe / Ikorodu / Badagry)</option>
-                  <option value="Ogun State (Abeokuta / Ijebu / Sagamu)">Ogun (Abeokuta / Ijebu / Sagamu)</option>
-                  <option value="Oyo State (Ibadan / Oyo / Ogbomoso)">Oyo (Ibadan / Oyo / Ogbomoso)</option>
-                  <option value="Delta & Rivers (Asaba / Port Harcourt)">Delta & Rivers (Asaba / Port Harcourt)</option>
-                  <option value="FCT Abuja & Northern Hubs">FCT Abuja & Northern Hubs</option>
-                  <option value="West Africa Regional (Ghana / Cameroon)">West Africa Regional (Ghana / Cameroon)</option>
+                  <option value="Lagos State (Epe / Ikorodu / Badagry)">Lagos (Epe, Ikorodu, Badagry)</option>
+                  <option value="Ogun State (Abeokuta / Ijebu / Sagamu)">Ogun (Abeokuta, Sagamu, Ijebu)</option>
+                  <option value="Oyo State (Ibadan / Oyo / Ogbomoso)">Oyo (Ibadan, Ogbomoso)</option>
+                  <option value="Delta & Rivers (Asaba / Port Harcourt)">Delta & Rivers (Port Harcourt, Asaba)</option>
+                  <option value="FCT Abuja & Northern Hubs">Abuja & Northern Hubs</option>
+                  <option value="West Africa Regional (Ghana / Cameroon)">West Africa (Ghana, Cameroon)</option>
                 </select>
               </div>
 
@@ -287,8 +287,8 @@ export const AuthModal: React.FC = () => {
                   onChange={(e) => setSignupForm({ ...signupForm, primarySpecies: e.target.value })}
                   className="input"
                 >
-                  <option value="African Catfish (Clarias gariepinus)">African Catfish (Clarias gariepinus)</option>
-                  <option value="Nile Tilapia (Oreochromis niloticus)">Nile Tilapia (Oreochromis niloticus)</option>
+                  <option value="African Catfish (Clarias gariepinus)">African Catfish (Clarias)</option>
+                  <option value="Nile Tilapia (Oreochromis niloticus)">Nile Tilapia (Oreochromis)</option>
                   <option value="Heteroclarias Hybrid (Clarias x Heterobranchus)">Heteroclarias Hybrid</option>
                   <option value="Pangasius / Asian Catfish">Pangasius Catfish</option>
                 </select>
@@ -306,7 +306,7 @@ export const AuthModal: React.FC = () => {
                   <option value="Concrete Tanks">Concrete Tanks</option>
                   <option value="Earthen Ponds">Earthen Ponds</option>
                   <option value="Tarpaulin Tanks">Tarpaulin Tanks</option>
-                  <option value="Recirculating Aquaculture System (RAS)">Recirculating Aquaculture System (RAS)</option>
+                  <option value="Recirculating Aquaculture System (RAS)">RAS (Recirculating System)</option>
                 </select>
               </div>
 
