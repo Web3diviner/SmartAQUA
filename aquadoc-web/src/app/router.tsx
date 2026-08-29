@@ -11,17 +11,20 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 
 import { useAppState } from '@/app/providers'
+import { AuthModal } from '@/components/AuthModal'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ModelSelector } from '@/components/ModelSelector'
+import { AuthPage } from '@/pages/AuthPage'
 import { ChatPage } from '@/pages/ChatPage'
 import { DiseaseTestPage } from '@/pages/DiseaseTestPage'
 import { FarmSimulatorPage } from '@/pages/FarmSimulatorPage'
 
 export function App() {
-  const { config, debugAvailable, theme, toggleTheme } = useAppState()
+  const { config, debugAvailable, theme, toggleTheme, user, isAuthenticated, openAuthModal, logout } = useAppState()
 
   return (
     <div className="app">
+      <AuthModal />
       <header className="app__header">
         <div className="app__brand">
           <BrandMark />
@@ -51,6 +54,37 @@ export function App() {
         <div className="app__status">
           <ModelSelector />
 
+          {/* User Auth Profile / Login Button */}
+          {isAuthenticated && user ? (
+            <div className="user-profile-badge">
+              <img
+                src={user.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`}
+                alt={user.name}
+                className="user-avatar"
+              />
+              <div className="user-info-text">
+                <strong className="user-name">{user.name}</strong>
+                <small className="user-farm">{user.farmName || user.primarySpecies}</small>
+              </div>
+              <button
+                type="button"
+                className="btn-logout"
+                onClick={logout}
+                title="Log out of farm account"
+              >
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="button button--primary auth-login-btn"
+              onClick={openAuthModal}
+            >
+              <span>👤 Sign In / Register</span>
+            </button>
+          )}
+
           <button
             type="button"
             className="theme-toggle-btn"
@@ -79,6 +113,7 @@ export function App() {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/simulator" element={<FarmSimulatorPage />} />
             <Route path="/disease" element={<DiseaseTestPage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>
         </ErrorBoundary>

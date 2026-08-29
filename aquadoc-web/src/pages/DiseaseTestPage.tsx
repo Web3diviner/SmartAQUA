@@ -8,7 +8,7 @@
  * or live video veterinary consultations.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppState } from '@/app/providers'
 import { sendChat } from '@/api/chat'
 import { type ChatResponse } from '@/schemas/aquadoc'
@@ -29,11 +29,11 @@ const COMMON_SYMPTOMS = [
 ]
 
 export function DiseaseTestPage() {
-  const { config, selectedModel } = useAppState()
+  const { config, selectedModel, user, isAuthenticated, openAuthModal } = useAppState()
 
-  const [species, setSpecies] = useState('Clarias gariepinus')
+  const [species, setSpecies] = useState(user?.primarySpecies || 'Clarias gariepinus')
   const [stage, setStage] = useState('Grow-out (> 100g)')
-  const [pondType, setPondType] = useState('Concrete Flow-Through')
+  const [pondType, setPondType] = useState(user?.farmingSystem || 'Concrete Flow-Through')
   const [durationDays, setDurationDays] = useState<number>(2)
   const [mortality24h, setMortality24h] = useState<number>(12)
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([
@@ -53,10 +53,18 @@ export function DiseaseTestPage() {
   // Consultation Booking Modal State
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [bookingType, setBookingType] = useState<'physical' | 'virtual'>('physical')
-  const [farmLocation, setFarmLocation] = useState('')
-  const [farmerPhone, setFarmerPhone] = useState('')
+  const [farmLocation, setFarmLocation] = useState(user?.farmLocation || '')
+  const [farmerPhone, setFarmerPhone] = useState(user?.phone || '')
   const [preferredDate, setPreferredDate] = useState('')
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
+
+  // Sync user details if logged in
+  useEffect(() => {
+    if (user) {
+      if (user.phone) setFarmerPhone(user.phone)
+      if (user.farmLocation) setFarmLocation(user.farmLocation)
+    }
+  }, [user])
 
   const toggleSymptom = (symptomLabel: string) => {
     setSelectedSymptoms((prev) =>
@@ -68,6 +76,11 @@ export function DiseaseTestPage() {
 
   const handleAssess = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
     setEvaluating(true)
     setError(null)
 

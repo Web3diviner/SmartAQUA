@@ -842,9 +842,9 @@ async def dev_admin_analytics(caller: DevCallerDep) -> dict[str, Any]:
 
     return {
         "kpis": {
-            "total_users_onboarded": 1482,
+            "total_users_onboarded": 1482 + len(_USERS_STORE),
             "onboarded_growth_mom_pct": 28.4,
-            "daily_active_users": 365,
+            "daily_active_users": 365 + len(_USERS_STORE),
             "dau_growth_wow_pct": 18.2,
             "total_ponds_monitored": 4120,
             "total_triage_sessions": 2890,
@@ -862,5 +862,170 @@ async def dev_admin_analytics(caller: DevCallerDep) -> dict[str, Any]:
             "error_rate_pct": 0.4,
         },
     }
+
+
+# -- User Authentication & Farm Registration ----------------------------------
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    phone: str = ""
+    farm_name: str = "Smart Aqua Farm"
+    farm_location: str = "Lagos, Nigeria"
+    primary_species: str = "African Catfish (Clarias gariepinus)"
+    farming_system: str = "Concrete Tanks"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    email: str
+    name: str
+    avatar_url: str = ""
+    google_id: str = ""
+    farm_name: str = "Smart Aqua Farm"
+    farm_location: str = "Lagos, Nigeria"
+    primary_species: str = "African Catfish (Clarias gariepinus)"
+    farming_system: str = "Concrete Tanks"
+
+
+_USERS_STORE: list[dict[str, Any]] = [
+    {
+        "id": "USR-1001",
+        "name": "Babatunde Alabi",
+        "email": "babatunde.farm@gmail.com",
+        "phone": "+2348071055742",
+        "farm_name": "Alabi Catfish Grand Farm",
+        "farm_location": "Epe, Lagos State",
+        "primary_species": "African Catfish (Clarias gariepinus)",
+        "farming_system": "Concrete Tanks",
+        "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=babatunde",
+        "provider": "credentials",
+        "token": "aqua_usr_token_babatunde_2026",
+        "created_at": "2026-08-25 10:00:00",
+    }
+]
+
+
+@router.post(
+    "/auth/signup",
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new fish farmer with farm production details",
+)
+async def dev_auth_signup(payload: SignupRequest) -> dict[str, Any]:
+    """Register a new user account and increment platform onboarding telemetry."""
+    import uuid
+    import random
+
+    email_clean = payload.email.strip().lower()
+    for u in _USERS_STORE:
+        if u["email"] == email_clean:
+            return {"error": "An account with this email address already exists. Please log in.", "status_code": 400}
+
+    user_id = f"USR-{random.randint(1100, 9999)}"
+    token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
+    now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+    user_data = {
+        "id": user_id,
+        "name": payload.name.strip(),
+        "email": email_clean,
+        "phone": payload.phone.strip(),
+        "farm_name": payload.farm_name.strip() or "My Fish Farm",
+        "farm_location": payload.farm_location.strip() or "Nigeria",
+        "primary_species": payload.primary_species,
+        "farming_system": payload.farming_system,
+        "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+        "provider": "credentials",
+        "token": token,
+        "created_at": now_str,
+    }
+
+    _USERS_STORE.append(user_data)
+    logger.info("farmer_registered", extra={"user_id": user_id, "email": email_clean})
+    return {"user": user_data, "token": token, "message": "Account created successfully."}
+
+
+@router.post(
+    "/auth/login",
+    summary="Log in with email and password",
+)
+async def dev_auth_login(payload: LoginRequest) -> dict[str, Any]:
+    """Authenticate registered farmer."""
+    email_clean = payload.email.strip().lower()
+    for u in _USERS_STORE:
+        if u["email"] == email_clean:
+            return {"user": u, "token": u["token"], "message": "Logged in successfully."}
+
+    # For development ease, if email looks valid, auto-create
+    if "@" in email_clean:
+        import uuid
+        import random
+        user_id = f"USR-{random.randint(1100, 9999)}"
+        token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
+        now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        name_part = email_clean.split("@")[0].replace(".", " ").title()
+
+        user_data = {
+            "id": user_id,
+            "name": name_part,
+            "email": email_clean,
+            "phone": "+2348071055742",
+            "farm_name": f"{name_part} Aquaculture",
+            "farm_location": "Lagos, Nigeria",
+            "primary_species": "African Catfish (Clarias gariepinus)",
+            "farming_system": "Concrete Tanks",
+            "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+            "provider": "credentials",
+            "token": token,
+            "created_at": now_str,
+        }
+        _USERS_STORE.append(user_data)
+        return {"user": user_data, "token": token, "message": "Logged in successfully."}
+
+    return {"error": "Invalid email or password.", "status_code": 401}
+
+
+@router.post(
+    "/auth/google",
+    summary="1-Click Sign-In with Google (Gmail)",
+)
+async def dev_auth_google(payload: GoogleLoginRequest) -> dict[str, Any]:
+    """Instant sign-in and account provisioning with Google Gmail."""
+    import uuid
+    import random
+
+    email_clean = payload.email.strip().lower()
+    for u in _USERS_STORE:
+        if u["email"] == email_clean:
+            return {"user": u, "token": u["token"], "message": "Google authentication successful."}
+
+    user_id = f"USR-{random.randint(1100, 9999)}"
+    token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
+    now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+    user_data = {
+        "id": user_id,
+        "name": payload.name or email_clean.split("@")[0].title(),
+        "email": email_clean,
+        "phone": "+2348071055742",
+        "farm_name": payload.farm_name or f"{payload.name}'s Farm",
+        "farm_location": payload.farm_location or "Lagos, Nigeria",
+        "primary_species": payload.primary_species,
+        "farming_system": payload.farming_system,
+        "avatar_url": payload.avatar_url or f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+        "provider": "google",
+        "token": token,
+        "created_at": now_str,
+    }
+
+    _USERS_STORE.append(user_data)
+    logger.info("farmer_google_auth", extra={"user_id": user_id, "email": email_clean})
+    return {"user": user_data, "token": token, "message": "Google sign-in successful."}
+
 
 

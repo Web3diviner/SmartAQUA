@@ -40,8 +40,19 @@ function isSourceRequested(text: string): boolean {
 }
 
 export function ChatPage() {
-  const { config, chatMode, setChatMode, farmForm, devMode, debugAvailable, setDevMode, selectedModel } =
-    useAppState()
+  const {
+    config,
+    chatMode,
+    setChatMode,
+    farmForm,
+    devMode,
+    debugAvailable,
+    setDevMode,
+    selectedModel,
+    user,
+    isAuthenticated,
+    openAuthModal,
+  } = useAppState()
 
   const [turns, setTurns] = useState<Turn[]>([])
   const [question, setQuestion] = useState('')
@@ -186,6 +197,12 @@ export function ChatPage() {
       const trimmed = text.trim()
       if (!trimmed || pending) return
 
+      // Prompt sign up / login if unauthenticated
+      if (!isAuthenticated) {
+        openAuthModal()
+        return
+      }
+
       inFlight.current?.abort()
       const controller = new AbortController()
       inFlight.current = controller
@@ -202,11 +219,9 @@ export function ChatPage() {
 
       try {
         const response = await sendChat(config, {
-          userId: 'dev-user',
+          userId: user?.id || 'farmer-session',
           question: trimmed,
           conversationId,
-          // General mode sends no context at all — an empty object would read
-          // as a pond where everything happens to be unmeasured.
           farmContext: chatMode === 'simulated_pond' ? formToFarmContext(farmForm) : null,
           model: selectedModel,
           signal: controller.signal,
@@ -215,22 +230,31 @@ export function ChatPage() {
         setTurns((current) =>
           current.map((turn) => (turn.id === turnId ? { ...turn, response } : turn)),
         )
-      } catch (error) {
+      } catch (err) {
+        if (controller.signal.aborted) return
+        const message = err instanceof Error ? err.message : 'Failed to consult AquaDoc'
         setTurns((current) =>
-          current.map((turn) => (turn.id === turnId ? { ...turn, error } : turn)),
+          current.map((turn) =>
+            turn.id === turnId ? { ...turn, error: message } : turn,
+          ),
         )
       } finally {
         setPending(false)
         inFlight.current = null
       }
     },
-    [chatMode, config, conversationId, farmForm, pending, selectedModel],
+    [config, pending, conversationId, chatMode, farmForm, selectedModel, isAuthenticated, openAuthModal, user],
   )
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    void ask(question)
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+    const current = question
     setQuestion('')
+    void ask(current)
   }
 
   const resetConversation = () => {
@@ -297,10 +321,32 @@ export function ChatPage() {
             <div className="chat-page__empty-heading">
               <span className="ai-orb" aria-hidden="true"><span /></span>
               <div>
-                <span className="page-eyebrow">Ready when you are</span>
-                <h3>How can I help with your farm today?</h3>
+                <span className="page-eyebrow">
+                  {isAuthenticated ? `Welcome, ${user?.name}` : 'Sign In Required for Consultation'}
+                </span>
+                <h3>
+                  {isAuthenticated
+                    ? 'How can I assist your farm today?'
+                    : 'Sign in or register to get started with AquaDoc AI'}
+                </h3>
               </div>
             </div>
+
+            {!isAuthenticated && (
+              <div className="auth-prompt-banner">
+                <p>
+                  To receive clinical advice, tailored feed calculations, and disease prescriptions, please sign in with your <strong>Google Account (Gmail)</strong> or register your farm details.
+                </p>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={openAuthModal}
+                >
+                  🚀 Sign In / Register Farm Account
+                </button>
+              </div>
+            )}
+
             <div className="chat-page__suggestions" aria-label="Suggested questions">
               {[
                 'Why are my fish not eating?',
@@ -312,6 +358,10 @@ export function ChatPage() {
                   key={suggestion}
                   type="button"
                   onClick={() => {
+                    if (!isAuthenticated) {
+                      openAuthModal()
+                      return
+                    }
                     setQuestion(suggestion)
                     void ask(suggestion)
                   }}

@@ -102,17 +102,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(RequestContextMiddleware)
 
-    if settings.cors_origins:
-        # Needed only for the temporary React client, which calls AquaDoc from
-        # the browser. The Flutter app will go through the Go backend instead
-        # (15_AQUADOC_FRONTEND.md section 19), at which point this can go.
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.cors_origins,
-            allow_credentials=False,
-            allow_methods=["GET", "POST"],
-            allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-        )
+    # Allow CORS for development frontend clients (farmer on :5173 and admin on :5174)
+    cors_allowed = list(settings.cors_origins) if settings.cors_origins else []
+    for origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]:
+        if origin not in cors_allowed:
+            cors_allowed.append(origin)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_allowed if not settings.is_production else settings.cors_origins,
+        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$" if not settings.is_production else None,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     register_exception_handlers(app)
 
