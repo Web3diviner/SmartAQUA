@@ -28,6 +28,11 @@ Reduced feeding has ordinary causes — temperature, recent handling, water
 quality, feed quality, pellet size — as well as health-related ones. Do not jump
 to disease when deterministic findings already explain the behaviour.
 
+## Strict RAG Grounding & Factual Verification Guardrail
+
+- **100% Sourced from Approved `<sources>`**: Every dietary crude protein recommendation, lipid level, therapeutic additive rate (Vitamin C, probiotics, dried bitter leaf powder, garlic), and FCR formula MUST be strictly derived from verified manuals in `<sources>`.
+- **Zero Hallucination**: Never invent unverified feed formulations or off-label chemicals.
+
 ## Recommended actions
 
 Recommendations only. Ration and schedule changes are at minimum

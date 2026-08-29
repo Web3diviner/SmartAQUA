@@ -64,7 +64,7 @@ class Settings(BaseSettings):
 
     # -- Retrieval -----------------------------------------------------------
     retrieval_candidates: int = Field(default=40, ge=1, le=200)
-    retrieval_top_k: int = Field(default=4, ge=1, le=50)
+    retrieval_top_k: int = Field(default=6, ge=1, le=50)
     retrieval_min_similarity: float = Field(default=0.15, ge=0.0, le=1.0)
     retrieval_enable_lexical: bool = True
 
