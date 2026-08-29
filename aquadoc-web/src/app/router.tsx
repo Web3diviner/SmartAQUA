@@ -20,7 +20,7 @@ import { DiseaseTestPage } from '@/pages/DiseaseTestPage'
 import { FarmSimulatorPage } from '@/pages/FarmSimulatorPage'
 
 export function App() {
-  const { config, debugAvailable, theme, toggleTheme, user, isAuthenticated, openAuthModal, logout } = useAppState()
+  const { theme, toggleTheme, user, isAuthenticated, openAuthModal, logout } = useAppState()
 
   return (
     <div className="app">
@@ -94,15 +94,6 @@ export function App() {
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
-
-          <span className="app__environment"><span aria-hidden="true" /> Dev</span>
-          <code title="AquaDoc API endpoint">{config.baseUrl}</code>
-          {!config.devToken && (
-            <span className="app__warning" title="Set VITE_AQUADOC_DEV_TOKEN in .env">
-              No dev token
-            </span>
-          )}
-          {!debugAvailable && <span className="app__muted">Debug panels disabled</span>}
         </div>
       </header>
 
