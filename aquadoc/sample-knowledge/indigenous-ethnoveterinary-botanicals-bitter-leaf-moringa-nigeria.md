@@ -104,4 +104,4 @@ Garlic contains **Allicin (diallyl thiosulfinate)**, a potent natural compound w
 
 1. **Avoid Over-Concentration:** Do not exceed 150 mL/100 L of raw bitter leaf extract in nursery fry tanks (<5 g fry), as excessive saponins can irritate delicate juvenile respiratory gill lamellae.
 2. **Always Maintain Aeration:** Biological extracts increase biological oxygen demand (BOD) slightly during microbial breakdown; keep aeration pumps running.
-3. **Veterinary Escalation:** If fish show acute mortality exceeding 5% per day, severe skin hemorrhages, or complete loss of equilibrium, immediately escalate to an aquatic veterinary doctor (+234 813 456 7890 or use the **"Book a Consultation"** tab).
+3. **Veterinary Escalation:** If fish show acute mortality exceeding 5% per day, severe skin hemorrhages, or complete loss of equilibrium, immediately escalate to an aquatic veterinary doctor (+234 807 105 5742 or use the **"Book a Consultation"** tab).

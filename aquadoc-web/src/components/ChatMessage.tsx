@@ -167,7 +167,7 @@ export function AssistantMessage({
               <strong>Need Direct Veterinary or Nutritional Field Support?</strong>
             </div>
             <p>
-              Speak directly with an aquaculture consultant at <strong style={{ color: 'var(--accent-cyan)' }}>+234 813 456 7890</strong> or book an on-farm physical inspection / virtual consultation.
+              Speak directly with an aquaculture consultant at <strong style={{ color: 'var(--accent-cyan)' }}>+234 807 105 5742</strong> or book an on-farm physical inspection / virtual consultation.
             </p>
           </div>
         </div>
