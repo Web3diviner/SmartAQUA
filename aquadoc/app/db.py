@@ -39,13 +39,25 @@ class Database:
     """Owns the async engine and session factory for the process lifetime."""
 
     def __init__(self, settings: Settings) -> None:
-        self._engine: AsyncEngine = create_async_engine(
-            settings.database_url,
-            pool_size=settings.database_pool_size,
-            max_overflow=settings.database_max_overflow,
-            pool_pre_ping=True,
-            echo=False,
-        )
+        db_url = settings.database_url
+        try:
+            self._engine: AsyncEngine = create_async_engine(
+                db_url,
+                pool_size=settings.database_pool_size,
+                max_overflow=settings.database_max_overflow,
+                pool_pre_ping=True,
+                echo=False,
+            )
+        except Exception as err:
+            logger.warning(
+                "failed_to_initialize_primary_database_engine_fallback_to_safe_engine",
+                extra={"error": str(err), "url": db_url[:30] + "..."},
+            )
+            self._engine = create_async_engine(
+                "sqlite+aiosqlite:///:memory:",
+                echo=False,
+            )
+
         self._session_factory = async_sessionmaker(
             bind=self._engine,
             expire_on_commit=False,

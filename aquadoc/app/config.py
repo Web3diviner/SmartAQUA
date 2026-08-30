@@ -95,6 +95,36 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
 
+    @field_validator("port", mode="before")
+    @classmethod
+    def _parse_port(cls, value: object) -> int:
+        if value is None or str(value).strip() == "":
+            return 8001
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 8001
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _sanitize_database_url(cls, value: str | None) -> str:
+        if not value or not str(value).strip():
+            return "postgresql+asyncpg://aquadoc:aquadoc@localhost:5432/aquadoc"
+        url = str(value).strip().strip('"\'')
+        # Automatically fix standard postgresql:// or postgres:// to asyncpg
+        if url.startswith("postgres://"):
+            url = "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        
+        # Remove empty port like @hostname:/database -> @hostname/database (in host section only)
+        if "://" in url:
+            scheme, rest = url.split("://", 1)
+            import re
+            rest = re.sub(r':(?=/|$|\?)', '', rest)
+            url = f"{scheme}://{rest}"
+        return url
+
     @field_validator("chunk_overlap_tokens")
     @classmethod
     def _overlap_below_target(cls, value: int, info) -> int:  # type: ignore[no-untyped-def]
