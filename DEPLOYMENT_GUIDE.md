@@ -37,9 +37,8 @@ Render provides free or standard Docker hosting with automated HTTPS.
 ### Step 2: Configure Web Service
 - **Name:** `aquadoc-api` (or `smartaqua-api`)
 - **Region:** Frankfurt (EU) or Oregon (US)
-- **Language / Runtime:** `Docker`
-- **Dockerfile Path:** `./aquadoc/Dockerfile`
-- **Docker Context Path:** `./aquadoc`
+- **Language / Runtime:** `Docker` (Render automatically detects the root `Dockerfile`)
+- **Root Directory:** Leave empty (default `./`)
 - **Instance Type:** `Free` or `Starter ($7/mo)`
 
 ### Step 3: Add Environment Variables
