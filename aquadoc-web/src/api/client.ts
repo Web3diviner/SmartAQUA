@@ -115,14 +115,32 @@ export interface ClientConfig {
 }
 
 export function readClientConfig(): ClientConfig {
-  const envUrl =
+  let defaultBase = 'https://aquadoc-api.onrender.com'
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    defaultBase = 'http://localhost:8001'
+  }
+
+  const rawEnv =
     import.meta.env.VITE_AQUADOC_BASE_URL ||
     import.meta.env.VITE_AQUADOC_API_URL ||
-    'http://localhost:8001'
+    defaultBase
+
+  const isProductionBrowser =
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+
+  const resolvedBaseUrl =
+    isProductionBrowser && (rawEnv.includes('localhost') || rawEnv.includes('127.0.0.1'))
+      ? defaultBase
+      : rawEnv
 
   return {
-    baseUrl: envUrl.replace(/\/$/, ''),
-    devToken: import.meta.env.VITE_AQUADOC_DEV_TOKEN ?? '',
+    baseUrl: resolvedBaseUrl.replace(/\/$/, ''),
+    devToken: import.meta.env.VITE_AQUADOC_DEV_TOKEN ?? 'aqua-dev-token-2026',
     // Generous: a farm-assessment answer at high effort legitimately takes time.
     timeoutMs: 120_000,
   }

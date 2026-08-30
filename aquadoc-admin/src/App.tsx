@@ -5,7 +5,32 @@ import { BookingsManager } from './components/BookingsManager'
 import { EvaluationHub } from './components/EvaluationHub'
 import { AdminAnalyticsResponse, Booking, TraceMetric } from './types'
 
-const BASE_URL = import.meta.env.VITE_AQUADOC_BASE_URL || 'http://127.0.0.1:8001'
+const getDefaultBaseUrl = () => {
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return 'http://127.0.0.1:8001'
+  }
+  return 'https://aquadoc-api.onrender.com'
+}
+
+const rawBaseUrl =
+  import.meta.env.VITE_AQUADOC_BASE_URL ||
+  import.meta.env.VITE_AQUADOC_API_URL ||
+  getDefaultBaseUrl()
+
+const isProductionBrowser =
+  typeof window !== 'undefined' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+
+const BASE_URL = (
+  isProductionBrowser && (rawBaseUrl.includes('127.0.0.1') || rawBaseUrl.includes('localhost'))
+    ? getDefaultBaseUrl()
+    : rawBaseUrl
+).replace(/\/$/, '')
+
 const DEV_TOKEN = import.meta.env.VITE_AQUADOC_DEV_TOKEN || 'aqua-dev-token-2026'
 
 export const App: React.FC = () => {
