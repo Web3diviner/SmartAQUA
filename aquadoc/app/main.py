@@ -102,17 +102,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(RequestContextMiddleware)
 
-    # Allow CORS for development frontend clients (farmer on :5173 and admin on :5174)
-    cors_allowed = list(settings.cors_origins) if settings.cors_origins else []
+    # Allow CORS for development frontend clients and production cloud hosts
+    cors_allowed = list(settings.cors_origins) if settings.cors_origins else ["*"]
     for origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"]:
-        if origin not in cors_allowed:
+        if origin not in cors_allowed and "*" not in cors_allowed:
             cors_allowed.append(origin)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_allowed if not settings.is_production else settings.cors_origins,
-        allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$" if not settings.is_production else None,
-        allow_credentials=True,
+        allow_origins=["*"] if "*" in cors_allowed else cors_allowed,
+        allow_origin_regex=r"^https?://.*" if "*" in cors_allowed else r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+        allow_credentials=True if "*" not in cors_allowed else False,
         allow_methods=["*"],
         allow_headers=["*"],
     )

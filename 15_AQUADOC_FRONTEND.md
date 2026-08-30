@@ -313,7 +313,7 @@ Use a centralized frontend API client.
 Development environment:
 
 ```bash
-VITE_AQUADOC_API_URL=http://localhost:8001
+VITE_AQUADOC_API_URL=https://smart-aqua-five.vercel.app/
 VITE_APP_ENV=development
 VITE_ENABLE_DEBUG_PANEL=true
 ```

@@ -115,8 +115,13 @@ export interface ClientConfig {
 }
 
 export function readClientConfig(): ClientConfig {
+  const envUrl =
+    import.meta.env.VITE_AQUADOC_BASE_URL ||
+    import.meta.env.VITE_AQUADOC_API_URL ||
+    'http://localhost:8001'
+
   return {
-    baseUrl: (import.meta.env.VITE_AQUADOC_API_URL ?? 'http://localhost:8001').replace(/\/$/, ''),
+    baseUrl: envUrl.replace(/\/$/, ''),
     devToken: import.meta.env.VITE_AQUADOC_DEV_TOKEN ?? '',
     // Generous: a farm-assessment answer at high effort legitimately takes time.
     timeoutMs: 120_000,
