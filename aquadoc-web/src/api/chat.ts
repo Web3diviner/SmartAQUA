@@ -115,3 +115,17 @@ export async function fetchRetrievalTrace(
 export async function fetchConfig(config: ClientConfig): Promise<ConfigResponse> {
   return request(config, { path: '/dev/v1/config', schema: configResponseSchema })
 }
+
+export async function deleteConversationApi(config: ClientConfig, conversationId: string): Promise<boolean> {
+  try {
+    const url = `${config.baseUrl.replace(/\/$/, '')}/dev/v1/conversations/${encodeURIComponent(conversationId)}`
+    const headers: Record<string, string> = {}
+    if (config.devToken) {
+      headers.Authorization = `Bearer ${config.devToken}`
+    }
+    const res = await fetch(url, { method: 'DELETE', headers })
+    return res.ok
+  } catch {
+    return false
+  }
+}

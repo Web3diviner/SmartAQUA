@@ -94,7 +94,7 @@ class Database:
                     text("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
                 )
                 has_vector = result.first() is not None
-        except SQLAlchemyError as exc:
+        except Exception as exc:
             logger.warning("database_health_check_failed", exc_info=exc)
             # Detail is a fixed string: a driver error can embed the DSN.
             return DatabaseHealth(

@@ -20,6 +20,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -213,6 +214,7 @@ class Orchestrator:
         self._llm = llm
         self._embeddings = embeddings
         self._conversation_history: dict[str, list[dict[str, str]]] = {}
+        self._conversations_meta: dict[str, dict] = {}
         self._memory_retriever = MemoryRetriever(
             self._embeddings,
             candidates=self._settings.retrieval_candidates,
@@ -255,6 +257,29 @@ class Orchestrator:
         # -- 3. retrieval & generation ---------------------------------------
         try:
             async with self._database.session() as session:
+                if request.conversation_id and not conv_history:
+                    try:
+                        cand_id = uuid.UUID(request.conversation_id)
+                        msg_rows = (
+                            await session.execute(
+                                select(AquaDocMessage)
+                                .where(AquaDocMessage.conversation_id == cand_id)
+                                .order_by(AquaDocMessage.created_at.asc())
+                            )
+                        ).scalars().all()
+                        if msg_rows:
+                            conv_history = [
+                                {
+                                    "role": m.role,
+                                    "content": m.content,
+                                    "timestamp": m.created_at.isoformat() if hasattr(m.created_at, "isoformat") else "",
+                                }
+                                for m in msg_rows
+                            ]
+                            self._conversation_history[request.conversation_id] = list(conv_history)
+                    except Exception:
+                        pass
+
                 retriever = Retriever(
                     session,
                     self._embeddings,
@@ -379,16 +404,8 @@ class Orchestrator:
                     )
                 )
                 conv_key = str(conversation_id)
-                if conv_key not in self._conversation_history:
-                    self._conversation_history[conv_key] = []
-                self._conversation_history[conv_key].append({"role": "user", "content": request.question})
-                self._conversation_history[conv_key].append({"role": "assistant", "content": model_answer.answer})
-                if len(self._conversation_history[conv_key]) > 20:
-                    self._conversation_history[conv_key] = self._conversation_history[conv_key][-20:]
-        except (SQLAlchemyError, OSError) as db_err:
-            if self._settings.is_production:
-                raise
-
+                self._record_history_turn(conv_key, request.question, model_answer.answer)
+        except Exception as db_err:
             logger.warning("database_unavailable_using_memory_retriever", extra={"error": str(db_err)})
             result = await self._memory_retriever.retrieve(
                 request_id=request_id,
@@ -443,12 +460,7 @@ class Orchestrator:
 
             conv_id_str = request.conversation_id or f"dev-conv-{uuid.uuid4().hex[:8]}"
             conv_key = conv_id_str
-            if conv_key not in self._conversation_history:
-                self._conversation_history[conv_key] = []
-            self._conversation_history[conv_key].append({"role": "user", "content": request.question})
-            self._conversation_history[conv_key].append({"role": "assistant", "content": model_answer.answer})
-            if len(self._conversation_history[conv_key]) > 20:
-                self._conversation_history[conv_key] = self._conversation_history[conv_key][-20:]
+            self._record_history_turn(conv_key, request.question, model_answer.answer)
 
             total_latency_ms = (time.perf_counter() - started) * 1000
 
@@ -683,6 +695,73 @@ class Orchestrator:
             )
         )
         return conversation_id
+
+    def _record_history_turn(self, conv_id: str, question: str, answer: str) -> None:
+        """Record multi-turn dialogue in memory and update conversation metadata."""
+        now_iso = datetime.now(UTC).isoformat()
+        if conv_id not in self._conversation_history:
+            self._conversation_history[conv_id] = []
+        self._conversation_history[conv_id].append({"role": "user", "content": question, "timestamp": now_iso})
+        self._conversation_history[conv_id].append({"role": "assistant", "content": answer, "timestamp": now_iso})
+        if len(self._conversation_history[conv_id]) > 40:
+            self._conversation_history[conv_id] = self._conversation_history[conv_id][-40:]
+
+        clean_title = question.strip().replace("\n", " ")
+        if len(clean_title) > 60:
+            clean_title = clean_title[:57] + "..."
+
+        if conv_id not in self._conversations_meta:
+            self._conversations_meta[conv_id] = {
+                "id": conv_id,
+                "title": clean_title,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+                "turn_count": 1,
+                "last_message": answer[:120],
+            }
+        else:
+            self._conversations_meta[conv_id]["updated_at"] = now_iso
+            self._conversations_meta[conv_id]["turn_count"] = len(self._conversation_history[conv_id]) // 2
+            self._conversations_meta[conv_id]["last_message"] = answer[:120]
+
+    def list_conversations(self, limit: int = 50) -> list[dict[str, Any]]:
+        """List active conversation sessions ordered by latest activity."""
+        items = list(self._conversations_meta.values())
+        items.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        return items[:limit]
+
+    def get_conversation(self, conversation_id: str) -> dict[str, Any] | None:
+        """Retrieve full conversation details with message history."""
+        meta = self._conversations_meta.get(conversation_id)
+        if not meta:
+            # If not in metadata but exists in history
+            history = self._conversation_history.get(conversation_id, [])
+            if not history:
+                return None
+            return {
+                "id": conversation_id,
+                "title": history[0]["content"][:60] if history else "Aquaculture Consultation",
+                "created_at": history[0].get("timestamp", datetime.now(UTC).isoformat()) if history else "",
+                "updated_at": history[-1].get("timestamp", datetime.now(UTC).isoformat()) if history else "",
+                "turn_count": len(history) // 2,
+                "messages": history,
+            }
+        history = self._conversation_history.get(conversation_id, [])
+        return {
+            **meta,
+            "messages": history,
+        }
+
+    def delete_conversation(self, conversation_id: str) -> bool:
+        """Delete a conversation session and its history."""
+        found = False
+        if conversation_id in self._conversations_meta:
+            del self._conversations_meta[conversation_id]
+            found = True
+        if conversation_id in self._conversation_history:
+            del self._conversation_history[conversation_id]
+            found = True
+        return found
 
 
 def _ground_causes(

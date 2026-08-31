@@ -155,7 +155,8 @@ def build_conversation_history_block(history: list[dict[str, str]] | None) -> st
     if not history:
         return ""
     lines = ["<conversation_history>"]
-    for turn in history[-6:]:  # Keep up to last 6 dialogue turns for context memory
+    # Retain up to the last 10 dialogue turns (20 user + assistant exchanges)
+    for turn in history[-20:]:
         role = "farmer" if turn.get("role") == "user" else "doctor"
         content = sanitize_untrusted(turn.get("content", ""))
         lines.append(f"<{role}>\n{content}\n</{role}>")

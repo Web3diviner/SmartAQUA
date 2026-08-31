@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # -- LLM provider --------------------------------------------------------
     llm_provider: LLMProviderName = "groq"
-    llm_model: str = "openai/gpt-oss-120b"
+    llm_model: str = "llama-3.3-70b-versatile"
     llm_max_tokens: int = 2000
     llm_effort: EffortLevel = "high"
     llm_timeout_seconds: float = 120.0
@@ -111,16 +111,15 @@ class Settings(BaseSettings):
         if not value or not str(value).strip():
             return "postgresql+asyncpg://aquadoc:aquadoc@localhost:5432/aquadoc"
         url = str(value).strip().strip('"\'')
-        # Automatically fix standard postgresql:// or postgres:// to asyncpg
-        if url.startswith("postgres://"):
-            url = "postgresql+asyncpg://" + url[len("postgres://"):]
-        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
-            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        # Clean duplicate protocols (e.g. postgresql+asyncpg://postgresql:// -> postgresql+asyncpg://)
+        import re
+        url = re.sub(r'^(?:postgresql\+asyncpg:\/\/|postgresql:\/\/|postgres:\/\/)+', 'postgresql+asyncpg://', url)
+        if not url.startswith("postgresql+asyncpg://") and not url.startswith("sqlite"):
+            url = f"postgresql+asyncpg://{url}"
         
         # Remove empty port like @hostname:/database -> @hostname/database (in host section only)
         if "://" in url:
             scheme, rest = url.split("://", 1)
-            import re
             rest = re.sub(r':(?=/|$|\?)', '', rest)
             url = f"{scheme}://{rest}"
         return url

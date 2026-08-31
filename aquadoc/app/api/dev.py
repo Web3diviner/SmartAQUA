@@ -997,4 +997,58 @@ async def dev_auth_google(payload: GoogleLoginRequest) -> dict[str, Any]:
     return {"user": user_data, "token": token, "message": "Google sign-in successful."}
 
 
+# -- conversations & history --------------------------------------------------
+
+
+@router.get(
+    "/conversations",
+    summary="List active conversation sessions and recent consultations",
+)
+async def list_conversations(
+    caller: DevCallerDep,
+    orchestrator: OrchestratorDep,
+    limit: int = Query(default=50, ge=1, le=100),
+) -> dict[str, Any]:
+    """Retrieve chat history session list."""
+    sessions = orchestrator.list_conversations(limit=limit)
+    return {
+        "conversations": sessions,
+        "count": len(sessions),
+    }
+
+
+@router.get(
+    "/conversations/{conversation_id}",
+    summary="Get full conversation details and dialogue messages",
+)
+async def get_conversation(
+    conversation_id: str,
+    caller: DevCallerDep,
+    orchestrator: OrchestratorDep,
+) -> dict[str, Any]:
+    """Retrieve full message history for a conversation session."""
+    conversation = orchestrator.get_conversation(conversation_id)
+    if not conversation:
+        return {"error": "Conversation not found", "status_code": 404}
+    return conversation
+
+
+@router.delete(
+    "/conversations/{conversation_id}",
+    summary="Delete a conversation session from history",
+)
+async def delete_conversation(
+    conversation_id: str,
+    caller: DevCallerDep,
+    orchestrator: OrchestratorDep,
+) -> dict[str, Any]:
+    """Delete a conversation session."""
+    deleted = orchestrator.delete_conversation(conversation_id)
+    return {
+        "success": deleted,
+        "conversation_id": conversation_id,
+        "message": "Conversation deleted successfully." if deleted else "Conversation not found.",
+    }
+
+
 

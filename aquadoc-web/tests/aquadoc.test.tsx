@@ -232,3 +232,49 @@ describe('response validation', () => {
     expect(parsed.recommended_actions).toEqual([])
   })
 })
+
+describe('chatHistoryStore', () => {
+  it('createNewSession generates valid session with default and custom titles', async () => {
+    const { createNewSession } = await import('@/state/chatHistoryStore')
+    const session1 = createNewSession()
+    expect(session1.id).toMatch(/^conv-/)
+    expect(session1.title).toBe('New AquaDoc Consultation')
+    expect(session1.turns).toEqual([])
+
+    const session2 = createNewSession('What dosage of bitter leaf extract should I use for fin rot?')
+    expect(session2.title).toBe('What dosage of bitter leaf extract should I use...')
+  })
+
+  it('groupSessionsByDate categorizes sessions by chronological groups', async () => {
+    const { groupSessionsByDate } = await import('@/state/chatHistoryStore')
+    const now = new Date()
+    const todayIso = now.toISOString()
+    const yesterdayIso = new Date(now.getTime() - 86400000).toISOString()
+    const fiveDaysAgoIso = new Date(now.getTime() - 86400000 * 5).toISOString()
+    const tenDaysAgoIso = new Date(now.getTime() - 86400000 * 10).toISOString()
+
+    const sessions = [
+      { id: '1', title: 'Chat 1', createdAt: todayIso, updatedAt: todayIso, turns: [] },
+      { id: '2', title: 'Chat 2', createdAt: yesterdayIso, updatedAt: yesterdayIso, turns: [] },
+      { id: '3', title: 'Chat 3', createdAt: fiveDaysAgoIso, updatedAt: fiveDaysAgoIso, turns: [] },
+      { id: '4', title: 'Chat 4', createdAt: tenDaysAgoIso, updatedAt: tenDaysAgoIso, turns: [] },
+    ]
+
+    const groups = groupSessionsByDate(sessions)
+    const labels = groups.map((g) => g.label)
+    expect(labels).toContain('Today')
+    expect(labels).toContain('Yesterday')
+    expect(labels).toContain('Previous 7 Days')
+    expect(labels).toContain('Older')
+  })
+
+  it('formatSessionRelativeTime produces human readable durations', async () => {
+    const { formatSessionRelativeTime } = await import('@/state/chatHistoryStore')
+    const now = new Date()
+    expect(formatSessionRelativeTime(now.toISOString())).toBe('Just now')
+    expect(formatSessionRelativeTime(new Date(now.getTime() - 1000 * 60 * 10).toISOString())).toBe('10m ago')
+    expect(formatSessionRelativeTime(new Date(now.getTime() - 1000 * 60 * 60 * 3).toISOString())).toBe('3h ago')
+    expect(formatSessionRelativeTime(new Date(now.getTime() - 86400000).toISOString())).toBe('Yesterday')
+  })
+})
+
