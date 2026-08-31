@@ -975,7 +975,524 @@ select:focus, input:focus, textarea:focus {
   to { transform: rotate(360deg); }
 }
 
-/* Farm Simulator Page */
+/* ==========================================================================
+   Digital Twin Farm Simulator Page
+   ========================================================================== */
+
+.digital-twin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+}
+
+.digital-twin__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.digital-twin__header-main h1 {
+  margin: 6px 0 8px;
+  font-size: 1.8rem;
+}
+
+.digital-twin__header-main p {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 780px;
+  font-size: 0.94rem;
+}
+
+.digital-twin__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseGreen 2s infinite ease-in-out;
+}
+
+@keyframes pulseGreen {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.twin-scenarios-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.twin-scenarios-label {
+  font-family: var(--font-heading);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+}
+
+.twin-scenarios-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scenario-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.scenario-chip:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.scenario-chip--active {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+}
+
+.twin-layout-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.twin-controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.twin-panel-card {
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.twin-panel-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin: 0;
+}
+
+.twin-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.twin-form-row label,
+.twin-form-grid-2 label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.twin-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.twin-form-grid-2 > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.twin-input,
+.twin-select {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.twin-input:focus,
+.twin-select:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+}
+
+.twin-hint {
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  margin-top: -2px;
+}
+
+.twin-results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.twin-horizon-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.twin-horizon-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.twin-horizon-label strong {
+  color: var(--accent-cyan);
+  font-size: 1.05rem;
+}
+
+.twin-horizon-presets {
+  display: flex;
+  gap: 6px;
+}
+
+.twin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.twin-kpi-card {
+  padding: 18px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.twin-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.twin-kpi-value {
+  font-family: var(--font-heading);
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  line-height: 1.15;
+}
+
+.twin-kpi-value small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.twin-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.twin-chart-card {
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.twin-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.twin-chart-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 4px;
+}
+
+.twin-chart-header p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.twin-chart-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot--cyan {
+  background: #06b6d4;
+  box-shadow: 0 0 6px rgba(6, 182, 212, 0.5);
+}
+
+.legend-dot--purple {
+  background: #a855f7;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.5);
+}
+
+.twin-svg-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.twin-svg-chart {
+  width: 100%;
+  min-width: 320px;
+  height: auto;
+  display: block;
+}
+
+.twin-inspector-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.strip-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.strip-val {
+  font-size: 0.88rem;
+  color: var(--accent-cyan);
+}
+
+.twin-economics-card,
+.twin-insights-card {
+  padding: 22px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.twin-economics-card h3,
+.twin-insights-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin: 0;
+}
+
+.twin-econ-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.econ-stat {
+  padding: 16px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.econ-stat__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.econ-stat__val {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.econ-stat__val--cost {
+  color: #f59e0b;
+}
+
+.econ-stat__val--rev {
+  color: #06b6d4;
+}
+
+.econ-stat small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.twin-insights-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.twin-insights-header h3 {
+  margin: 0 0 2px;
+}
+
+.twin-insights-header p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.twin-bottlenecks-list,
+.twin-recommendations-list {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-app);
+}
+
+.twin-bottlenecks-list {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.twin-bottlenecks-list h4 {
+  color: #f87171;
+  font-size: 0.88rem;
+  margin: 0 0 8px;
+}
+
+.twin-recommendations-list {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.25);
+}
+
+.twin-recommendations-list h4 {
+  color: var(--accent-cyan);
+  font-size: 0.88rem;
+  margin: 0 0 8px;
+}
+
+.twin-bottlenecks-list ul,
+.twin-recommendations-list ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.twin-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* Farm Simulator Page (Legacy) */
 .simulator-page {
   display: grid;
   grid-template-columns: 1fr 420px;
@@ -3704,6 +4221,11 @@ select:focus, input:focus, textarea:focus {
     padding: 24px 20px 40px;
   }
 
+  .twin-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
   .simulator-page {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -3861,6 +4383,160 @@ select:focus, input:focus, textarea:focus {
     overflow-x: hidden;
   }
 
+  /* Digital Twin Farm Simulator on Mobile */
+  .digital-twin-page {
+    gap: 16px;
+    max-width: 100%;
+  }
+
+  .digital-twin__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .digital-twin__header-main h1 {
+    font-size: 1.32rem;
+    margin: 4px 0 6px;
+  }
+
+  .digital-twin__header-main p {
+    font-size: 0.84rem;
+  }
+
+  .digital-twin__header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .twin-scenarios-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 12px;
+  }
+
+  .twin-scenarios-label {
+    font-size: 0.78rem;
+  }
+
+  .twin-scenarios-list {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scenario-chip {
+    padding: 5px 10px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .twin-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .twin-controls-panel {
+    gap: 14px;
+  }
+
+  .twin-panel-card {
+    padding: 16px 12px;
+  }
+
+  .twin-form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .twin-horizon-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 12px;
+  }
+
+  .twin-horizon-presets {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .twin-horizon-presets button {
+    flex: 1;
+    text-align: center;
+    padding: 6px 2px;
+    font-size: 0.75rem;
+  }
+
+  .twin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .twin-kpi-card {
+    padding: 12px 10px;
+  }
+
+  .twin-kpi-value {
+    font-size: 1.35rem;
+  }
+
+  .twin-kpi-sub {
+    font-size: 0.7rem;
+  }
+
+  .twin-chart-card {
+    padding: 16px 12px;
+  }
+
+  .twin-chart-legend {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .twin-inspector-strip {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 10px 8px;
+  }
+
+  .strip-label {
+    font-size: 0.62rem;
+  }
+
+  .strip-val {
+    font-size: 0.78rem;
+  }
+
+  .twin-economics-card,
+  .twin-insights-card {
+    padding: 16px 12px;
+  }
+
+  .twin-econ-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .econ-stat {
+    padding: 12px 12px;
+  }
+
+  .econ-stat__val {
+    font-size: 1.25rem;
+  }
+
+  .twin-actions-bar button {
+    width: 100%;
+    justify-content: center;
+  }
+
   /* Chat Page */
   .chat-page {
     gap: 16px;
@@ -3995,7 +4671,7 @@ select:focus, input:focus, textarea:focus {
     max-width: 290px;
   }
 
-  /* Disease Test & Simulator Pages */
+  /* Disease Test & Legacy Simulator Pages */
   .disease-container {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -4035,31 +4711,6 @@ select:focus, input:focus, textarea:focus {
     font-size: 0.82rem;
   }
 
-  .twin-kpi-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .twin-kpi-card {
-    padding: 12px;
-  }
-
-  .twin-kpi-value {
-    font-size: 1.4rem;
-  }
-
-  .twin-horizon-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 10px 14px;
-  }
-
-  .twin-horizon-presets {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
   /* Tables & Horizontal Scroll */
   table {
     display: block;
@@ -4090,6 +4741,19 @@ select:focus, input:focus, textarea:focus {
 @media (max-width: 480px) {
   .app__brand-copy h1 {
     font-size: 0.94rem;
+  }
+
+  .digital-twin__header-main h1 {
+    font-size: 1.18rem;
+  }
+
+  .twin-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .twin-inspector-strip {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .chat-page__intro h2 {
