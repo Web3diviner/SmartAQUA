@@ -115,7 +115,7 @@ export interface ClientConfig {
 }
 
 export function readClientConfig(): ClientConfig {
-  let defaultBase = 'https://aquadoc-api.onrender.com'
+  let defaultBase = 'https://smartaqua-1.onrender.com'
   if (
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

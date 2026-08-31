@@ -55,7 +55,7 @@ Under the **Environment Variables** section, add:
 | `EMBEDDING_PROVIDER`| `hashing` | Zero-dependency high-speed vectorizer |
 
 ### Step 4: Click "Create Web Service"
-Render will build the Docker container, index all 16 aquaculture manuals, and give you a live URL (e.g. `https://aquadoc-api.onrender.com`).
+Render will build the Docker container, index all 16 aquaculture manuals, and give you a live URL (e.g. `https://smartaqua-1.onrender.com`).
 
 ---
 
@@ -72,7 +72,7 @@ Render will build the Docker container, index all 16 aquaculture manuals, and gi
 
 ### Step 3: Add Environment Variable
 Under **Environment Variables**, add:
-- `VITE_AQUADOC_BASE_URL` = `https://aquadoc-api.onrender.com` *(Your Render backend URL from Part 1)*
+- `VITE_AQUADOC_BASE_URL` = `https://smartaqua-1.onrender.com` *(Your Render backend URL from Part 1)*
 
 ### Step 4: Click "Deploy"
 Vercel will build the frontend and provide your live farmer URL (e.g., `https://smartaqua-web.vercel.app`).
@@ -92,7 +92,7 @@ Vercel will build the frontend and provide your live farmer URL (e.g., `https://
 
 ### Step 3: Add Environment Variables
 Under **Environment Variables**, add:
-- `VITE_AQUADOC_BASE_URL` = `https://aquadoc-api.onrender.com`
+- `VITE_AQUADOC_BASE_URL` = `https://smartaqua-1.onrender.com`
 - `VITE_AQUADOC_DEV_TOKEN` = `aqua-prod-secret-2026` *(Must match the `AQUADOC_DEV_TOKEN` on Render)*
 
 ### Step 4: Click "Deploy"

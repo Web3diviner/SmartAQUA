@@ -12,7 +12,7 @@ const getDefaultBaseUrl = () => {
   ) {
     return 'http://127.0.0.1:8001'
   }
-  return 'https://aquadoc-api.onrender.com'
+  return 'https://smartaqua-1.onrender.com'
 }
 
 const rawBaseUrl =
