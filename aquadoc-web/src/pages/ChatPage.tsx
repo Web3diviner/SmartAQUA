@@ -70,8 +70,19 @@ export function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const speechRecognizerRef = useRef<any>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const currentModelInfo = GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0]!
+
+  // Dynamically auto-resize textarea so all written text is visible at once
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      const newHeight = Math.max(26, textarea.scrollHeight)
+      textarea.style.height = `${newHeight}px`
+    }
+  }, [question])
 
   // Save sessions to localStorage whenever sessions change
   useEffect(() => {
@@ -344,7 +355,6 @@ export function ChatPage() {
       syncTurnsToSession,
     ],
   )
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     if (!isAuthenticated) {
@@ -353,6 +363,9 @@ export function ChatPage() {
     }
     const current = question
     setQuestion('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
     void ask(current)
   }
 
@@ -438,48 +451,25 @@ export function ChatPage() {
               onClick={resetConversation}
               disabled={turns.length === 0}
             >
-              Clear
+              🔄 Reset Dialogue
             </button>
           </div>
         </header>
 
-        <div className="chat-page__transcript">
+        <div className="chat-page__transcript" aria-live="polite">
           {turns.length === 0 && (
             <div className="chat-page__empty">
               <div className="chat-page__empty-heading">
-                <span className="ai-orb" aria-hidden="true">
+                <div className="ai-orb">
                   <span />
-                </span>
+                </div>
                 <div>
-                  <span className="page-eyebrow">
-                    {isAuthenticated ? `Welcome, ${user?.name}` : 'Sign In Required for Consultation'}
-                  </span>
-                  <h3>
-                    {isAuthenticated
-                      ? 'How can I assist your farm today?'
-                      : 'Sign in or register to get started with AquaDoc AI'}
-                  </h3>
+                  <h3>How can AquaDoc assist your farm today?</h3>
+                  <p>Select a common diagnostic inquiry or ask anything about fish health, feeding, or water parameters below.</p>
                 </div>
               </div>
 
-              {!isAuthenticated && (
-                <div className="auth-prompt-banner">
-                  <p>
-                    To receive clinical advice, tailored feed calculations, and disease prescriptions,
-                    please sign in with your <strong>Google Account (Gmail)</strong> or register your
-                    farm details.
-                  </p>
-                  <button
-                    type="button"
-                    className="button button--primary"
-                    onClick={openAuthModal}
-                  >
-                    🚀 Sign In / Register Farm Account
-                  </button>
-                </div>
-              )}
-
-              <div className="chat-page__suggestions" aria-label="Suggested questions">
+              <div className="chat-page__suggestions">
                 {[
                   'Why are my fish not eating?',
                   'What is the treatment dosage of bitter leaf extract?',
@@ -522,11 +512,34 @@ export function ChatPage() {
               )}
 
               {turn.response !== null && (
-                <AssistantMessage
-                  response={turn.response}
-                  devMode={false}
-                  showSources={isSourceRequested(turn.question)}
-                />
+                <>
+                  <AssistantMessage
+                    response={turn.response}
+                    devMode={false}
+                    showSources={isSourceRequested(turn.question)}
+                  />
+
+                  {/* WhatsApp Fish Consultant Referral Card */}
+                  <div className="consultant-callout-card">
+                    <div className="consultant-callout-info">
+                      <span className="consultant-callout-badge">Expert Referral</span>
+                      <strong className="consultant-callout-title">Need specialized clinical intervention?</strong>
+                      <p className="consultant-callout-text">
+                        Connect directly with our verified Aquaculture Veterinary Consultant (<strong>+234 807 105 5742</strong>) for on-farm diagnostic support or physical pond inspection.
+                      </p>
+                    </div>
+                    <a
+                      href="https://wa.me/2348071055742?text=Hello%20Dr.%20Fish,%20I%20need%20expert%20consultation%20on%20my%20fish%20farm%20(referred%20from%20AquaDoc%20AI)."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="consultant-callout-btn"
+                      title="Chat with Fish Consultant on WhatsApp"
+                    >
+                      <span className="whatsapp-icon">💬</span>
+                      <span>Chat on WhatsApp</span>
+                    </a>
+                  </div>
+                </>
               )}
             </section>
           ))}
@@ -535,6 +548,7 @@ export function ChatPage() {
         <form className="chat-page__input-bar" onSubmit={handleSubmit}>
           <div className="chat-page__input-container">
             <textarea
+              ref={textareaRef}
               className="chat-page__textarea"
               placeholder={
                 recording
