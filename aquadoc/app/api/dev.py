@@ -1037,18 +1037,132 @@ async def get_conversation(
     "/conversations/{conversation_id}",
     summary="Delete a conversation session from history",
 )
-async def delete_conversation(
-    conversation_id: str,
-    caller: DevCallerDep,
-    orchestrator: OrchestratorDep,
+# -- User Chat Sessions & Cross-Device Cloud Sync ---------------------------
+
+
+class ChatTurnPayload(BaseModel):
+    id: str
+    question: str
+    response: dict[str, Any] | None = None
+    error: str | None = None
+
+
+class ChatSessionPayload(BaseModel):
+    id: str
+    title: str
+    createdAt: str
+    updatedAt: str
+    turns: list[ChatTurnPayload] = []
+
+
+class ChatSessionSyncRequest(BaseModel):
+    sessions: list[ChatSessionPayload] = []
+
+
+_USER_CHAT_SESSIONS: dict[str, list[dict[str, Any]]] = {}
+
+
+def _normalize_user_key(user_id_or_email: str) -> str:
+    return user_id_or_email.strip().lower()
+
+
+@router.get(
+    "/users/{user_id}/chat-sessions",
+    summary="Fetch all cloud-synchronized chat consultation sessions for a user",
+)
+async def get_user_chat_sessions(user_id: str) -> dict[str, Any]:
+    """Retrieve full consultation history stored in the cloud for this user account."""
+    key = _normalize_user_key(user_id)
+    sessions = _USER_CHAT_SESSIONS.get(key, [])
+    sorted_sessions = sorted(
+        sessions,
+        key=lambda s: s.get("updatedAt", s.get("createdAt", "")),
+        reverse=True,
+    )
+    return {"sessions": sorted_sessions, "count": len(sorted_sessions)}
+
+
+@router.post(
+    "/users/{user_id}/chat-sessions/sync",
+    summary="Synchronize and merge local and cloud chat consultation sessions",
+)
+async def sync_user_chat_sessions(
+    user_id: str,
+    payload: ChatSessionSyncRequest,
 ) -> dict[str, Any]:
-    """Delete a conversation session."""
-    deleted = orchestrator.delete_conversation(conversation_id)
-    return {
-        "success": deleted,
-        "conversation_id": conversation_id,
-        "message": "Conversation deleted successfully." if deleted else "Conversation not found.",
-    }
+    """Bidirectional merge of chat threads between client device and cloud."""
+    key = _normalize_user_key(user_id)
+    existing_sessions = _USER_CHAT_SESSIONS.setdefault(key, [])
+    session_map: dict[str, dict[str, Any]] = {s["id"]: s for s in existing_sessions}
+
+    for incoming in payload.sessions:
+        inc_dict = incoming.model_dump()
+        s_id = inc_dict["id"]
+        if s_id not in session_map:
+            session_map[s_id] = inc_dict
+        else:
+            cur = session_map[s_id]
+            if len(inc_dict.get("turns", [])) >= len(cur.get("turns", [])):
+                session_map[s_id] = inc_dict
+            elif inc_dict.get("updatedAt", "") > cur.get("updatedAt", ""):
+                session_map[s_id] = inc_dict
+
+    merged = sorted(
+        list(session_map.values()),
+        key=lambda s: s.get("updatedAt", s.get("createdAt", "")),
+        reverse=True,
+    )
+    _USER_CHAT_SESSIONS[key] = merged
+    logger.info("user_chat_sessions_synced", extra={"user_id": key, "session_count": len(merged)})
+    return {"sessions": merged, "count": len(merged), "message": "Chat sessions synchronized successfully."}
+
+
+@router.post(
+    "/users/{user_id}/chat-sessions",
+    summary="Save or update a single chat consultation session in the cloud",
+)
+async def save_user_chat_session(
+    user_id: str,
+    payload: ChatSessionPayload,
+) -> dict[str, Any]:
+    """Upsert a consultation thread for a user."""
+    key = _normalize_user_key(user_id)
+    existing = _USER_CHAT_SESSIONS.setdefault(key, [])
+    session_dict = payload.model_dump()
+
+    idx = next((i for i, s in enumerate(existing) if s["id"] == session_dict["id"]), -1)
+    if idx >= 0:
+        existing[idx] = session_dict
+    else:
+        existing.insert(0, session_dict)
+
+    return {"session": session_dict, "success": True, "message": "Session saved to cloud."}
+
+
+@router.delete(
+    "/users/{user_id}/chat-sessions/{session_id}",
+    summary="Delete a chat consultation session from the cloud",
+)
+async def delete_user_chat_session(
+    user_id: str,
+    session_id: str,
+) -> dict[str, Any]:
+    """Remove a session from cloud storage for this user."""
+    key = _normalize_user_key(user_id)
+    if key in _USER_CHAT_SESSIONS:
+        _USER_CHAT_SESSIONS[key] = [s for s in _USER_CHAT_SESSIONS[key] if s["id"] != session_id]
+    return {"success": True, "session_id": session_id, "message": "Session removed from cloud."}
+
+
+@router.delete(
+    "/users/{user_id}/chat-sessions",
+    summary="Clear all cloud-stored chat sessions for a user",
+)
+async def clear_user_chat_sessions(user_id: str) -> dict[str, Any]:
+    """Remove all consultation history for this user."""
+    key = _normalize_user_key(user_id)
+    _USER_CHAT_SESSIONS[key] = []
+    return {"success": True, "message": "All user chat sessions cleared."}
 
 
 

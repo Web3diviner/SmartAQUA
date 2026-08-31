@@ -20,6 +20,9 @@ import {
   createNewSession,
   loadSavedSessions,
   saveSessionsToStorage,
+  syncSessionsWithCloud,
+  saveSessionToCloud,
+  deleteSessionFromCloud,
 } from '@/state/chatHistoryStore'
 import { formatSpokenText } from '@/utils/speechPunctuation'
 
@@ -93,17 +96,47 @@ export function ChatPage() {
     saveSessionsToStorage(sessions)
   }, [sessions])
 
-  // Sync active session's turns into the sessions list
+  // Synchronize chat history with cloud database whenever user logs in or mounts
+  useEffect(() => {
+    if (!user) return
+    const userId = user.id || user.email
+    if (!userId) return
+
+    let cancelled = false
+    void syncSessionsWithCloud(config.baseUrl, userId, sessions).then((merged) => {
+      if (cancelled || !merged || merged.length === 0) return
+      setSessions(merged)
+      setActiveSessionId((curId) => {
+        const found = merged.find((s) => s.id === curId)
+        if (found) {
+          setTurns(found.turns || [])
+          return curId
+        }
+        if (merged.length > 0) {
+          setTurns(merged[0]!.turns || [])
+          return merged[0]!.id
+        }
+        return curId
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, config.baseUrl])
+
+  // Sync active session's turns into the sessions list and cloud
   const syncTurnsToSession = useCallback(
     (currentTurns: ChatTurn[], currentSessionId: string, initialQuestion?: string) => {
       setSessions((prevSessions) => {
         const existingIndex = prevSessions.findIndex((s) => s.id === currentSessionId)
         const now = new Date().toISOString()
+        let targetSession: ChatSession
 
         if (existingIndex >= 0) {
           const updated = [...prevSessions]
           const prev = updated[existingIndex]!
-          updated[existingIndex] = {
+          targetSession = {
             ...prev,
             updatedAt: now,
             turns: currentTurns,
@@ -112,21 +145,32 @@ export function ChatPage() {
                 ? initialQuestion.substring(0, 50)
                 : prev.title,
           }
+          updated[existingIndex] = targetSession
+
+          if (user) {
+            void saveSessionToCloud(config.baseUrl, user.id || user.email, targetSession)
+          }
+
           return updated
         } else {
           // Create new session entry
-          const newSession: ChatSession = {
+          targetSession = {
             id: currentSessionId,
             title: initialQuestion ? initialQuestion.substring(0, 50) : 'New AquaDoc Consultation',
             createdAt: now,
             updatedAt: now,
             turns: currentTurns,
           }
-          return [newSession, ...prevSessions]
+
+          if (user) {
+            void saveSessionToCloud(config.baseUrl, user.id || user.email, targetSession)
+          }
+
+          return [targetSession, ...prevSessions]
         }
       })
     },
-    [],
+    [user, config.baseUrl],
   )
 
   const handleSelectSession = (session: ChatSession) => {
@@ -145,6 +189,9 @@ export function ChatPage() {
     setTurns([])
     setPending(false)
     setQuestion('')
+    if (user) {
+      void saveSessionToCloud(config.baseUrl, user.id || user.email, session)
+    }
   }
 
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
@@ -154,6 +201,9 @@ export function ChatPage() {
     if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return
 
     void deleteConversationApi(config, sessionId)
+    if (user) {
+      void deleteSessionFromCloud(config.baseUrl, user.id || user.email, sessionId)
+    }
 
     setSessions((prev) => {
       const remaining = prev.filter((s) => s.id !== sessionId)
@@ -165,6 +215,9 @@ export function ChatPage() {
           const fresh = createNewSession()
           setActiveSessionId(fresh.id)
           setTurns([])
+          if (user) {
+            void saveSessionToCloud(config.baseUrl, user.id || user.email, fresh)
+          }
           return [fresh]
         }
       }

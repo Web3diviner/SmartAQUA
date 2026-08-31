@@ -119,3 +119,75 @@ export function groupSessionsByDate(sessions: ChatSession[]): { label: string; s
 
   return result
 }
+
+/**
+ * Cloud Synchronization API helpers for multi-device history persistence.
+ */
+
+export async function fetchUserSessionsFromCloud(baseUrl: string, userId: string): Promise<ChatSession[]> {
+  try {
+    const res = await fetch(`${baseUrl}/dev/v1/users/${encodeURIComponent(userId)}/chat-sessions`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.sessions) ? data.sessions : []
+  } catch (err) {
+    console.warn('Failed to fetch cloud sessions:', err)
+    return []
+  }
+}
+
+export async function syncSessionsWithCloud(
+  baseUrl: string,
+  userId: string,
+  localSessions: ChatSession[],
+): Promise<ChatSession[]> {
+  try {
+    const res = await fetch(`${baseUrl}/dev/v1/users/${encodeURIComponent(userId)}/chat-sessions/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions: localSessions }),
+    })
+    if (!res.ok) return localSessions
+    const data = await res.json()
+    if (Array.isArray(data.sessions)) {
+      saveSessionsToStorage(data.sessions)
+      return data.sessions
+    }
+    return localSessions
+  } catch (err) {
+    console.warn('Failed to sync sessions with cloud:', err)
+    return localSessions
+  }
+}
+
+export async function saveSessionToCloud(baseUrl: string, userId: string, session: ChatSession): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/dev/v1/users/${encodeURIComponent(userId)}/chat-sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+    })
+  } catch (err) {
+    console.warn('Failed to save session to cloud:', err)
+  }
+}
+
+export async function deleteSessionFromCloud(baseUrl: string, userId: string, sessionId: string): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/dev/v1/users/${encodeURIComponent(userId)}/chat-sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+    })
+  } catch (err) {
+    console.warn('Failed to delete session from cloud:', err)
+  }
+}
+
+export async function clearAllSessionsFromCloud(baseUrl: string, userId: string): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/dev/v1/users/${encodeURIComponent(userId)}/chat-sessions`, {
+      method: 'DELETE',
+    })
+  } catch (err) {
+    console.warn('Failed to clear cloud sessions:', err)
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useAppState } from '@/app/providers'
 import {
   type ChatSession,
   formatSessionRelativeTime,
@@ -24,6 +25,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
   onNewSession,
   onDeleteSession,
 }) => {
+  const { user } = useAppState()
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredSessions = sessions.filter((s) =>
@@ -49,7 +51,23 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
         <div className="chat-history-header">
           <div className="chat-history-title-wrap">
             <span className="chat-history-icon">💬</span>
-            <h3>Consultation History</h3>
+            <div>
+              <h3>Consultation History</h3>
+              {user && (
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontWeight: 600,
+                  }}
+                >
+                  ☁️ Synced to {user.email ? user.email.split('@')[0] : 'cloud'}
+                </span>
+              )}
+            </div>
           </div>
           <button
             type="button"
