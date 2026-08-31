@@ -74,15 +74,19 @@ export function ChatPage() {
 
   const currentModelInfo = GROQ_MODELS.find((m) => m.id === selectedModel) ?? GROQ_MODELS[0]!
 
-  // Dynamically auto-resize textarea so all written text is visible at once
-  useEffect(() => {
+  // Dynamically auto-resize textarea so all written text is immediately visible at once
+  const autoResizeTextarea = useCallback(() => {
     const textarea = textareaRef.current
     if (textarea) {
       textarea.style.height = 'auto'
-      const newHeight = Math.max(26, textarea.scrollHeight)
-      textarea.style.height = `${newHeight}px`
+      const computedHeight = Math.max(28, textarea.scrollHeight)
+      textarea.style.height = `${computedHeight}px`
     }
-  }, [question])
+  }, [])
+
+  useEffect(() => {
+    autoResizeTextarea()
+  }, [question, autoResizeTextarea])
 
   // Save sessions to localStorage whenever sessions change
   useEffect(() => {
@@ -560,7 +564,16 @@ export function ChatPage() {
                       : 'Ask AquaDoc anything about your fish, water, or feeding...'
               }
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) => {
+                setQuestion(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = `${Math.max(28, e.target.scrollHeight)}px`
+              }}
+              onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
+                const target = e.currentTarget
+                target.style.height = 'auto'
+                target.style.height = `${Math.max(28, target.scrollHeight)}px`
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
