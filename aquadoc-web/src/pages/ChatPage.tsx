@@ -504,9 +504,6 @@ export function ChatPage() {
                   </button>
                 ))}
               </div>
-              <p className="chat-page__empty-note">
-                Answers are grounded in 16 verified manuals. AquaDoc retains continuous memory across your questions in this thread.
-              </p>
             </div>
           )}
 
