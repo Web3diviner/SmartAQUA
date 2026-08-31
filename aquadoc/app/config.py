@@ -111,18 +111,30 @@ class Settings(BaseSettings):
         if not value or not str(value).strip():
             return "postgresql+asyncpg://aquadoc:aquadoc@localhost:5432/aquadoc"
         url = str(value).strip().strip('"\'')
-        # Clean duplicate protocols (e.g. postgresql+asyncpg://postgresql:// -> postgresql+asyncpg://)
+
+        if url.startswith("sqlite"):
+            return url
+
         import re
-        url = re.sub(r'^(?:postgresql\+asyncpg:\/\/|postgresql:\/\/|postgres:\/\/)+', 'postgresql+asyncpg://', url)
-        if not url.startswith("postgresql+asyncpg://") and not url.startswith("sqlite"):
-            url = f"postgresql+asyncpg://{url}"
-        
-        # Remove empty port like @hostname:/database -> @hostname/database (in host section only)
-        if "://" in url:
-            scheme, rest = url.split("://", 1)
-            rest = re.sub(r':(?=/|$|\?)', '', rest)
-            url = f"{scheme}://{rest}"
-        return url
+        import urllib.parse
+
+        # Clean all leading scheme prefixes (e.g. postgresql+asyncpg://postgresql:// -> "")
+        raw = re.sub(r'^(?:postgresql\+asyncpg:\/\/|postgresql:\/\/|postgres:\/\/)+', '', url)
+
+        # Handle user:password@host:port/database
+        if "@" in raw:
+            user_info, host_info = raw.rsplit("@", 1)
+            # Remove empty port if present e.g. host:/db -> host/db
+            host_info = re.sub(r':(?=/|$|\?)', '', host_info)
+            if ":" in user_info:
+                username, password = user_info.split(":", 1)
+                # Unquote first (in case partially encoded) then safely quote_plus
+                unquoted_pass = urllib.parse.unquote(password)
+                encoded_pass = urllib.parse.quote_plus(unquoted_pass)
+                return f"postgresql+asyncpg://{username}:{encoded_pass}@{host_info}"
+            return f"postgresql+asyncpg://{user_info}@{host_info}"
+
+        return f"postgresql+asyncpg://{raw}"
 
     @field_validator("chunk_overlap_tokens")
     @classmethod

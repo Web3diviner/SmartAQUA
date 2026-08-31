@@ -90,6 +90,13 @@ class TestProductionGates:
 
         assert settings.cors_origins == ["http://a.test", "http://b.test"]
 
+    def test_database_url_sanitization_special_characters(self) -> None:
+        raw = "postgresql+asyncpg://postgresql://postgres.test:Fadatrumpet12#@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
+        settings = Settings(database_url=raw)
+        assert "%23" in settings.database_url
+        assert "postgresql+asyncpg://postgres.test:Fadatrumpet12%23@aws-1-eu-west-1.pooler.supabase.com:5432/postgres" == settings.database_url
+
+
 
 class TestQ10:
     """Q10 is deterministic platform maths, not model output."""

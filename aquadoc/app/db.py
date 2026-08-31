@@ -40,37 +40,39 @@ class Database:
 
     def __init__(self, settings: Settings) -> None:
         db_url = settings.database_url
+        self._engine: AsyncEngine | None = None
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
+
         try:
-            self._engine: AsyncEngine = create_async_engine(
+            self._engine = create_async_engine(
                 db_url,
                 pool_size=settings.database_pool_size,
                 max_overflow=settings.database_max_overflow,
                 pool_pre_ping=True,
                 echo=False,
             )
+            self._session_factory = async_sessionmaker(
+                bind=self._engine,
+                expire_on_commit=False,
+                class_=AsyncSession,
+            )
         except Exception as err:
             logger.warning(
-                "failed_to_initialize_primary_database_engine_fallback_to_safe_engine",
-                extra={"error": str(err), "url": db_url[:30] + "..."},
+                "failed_to_initialize_primary_database_engine",
+                extra={"error": str(err), "url": str(db_url)[:30] + "..."},
             )
-            self._engine = create_async_engine(
-                "sqlite+aiosqlite:///:memory:",
-                echo=False,
-            )
-
-        self._session_factory = async_sessionmaker(
-            bind=self._engine,
-            expire_on_commit=False,
-            class_=AsyncSession,
-        )
+            self._engine = None
+            self._session_factory = None
 
     @property
-    def engine(self) -> AsyncEngine:
+    def engine(self) -> AsyncEngine | None:
         return self._engine
 
     @asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
         """Yield a session, committing on success and rolling back on failure."""
+        if self._session_factory is None:
+            raise SQLAlchemyError("Database engine is not initialized.")
         async with self._session_factory() as session:
             try:
                 yield session
@@ -86,6 +88,12 @@ class Database:
         database without the extension cannot serve retrieval at all — and that
         failure would otherwise only surface on the first farmer question.
         """
+        if self._session_factory is None:
+            return DatabaseHealth(
+                reachable=False,
+                pgvector_available=False,
+                detail="database uninitialized",
+            )
         started = time.perf_counter()
         try:
             async with self._session_factory() as session:
@@ -111,4 +119,6 @@ class Database:
         )
 
     async def dispose(self) -> None:
-        await self._engine.dispose()
+        if self._engine is not None:
+            await self._engine.dispose()
+
