@@ -12,9 +12,12 @@ raw chunk text are developer tools; a farmer-facing caller never receives them.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from datetime import UTC, datetime
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
