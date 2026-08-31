@@ -260,14 +260,6 @@ export function ChatPage() {
     setRecording(false)
   }
 
-  const toggleRecording = () => {
-    if (recording) {
-      stopVoiceRecording()
-    } else {
-      void startVoiceRecording()
-    }
-  }
-
   const ask = useCallback(
     async (text: string, replaceTurnId?: string) => {
       const trimmed = text.trim()
@@ -361,8 +353,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="chat-layout-wrapper">
-      {/* Consultation History Sidebar */}
+    <div className="chat-page">
+      {/* Consultation History Slide-Out Drawer */}
       <ChatHistorySidebar
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -373,256 +365,244 @@ export function ChatPage() {
         onDeleteSession={handleDeleteSession}
       />
 
-      <div className="chat-page">
-        <section className="chat-page__intro" aria-labelledby="chat-title">
-          <div>
-            <span className="page-eyebrow">AquaDoc intelligence</span>
-            <h2 id="chat-title">
-              Good decisions start with
-              <br />
-              <em>better questions.</em>
-            </h2>
-            <p>
-              Your intelligent aquaculture consultant, grounded in approved knowledge and the
-              conditions on your farm with continuous conversational memory.
-            </p>
-          </div>
-          <div className="chat-page__principle" aria-label="AquaDoc process">
-            <span>Ask</span>
-            <i aria-hidden="true" />
-            <span>Understand</span>
-            <i aria-hidden="true" />
-            <span>Act</span>
-          </div>
-        </section>
+      <section className="chat-page__intro" aria-labelledby="chat-title">
+        <div>
+          <span className="page-eyebrow">AquaDoc intelligence</span>
+          <h2 id="chat-title">
+            Good decisions start with<br />
+            <em>better questions.</em>
+          </h2>
+          <p>
+            Your intelligent aquaculture consultant, grounded in approved knowledge and the
+            conditions on your farm.
+          </p>
+        </div>
+        <div className="chat-page__principle" aria-label="AquaDoc process">
+          <span>Ask</span>
+          <i aria-hidden="true" />
+          <span>Understand</span>
+          <i aria-hidden="true" />
+          <span>Act</span>
+        </div>
+      </section>
 
-        <header className="chat-page__header">
-          <div className="chat-page__context">
-            {/* History Drawer Toggle Button */}
-            <button
-              type="button"
-              className="chat-history-toggle-btn"
-              onClick={() => setIsHistoryOpen((prev) => !prev)}
-              title="View Consultation History"
-            >
-              <span className="btn-icon">📁</span>
-              <span className="btn-text">History</span>
-              {sessions.length > 0 && <span className="history-badge">{sessions.length}</span>}
-            </button>
-
-            <label htmlFor="chat-mode">Context</label>
-            <select
-              id="chat-mode"
-              value={chatMode}
-              onChange={(event) => setChatMode(event.target.value as typeof chatMode)}
-            >
-              <option value="general">General Aquaculture</option>
-              <option value="simulated_pond">Simulated Pond</option>
-            </select>
-            <span className="chat-page__context-note">
-              {currentModelInfo.name} · {currentModelInfo.badge}
-            </span>
-          </div>
-
-          <div className="chat-page__controls">
-            <button
-              type="button"
-              className="button button--ghost new-consultation-btn"
-              onClick={handleNewSession}
-            >
-              ✨ New Consultation
-            </button>
-            <button
-              type="button"
-              className="button button--ghost"
-              onClick={resetConversation}
-              disabled={turns.length === 0}
-            >
-              Clear
-            </button>
-          </div>
-        </header>
-
-        <div className="chat-page__transcript">
-          {turns.length === 0 && (
-            <div className="chat-page__empty">
-              <div className="chat-page__empty-heading">
-                <span className="ai-orb" aria-hidden="true">
-                  <span />
-                </span>
-                <div>
-                  <span className="page-eyebrow">
-                    {isAuthenticated ? `Welcome, ${user?.name}` : 'Sign In Required for Consultation'}
-                  </span>
-                  <h3>
-                    {isAuthenticated
-                      ? 'How can I assist your farm today?'
-                      : 'Sign in or register to get started with AquaDoc AI'}
-                  </h3>
-                </div>
-              </div>
-
-              {!isAuthenticated && (
-                <div className="auth-prompt-banner">
-                  <p>
-                    To receive clinical advice, tailored feed calculations, and disease prescriptions,
-                    please sign in with your <strong>Google Account (Gmail)</strong> or register your
-                    farm details.
-                  </p>
-                  <button
-                    type="button"
-                    className="button button--primary"
-                    onClick={openAuthModal}
-                  >
-                    🚀 Sign In / Register Farm Account
-                  </button>
-                </div>
-              )}
-
-              <div className="chat-page__suggestions" aria-label="Suggested questions">
-                {[
-                  'Why are my fish not eating?',
-                  'What is the treatment dosage of bitter leaf extract?',
-                  "Calculate today's feeding rate",
-                  'What could cause catfish to swim sluggishly at the surface?',
-                ].map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        openAuthModal()
-                        return
-                      }
-                      setQuestion(suggestion)
-                      void ask(suggestion)
-                    }}
-                    title="Click to ask this question"
-                  >
-                    <span>{suggestion}</span>
-                    <span aria-hidden="true">↗</span>
-                  </button>
-                ))}
-              </div>
-              <p className="chat-page__empty-note">
-                Answers are grounded in 16 verified manuals. AquaDoc retains continuous memory across your questions in this thread.
-              </p>
-            </div>
-          )}
-
-          {turns.map((turn) => (
-            <section key={turn.id} className="chat-page__turn">
-              <UserMessage text={turn.question} />
-
-              {turn.response === null && turn.error === null && <PendingMessage />}
-
-              {turn.error !== null && (
-                <ErrorPanel
-                  error={turn.error}
-                  showDetails={false}
-                  onRetry={() => void ask(turn.question, turn.id)}
-                />
-              )}
-
-              {turn.response !== null && (
-                <AssistantMessage
-                  response={turn.response}
-                  devMode={false}
-                  showSources={isSourceRequested(turn.question)}
-                />
-              )}
-            </section>
-          ))}
+      <header className="chat-page__header">
+        <div className="chat-page__context">
+          <label htmlFor="chat-mode">Context</label>
+          <select
+            id="chat-mode"
+            value={chatMode}
+            onChange={(event) => setChatMode(event.target.value as typeof chatMode)}
+          >
+            <option value="general">General Aquaculture</option>
+            <option value="simulated_pond">Simulated Pond</option>
+          </select>
+          <span className="chat-page__context-note">
+            {currentModelInfo.name} · {currentModelInfo.badge}
+          </span>
         </div>
 
-        <form className="chat-page__input-bar" onSubmit={handleSubmit}>
-          <div className="chat-page__input-container">
-            <textarea
-              className="chat-page__textarea"
-              placeholder={
-                recording
-                  ? 'Listening to your question... Speak naturally'
-                  : transcribing
-                    ? 'Processing voice transcription...'
-                    : turns.length > 0
-                      ? 'Ask a follow-up question (AquaDoc remembers earlier context)...'
-                      : 'Ask AquaDoc anything about your fish, water, or feeding...'
-              }
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit(e)
-                }
-              }}
-              rows={1}
-              disabled={pending || transcribing}
-            />
+        <div className="chat-page__controls">
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() => setIsHistoryOpen(true)}
+            title="View Consultation History"
+          >
+            📁 History {sessions.length > 0 ? `(${sessions.length})` : ''}
+          </button>
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={handleNewSession}
+            title="Start New Consultation"
+          >
+            ✨ New Consultation
+          </button>
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={resetConversation}
+            disabled={turns.length === 0}
+          >
+            Reset conversation
+          </button>
+        </div>
+      </header>
 
-            <div className="chat-page__action-buttons">
-              <button
-                type="button"
-                className={`button-mic ${recording ? 'recording' : ''} ${transcribing ? 'transcribing' : ''}`}
-                onClick={toggleRecording}
-                disabled={pending || transcribing}
-                title={recording ? 'Stop Recording' : 'Voice Input (Ask via Audio)'}
-              >
-                {recording ? (
-                  <span className="recording-wave">
-                    <span className="dot" />
-                    <span className="dot" />
-                    <span className="dot" />
-                  </span>
-                ) : transcribing ? (
-                  <span className="spinner-icon">⏳</span>
-                ) : (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
-                )}
-              </button>
-
-              <button
-                type="submit"
-                className="button-send"
-                disabled={!question.trim() || pending || transcribing}
-                title="Send Question (Enter)"
-              >
-                {pending ? (
-                  <div className="button-spinner" />
-                ) : (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                )}
-              </button>
+      <div className="chat-page__transcript">
+        {turns.length === 0 && (
+          <div className="chat-page__empty">
+            <div className="chat-page__empty-heading">
+              <span className="ai-orb" aria-hidden="true">
+                <span />
+              </span>
+              <div>
+                <span className="page-eyebrow">
+                  {isAuthenticated ? `Welcome, ${user?.name}` : 'Sign In Required for Consultation'}
+                </span>
+                <h3>
+                  {isAuthenticated
+                    ? 'How can I assist your farm today?'
+                    : 'Sign in or register to get started with AquaDoc AI'}
+                </h3>
+              </div>
             </div>
+
+            {!isAuthenticated && (
+              <div className="auth-prompt-banner">
+                <p>
+                  To receive clinical advice, tailored feed calculations, and disease prescriptions,
+                  please sign in with your <strong>Google Account (Gmail)</strong> or register your
+                  farm details.
+                </p>
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={openAuthModal}
+                >
+                  🚀 Sign In / Register Farm Account
+                </button>
+              </div>
+            )}
+
+            <div className="chat-page__suggestions" aria-label="Suggested questions">
+              {[
+                'Why are my fish not eating?',
+                'Is this temperature suitable?',
+                "Calculate today's feeding rate",
+                'What could cause fish to swim slowly?',
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      openAuthModal()
+                      return
+                    }
+                    setQuestion(suggestion)
+                    void ask(suggestion)
+                  }}
+                  title="Click to ask this question"
+                >
+                  <span>{suggestion}</span>
+                  <span aria-hidden="true">↗</span>
+                </button>
+              ))}
+            </div>
+            <p className="chat-page__empty-note">
+              Answers are grounded in approved knowledge. AquaDoc clearly marks missing farm data instead of making assumptions.
+            </p>
           </div>
-        </form>
+        )}
+
+        {turns.map((turn) => (
+          <section key={turn.id} className="chat-page__turn">
+            <UserMessage text={turn.question} />
+
+            {turn.response === null && turn.error === null && <PendingMessage />}
+
+            {turn.error !== null && (
+              <ErrorPanel
+                error={turn.error}
+                showDetails={false}
+                onRetry={() => void ask(turn.question, turn.id)}
+              />
+            )}
+
+            {turn.response && (
+              <AssistantMessage
+                response={turn.response}
+                devMode={false}
+                showSources={isSourceRequested(turn.question)}
+              />
+            )}
+          </section>
+        ))}
       </div>
+
+      <form className="chat-page__composer" onSubmit={handleSubmit}>
+        <label className="visually-hidden" htmlFor="question">
+          Ask AquaDoc
+        </label>
+
+        {recording && (
+          <div className="voice-recording-banner">
+            <span className="recording-pulse-dot" aria-hidden="true" />
+            <span>Listening... Speak your aquaculture question (Groq Whisper)</span>
+            <button
+              type="button"
+              className="button button--ghost button--sm"
+              onClick={stopVoiceRecording}
+            >
+              Done
+            </button>
+          </div>
+        )}
+
+        <div className="composer-input-row">
+          <textarea
+            id="question"
+            className="chat-page__input"
+            placeholder={
+              recording
+                ? 'Listening to your question... Speak naturally'
+                : transcribing
+                  ? 'Processing voice transcription...'
+                  : turns.length > 0
+                    ? 'Ask a follow-up question (AquaDoc remembers earlier context)...'
+                    : 'Ask AquaDoc anything about your fish, water, or feeding...'
+            }
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter sends; Shift+Enter is a newline.
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                handleSubmit(event)
+              }
+            }}
+            rows={2}
+            disabled={pending || recording || transcribing}
+          />
+
+          <div className="composer-actions">
+            <button
+              type="button"
+              className={`button-mic ${recording ? 'button-mic--recording' : ''}`}
+              onClick={recording ? stopVoiceRecording : startVoiceRecording}
+              disabled={pending || transcribing}
+              title={recording ? 'Stop recording' : 'Speak question with Whisper'}
+              aria-label={recording ? 'Stop recording' : 'Voice input'}
+            >
+              {transcribing ? (
+                <span className="spinner-sm" />
+              ) : (
+                <svg viewBox="0 0 24 24" className="mic-icon" aria-hidden="true">
+                  <path
+                    d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                    fill="currentColor"
+                  />
+                </svg>
+              )}
+            </button>
+
+            <button
+              type="submit"
+              className="button button--primary"
+              disabled={pending || recording || transcribing || !question.trim()}
+            >
+              {pending ? 'Thinking…' : 'Ask AquaDoc'}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   )
 }
+
