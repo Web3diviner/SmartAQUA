@@ -24,17 +24,14 @@ logger = logging.getLogger(__name__)
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
-# Known Groq model mappings and defaults
-DEFAULT_GROQ_CHAT_MODEL = "llama-3.3-70b-versatile"
+# Verified active Groq model mappings
+DEFAULT_GROQ_CHAT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_GROQ_WHISPER_MODEL = "whisper-large-v3-turbo"
 
 GROQ_MODEL_ALIASES: dict[str, str] = {
-    "openai/gpt-oss-120b": "llama-3.3-70b-versatile",
-    "openai/gpt-oss-20b": "llama-3.1-8b-instant",
-    "qwen/qwen3.8-27b": "llama-3.3-70b-versatile",
-    "groq/compound-mini": "llama-3.1-8b-instant",
-    "openai/gpt-oss-safeguard-20b": "llama-3.1-8b-instant",
-    "meta-llama/llama-prompt-guard-2-86m": "llama-guard-3-8b",
+    "qwen/qwen3.8-27b": "qwen/qwen3.6-27b",
+    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+    "llama-3.1-8b-instant": "openai/gpt-oss-20b",
 }
 
 
@@ -137,7 +134,7 @@ class GroqProvider(LLMProvider):
 
             # Handle 404/400 model not found by falling back to primary high-availability models
             if (status_code in (400, 404)) and ("model" in error_body.lower() or "not found" in error_body.lower()):
-                fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+                fallback_models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound-mini"]
                 for fb_model in fallback_models:
                     if fb_model == active_model:
                         continue
@@ -197,7 +194,7 @@ class GroqProvider(LLMProvider):
                 await asyncio.sleep(retry_seconds)
                 try:
                     retry_payload = dict(payload)
-                    retry_payload["model"] = "llama-3.1-8b-instant"
+                    retry_payload["model"] = "openai/gpt-oss-20b"
                     retry_resp = await self._client.post(
                         "/chat/completions",
                         json=retry_payload,
@@ -205,85 +202,20 @@ class GroqProvider(LLMProvider):
                     )
                     retry_resp.raise_for_status()
                     data = retry_resp.json()
-                    active_model = "llama-3.1-8b-instant"
+                    active_model = "openai/gpt-oss-20b"
                 except Exception as rate_exc:
                     logger.warning("groq_rate_limit_retry_failed", extra={"error": str(rate_exc)})
             elif data is None and status_code == 400 and "refusal" in error_body.lower():
                 raise LLMRefusalError("Groq declined this request due to safety policies.") from exc
 
             if data is None:
-                # Provide a structured fallback rather than crashing
-                logger.warning("groq_failed_using_safe_structured_fallback", extra={"model": active_model})
-                data = {
-                    "choices": [
-                        {
-                            "message": {
-                                "content": json.dumps(
-                                    {
-                                        "answer": "AquaDoc Advisory: Please monitor fish behavior and verify that key water parameters (dissolved oxygen >= 5.0 mg/L, pH 6.5-8.5, ammonia < 0.05 mg/L) are optimal. If symptoms persist or mortalities occur, isolate affected tanks and consult an aquaculture specialist.",
-                                        "possible_causes": [
-                                            {
-                                                "name": "Water Quality Stress or Pathogen",
-                                                "confidence": 0.6,
-                                                "explanation": "Suboptimal water quality or microbial pathogens commonly trigger symptoms in farmed fish.",
-                                            }
-                                        ],
-                                        "recommended_actions": [
-                                            {
-                                                "action": "Test dissolved oxygen, pH, and ammonia immediately.",
-                                                "tier": "tier_1_advisory",
-                                                "reason": "Verify pond parameters meet acceptable physiological thresholds.",
-                                                "requires_approval": False,
-                                                "urgency": "watch",
-                                            }
-                                        ],
-                                        "model_confidence": 0.65,
-                                        "risk_level": "watch",
-                                        "expert_escalation": False,
-                                        "escalation_reasons": [],
-                                    }
-                                )
-                            },
-                            "finish_reason": "stop",
-                        }
-                    ]
-                }
+                # Re-raise to allow upstream diagnostics or retry rather than generic fallback
+                raise LLMProviderError(f"Groq API error (status {status_code}): {error_body}") from exc
+        except (LLMProviderError, LLMRefusalError):
+            raise
         except Exception as exc:
-            logger.warning("groq_request_failed_using_safe_structured_fallback", extra={"model": active_model, "error": str(exc)})
-            data = {
-                "choices": [
-                    {
-                        "message": {
-                            "content": json.dumps(
-                                {
-                                    "answer": "AquaDoc Advisory: Please monitor fish behavior and verify that key water parameters (dissolved oxygen >= 5.0 mg/L, pH 6.5-8.5, ammonia < 0.05 mg/L) are optimal. If symptoms persist or mortalities occur, isolate affected tanks and consult an aquaculture specialist.",
-                                    "possible_causes": [
-                                        {
-                                            "name": "Water Quality Stress or Pathogen",
-                                            "confidence": 0.6,
-                                            "explanation": "Suboptimal water quality or microbial pathogens commonly trigger symptoms in farmed fish.",
-                                        }
-                                    ],
-                                    "recommended_actions": [
-                                        {
-                                            "action": "Test dissolved oxygen, pH, and ammonia immediately.",
-                                            "tier": "tier_1_advisory",
-                                            "reason": "Verify pond parameters meet acceptable physiological thresholds.",
-                                            "requires_approval": False,
-                                            "urgency": "watch",
-                                        }
-                                    ],
-                                    "model_confidence": 0.65,
-                                    "risk_level": "watch",
-                                    "expert_escalation": False,
-                                    "escalation_reasons": [],
-                                }
-                            )
-                        },
-                        "finish_reason": "stop",
-                    }
-                ]
-            }
+            logger.exception("groq_request_failed", extra={"model": active_model})
+            raise LLMProviderError(f"Groq API call failed: {exc}") from exc
 
         latency_ms = (time.perf_counter() - started) * 1000
 

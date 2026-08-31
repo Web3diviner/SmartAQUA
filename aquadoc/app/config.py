@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # -- LLM provider --------------------------------------------------------
     llm_provider: LLMProviderName = "groq"
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "openai/gpt-oss-120b"
     llm_max_tokens: int = 2000
     llm_effort: EffortLevel = "high"
     llm_timeout_seconds: float = 120.0
