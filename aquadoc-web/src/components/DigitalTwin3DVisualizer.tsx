@@ -24,6 +24,7 @@ import {
   type DigitalTwinOutcome,
   type PondSystemType,
   type FishSpecies,
+  SPECIES_PROFILES,
 } from '@/utils/digitalTwinEngine'
 
 interface DigitalTwin3DVisualizerProps {
@@ -145,18 +146,18 @@ export function DigitalTwin3DVisualizer({
     }
   }, [params, currentStep])
 
-  // Tank dimension parameters in 3D world units
+  // Tank dimension parameters in 3D world units (Spacious & Large Scale)
   const tankDimensions = useMemo(() => {
     switch (params.systemType) {
       case 'tarpaulin':
-        return { type: 'cylinder', radius: 4.8, height: 3.2, waterHeight: 2.8 }
+        return { type: 'cylinder', radius: 8.0, height: 4.4, waterHeight: 3.9 }
       case 'earthen':
-        return { type: 'pond', width: 12, length: 12, height: 3.4, waterHeight: 2.9 }
+        return { type: 'pond', width: 22.0, length: 22.0, height: 5.0, waterHeight: 4.2 }
       case 'ras':
-        return { type: 'cylinder', radius: 4.2, height: 3.6, waterHeight: 3.2 }
+        return { type: 'cylinder', radius: 7.2, height: 4.8, waterHeight: 4.2 }
       case 'concrete':
       default:
-        return { type: 'box', width: 9.0, length: 6.0, height: 3.2, waterHeight: 2.7 }
+        return { type: 'box', width: 16.0, length: 11.0, height: 4.4, waterHeight: 3.8 }
     }
   }, [params.systemType])
 
@@ -165,16 +166,16 @@ export function DigitalTwin3DVisualizer({
   const fishScale = useMemo(() => {
     const w = currentStep.avgWeightG
     const normalized = Math.pow(w / 150, 1 / 3)
-    return Math.max(0.35, Math.min(2.5, normalized))
+    return Math.max(0.4, Math.min(2.8, normalized))
   }, [currentStep.avgWeightG])
 
-  // Number of 3D fish to render (capped for smooth 60fps WebGL)
+  // Number of 3D fish to render (capped for smooth 60fps WebGL in large tank)
   const renderedFishCount = useMemo(() => {
     const survivalPct = outcome.survivalRatePct / 100
     const baseCount = Math.min(params.initialPopulation, 1000)
-    // Scale count: 18 - 48 fish representing the whole school density
-    const maxRendered = Math.min(48, Math.max(16, Math.floor(baseCount / 22)))
-    return Math.max(4, Math.round(maxRendered * survivalPct))
+    // Scale count: 24 - 64 fish representing the whole school density
+    const maxRendered = Math.min(64, Math.max(20, Math.floor(baseCount / 18)))
+    return Math.max(6, Math.round(maxRendered * survivalPct))
   }, [params.initialPopulation, outcome.survivalRatePct])
 
   // Auto-play timeline animation loop
@@ -197,16 +198,16 @@ export function DigitalTwin3DVisualizer({
     if (!container || !canvas) return
 
     const width = container.clientWidth
-    const height = Math.max(380, Math.min(520, container.clientHeight || 460))
+    const height = Math.max(440, Math.min(600, container.clientHeight || 520))
 
     // Scene
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x060d17)
-    scene.fog = new THREE.FogExp2(0x071526, 0.022)
+    scene.fog = new THREE.FogExp2(0x071526, 0.015)
     sceneRef.current = scene
 
     // Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100)
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 150)
     cameraRef.current = camera
 
     // Renderer
@@ -224,18 +225,18 @@ export function DigitalTwin3DVisualizer({
     rendererRef.current = renderer
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xdcf8ff, 0.8)
+    const ambientLight = new THREE.AmbientLight(0xdcf8ff, 0.85)
     scene.add(ambientLight)
 
-    const sunLight = new THREE.DirectionalLight(0x38bdf8, 1.4)
-    sunLight.position.set(10, 18, 12)
+    const sunLight = new THREE.DirectionalLight(0x38bdf8, 1.5)
+    sunLight.position.set(16, 26, 18)
     sunLight.castShadow = true
     sunLight.shadow.mapSize.width = 1024
     sunLight.shadow.mapSize.height = 1024
     scene.add(sunLight)
 
-    const underwaterLight = new THREE.PointLight(0x06b6d4, 1.2, 20)
-    underwaterLight.position.set(0, 1.0, 0)
+    const underwaterLight = new THREE.PointLight(0x06b6d4, 1.4, 30)
+    underwaterLight.position.set(0, 1.8, 0)
     scene.add(underwaterLight)
 
     // Build Tank Architecture
@@ -253,12 +254,12 @@ export function DigitalTwin3DVisualizer({
             tankDimensions.radius! * 0.98,
             tankDimensions.radius! * 0.98,
             tankDimensions.waterHeight,
-            32,
+            36,
           )
         : new THREE.BoxGeometry(
-            tankDimensions.width! * 0.97,
+            tankDimensions.width! * 0.98,
             tankDimensions.waterHeight,
-            (tankDimensions.length || tankDimensions.width!) * 0.97,
+            (tankDimensions.length || tankDimensions.width!) * 0.98,
           )
 
     const waterMat = new THREE.MeshPhysicalMaterial({
@@ -279,12 +280,12 @@ export function DigitalTwin3DVisualizer({
 
     // Aeration Bubble Particle System
     if (params.aerationHoursPerDay > 0) {
-      const bubbleCount = Math.min(180, Math.floor(params.aerationHoursPerDay * 15))
+      const bubbleCount = Math.min(260, Math.floor(params.aerationHoursPerDay * 22))
       const bubbleGeo = new THREE.BufferGeometry()
       const bubblePositions = new Float32Array(bubbleCount * 3)
 
       for (let i = 0; i < bubbleCount; i++) {
-        const radius = Math.random() * (tankDimensions.type === 'cylinder' ? 2.5 : 3.0)
+        const radius = Math.random() * (tankDimensions.type === 'cylinder' ? 4.5 : 5.5)
         const angle = Math.random() * Math.PI * 2
         bubblePositions[i * 3] = Math.cos(angle) * radius
         bubblePositions[i * 3 + 1] = Math.random() * tankDimensions.waterHeight
@@ -294,9 +295,9 @@ export function DigitalTwin3DVisualizer({
       bubbleGeo.setAttribute('position', new THREE.BufferAttribute(bubblePositions, 3))
       const bubbleMat = new THREE.PointsMaterial({
         color: 0xe0f2fe,
-        size: 0.18,
+        size: 0.22,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.8,
         blending: THREE.AdditiveBlending,
       })
 
@@ -305,11 +306,10 @@ export function DigitalTwin3DVisualizer({
       bubblesMeshRef.current = bubblesMesh
     }
 
-    // Build 3D Fish School
+    // Build 3D Fish School with anatomical species models
     const fishEntities: FishEntity[] = []
     for (let i = 0; i < renderedFishCount; i++) {
       const fish = createProceduralFish(params.species)
-      // Initial random position inside water bounds
       const spawnPos = getRandomWaterPosition(tankDimensions, false)
       fish.group.position.copy(spawnPos)
       fish.position.copy(spawnPos)
@@ -332,7 +332,7 @@ export function DigitalTwin3DVisualizer({
 
       // Auto-rotation if enabled and not actively dragging
       if (autoRotate && !isDraggingRef.current) {
-        sphericalCoordsRef.current.theta += 0.003
+        sphericalCoordsRef.current.theta += 0.0025
         updateCameraPosition()
       }
 
@@ -345,7 +345,7 @@ export function DigitalTwin3DVisualizer({
         const positions = posAttr.array as Float32Array
         for (let i = 1; i < positions.length; i += 3) {
           const currentY = positions[i] ?? 0
-          positions[i] = currentY + delta * 1.8 // Rise speed
+          positions[i] = currentY + delta * 2.2 // Rise speed
           if (positions[i]! > tankDimensions.waterHeight) {
             positions[i] = 0.1 // Reset to bottom aerator disc
           }
@@ -367,7 +367,7 @@ export function DigitalTwin3DVisualizer({
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
       const w = containerRef.current.clientWidth
-      const h = Math.max(380, Math.min(520, containerRef.current.clientHeight || 460))
+      const h = Math.max(440, Math.min(600, containerRef.current.clientHeight || 520))
       cameraRef.current.aspect = w / h
       cameraRef.current.updateProjectionMatrix()
       rendererRef.current.setSize(w, h)
@@ -412,8 +412,8 @@ export function DigitalTwin3DVisualizer({
     const y = coords.radius * Math.cos(coords.phi)
     const z = coords.radius * Math.sin(coords.phi) * Math.cos(coords.theta)
 
-    camera.position.set(x, y + 1.2, z)
-    camera.lookAt(0, 1.2, 0)
+    camera.position.set(x, y + 1.6, z)
+    camera.lookAt(0, 1.6, 0)
   }, [])
 
   const setCameraPreset = (mode: 'iso' | 'top' | 'surface' | 'underwater') => {
@@ -421,18 +421,18 @@ export function DigitalTwin3DVisualizer({
     setAutoRotate(false)
     switch (mode) {
       case 'top':
-        sphericalCoordsRef.current = { radius: 16, theta: 0, phi: 0.15 }
+        sphericalCoordsRef.current = { radius: 26, theta: 0, phi: 0.15 }
         break
       case 'surface':
         sphericalCoordsRef.current = {
-          radius: 12,
+          radius: 20,
           theta: Math.PI / 4,
           phi: Math.PI / 2.3,
         }
         break
       case 'underwater':
         sphericalCoordsRef.current = {
-          radius: 9,
+          radius: 14,
           theta: Math.PI / 3,
           phi: Math.PI / 2.05,
         }
@@ -440,7 +440,7 @@ export function DigitalTwin3DVisualizer({
       case 'iso':
       default:
         sphericalCoordsRef.current = {
-          radius: 18,
+          radius: 28,
           theta: Math.PI / 4,
           phi: Math.PI / 3.2,
         }
@@ -474,8 +474,8 @@ export function DigitalTwin3DVisualizer({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
     sphericalCoordsRef.current.radius = Math.max(
-      6,
-      Math.min(30, sphericalCoordsRef.current.radius + e.deltaY * 0.02),
+      8,
+      Math.min(45, sphericalCoordsRef.current.radius + e.deltaY * 0.03),
     )
     updateCameraPosition()
   }
@@ -515,7 +515,7 @@ export function DigitalTwin3DVisualizer({
     fishEntitiesRef.current.forEach((fish, idx) => {
       // 1. Update target waypoint if close or hypoxic
       const distToTarget = fish.position.distanceTo(fish.target)
-      if (distToTarget < 0.6 || Math.random() < 0.005) {
+      if (distToTarget < 1.0 || Math.random() < 0.005) {
         fish.target = getRandomWaterPosition(tankDimensions, isHypoxic)
       }
 
@@ -524,20 +524,19 @@ export function DigitalTwin3DVisualizer({
         .clone()
         .sub(fish.position)
         .normalize()
-        .multiplyScalar(0.8 * speedMult * fish.personalSpeed)
+        .multiplyScalar(1.1 * speedMult * fish.personalSpeed)
 
       // Surface piping behavior (snout tilted up at the water surface)
       if (isSevereHypoxia) {
-        // High cluster near top surface (y ~ waterHeight - 0.15)
-        fish.target.y = tankDimensions.waterHeight - 0.12 + (Math.random() * 0.1 - 0.05)
+        fish.target.y = tankDimensions.waterHeight - 0.15 + (Math.random() * 0.12 - 0.06)
         fish.isPiping = true
       } else {
         fish.isPiping = false
       }
 
       // Smooth steering interpolation
-      fish.velocity.lerp(desiredVel, 0.04)
-      fish.position.addScaledVector(fish.velocity, delta * 2.2)
+      fish.velocity.lerp(desiredVel, 0.035)
+      fish.position.addScaledVector(fish.velocity, delta * 2.5)
       fish.group.position.copy(fish.position)
 
       // 3. Orient fish towards velocity direction
@@ -547,13 +546,13 @@ export function DigitalTwin3DVisualizer({
 
         // Pitch upwards if piping at water surface
         if (fish.isPiping) {
-          fish.group.rotateX(-0.45) // ~25 degree upward tilt
+          fish.group.rotateX(-0.45)
         }
       }
 
       // 4. Sinusoidal tail undulation (faster wagging with higher speed)
-      fish.tailPhase += delta * (4.5 * speedMult + 2.0)
-      const tailWagAngle = Math.sin(fish.tailPhase + idx) * (fish.isPiping ? 0.12 : 0.38)
+      fish.tailPhase += delta * (4.8 * speedMult + 2.2)
+      const tailWagAngle = Math.sin(fish.tailPhase + idx) * (fish.isPiping ? 0.12 : 0.42)
       fish.tailMesh.rotation.y = tailWagAngle
     })
   }
@@ -572,7 +571,7 @@ export function DigitalTwin3DVisualizer({
               {behavioralState.behaviorName}
             </span>
           </div>
-          <h3>🐟 Interactive 3D Culture Tank Twin</h3>
+          <h3>🐟 Interactive 3D Culture Tank Twin ({SPECIES_PROFILES[params.species].name})</h3>
         </div>
 
         {/* Camera Angle Presets */}
@@ -703,7 +702,7 @@ export function DigitalTwin3DVisualizer({
 }
 
 // ============================================================================
-// Helper Functions: Tank Construction & Procedural Fish Mesh Generation
+// Helper Functions: Tank Construction & Species-Specific 3D Mesh Generation
 // ============================================================================
 
 function getWaterColor(params: DigitalTwinPondParams): number {
@@ -730,23 +729,20 @@ function getRandomWaterPosition(
   let x = 0
   let z = 0
   if (dim.type === 'cylinder') {
-    const r = Math.random() * (dim.radius! * 0.78)
+    const r = Math.random() * (dim.radius! * 0.82)
     const angle = Math.random() * Math.PI * 2
     x = Math.cos(angle) * r
     z = Math.sin(angle) * r
   } else {
-    x = (Math.random() - 0.5) * (dim.width! * 0.78)
-    z = (Math.random() - 0.5) * ((dim.length || dim.width!) * 0.78)
+    x = (Math.random() - 0.5) * (dim.width! * 0.82)
+    z = (Math.random() - 0.5) * ((dim.length || dim.width!) * 0.82)
   }
 
-  // Vertical position
   let y = 0
   if (isHypoxic) {
-    // Upper water column (85% to 98% height)
-    y = dim.waterHeight * (0.85 + Math.random() * 0.12)
+    y = dim.waterHeight * (0.86 + Math.random() * 0.11)
   } else {
-    // General water column (15% to 80% height)
-    y = dim.waterHeight * (0.15 + Math.random() * 0.65)
+    y = dim.waterHeight * (0.12 + Math.random() * 0.72)
   }
 
   return new THREE.Vector3(x, y, z)
@@ -757,14 +753,13 @@ function buildTankStructure(
   dim: { type: string; radius?: number; width?: number; length?: number; height: number },
   systemType: PondSystemType,
 ) {
-  // Clear any existing children
   while (group.children.length > 0) {
     group.remove(group.children[0]!)
   }
 
   if (dim.type === 'cylinder') {
     // Tarpaulin or RAS Circular Tank
-    const wallGeo = new THREE.CylinderGeometry(dim.radius!, dim.radius!, dim.height, 36, 1, true)
+    const wallGeo = new THREE.CylinderGeometry(dim.radius!, dim.radius!, dim.height, 40, 1, true)
     const wallColor = systemType === 'tarpaulin' ? 0x1d4ed8 : 0x334155
     const wallMat = new THREE.MeshStandardMaterial({
       color: wallColor,
@@ -777,7 +772,7 @@ function buildTankStructure(
     group.add(wallMesh)
 
     // Floor
-    const floorGeo = new THREE.CircleGeometry(dim.radius!, 36)
+    const floorGeo = new THREE.CircleGeometry(dim.radius!, 40)
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x0f172a,
       roughness: 0.8,
@@ -788,7 +783,7 @@ function buildTankStructure(
     group.add(floorMesh)
 
     // Metal Frame Ring on Top
-    const ringGeo = new THREE.TorusGeometry(dim.radius!, 0.08, 12, 36)
+    const ringGeo = new THREE.TorusGeometry(dim.radius!, 0.12, 12, 40)
     const ringMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 })
     const ringMesh = new THREE.Mesh(ringGeo, ringMat)
     ringMesh.rotation.x = Math.PI / 2
@@ -825,14 +820,14 @@ function buildTankStructure(
     backWall.position.set(0, h / 2, -l / 2)
     group.add(backWall)
 
-    // Front wall (semi-transparent glass panel for viewing)
+    // Front wall (semi-transparent glass panel for clear underwater inspection)
     const glassMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.25,
-      roughness: 0.1,
+      opacity: 0.22,
+      roughness: 0.08,
       metalness: 0.1,
-      transmission: 0.7,
+      transmission: 0.75,
       side: THREE.DoubleSide,
     })
     const frontWall = new THREE.Mesh(backGeo, glassMat)
@@ -854,111 +849,396 @@ function buildTankStructure(
   }
 
   // Water Inlet Pipe at top corner
-  const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.2, 16)
-  const pipeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.5, roughness: 0.3 })
+  const pipeGeo = new THREE.CylinderGeometry(0.18, 0.18, 1.8, 16)
+  const pipeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.6, roughness: 0.25 })
   const pipeMesh = new THREE.Mesh(pipeGeo, pipeMat)
   pipeMesh.rotation.z = Math.PI / 2
-  pipeMesh.position.set(-2.8, dim.height + 0.1, 0)
+  const pipeX = dim.type === 'cylinder' ? -(dim.radius ?? 8) + 1.2 : -(dim.width ?? 16) / 2 + 1.2
+  pipeMesh.position.set(pipeX, dim.height + 0.15, 0)
   group.add(pipeMesh)
 
   // Aerator Diffuser Disc at bottom center
-  const discGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.1, 24)
+  const discGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.15, 24)
   const discMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
   const discMesh = new THREE.Mesh(discGeo, discMat)
-  discMesh.position.set(0, 0.05, 0)
+  discMesh.position.set(0, 0.08, 0)
   group.add(discMesh)
 }
 
 function createProceduralFish(species: FishSpecies): FishEntity {
   const group = new THREE.Group()
 
-  // Species-specific colors & geometries
-  const isCatfish = species === 'catfish' || species === 'heteroclarias'
-  const bodyColor = isCatfish ? 0x27272a : 0x475569 // Slate black vs olive silver
-  const finColor = isCatfish ? 0x3f3f46 : 0xf87171 // Dark vs red-tinted tilapia fins
+  if (species === 'catfish') {
+    // ------------------------------------------------------------------------
+    // AFRICAN CATFISH (Clarias gariepinus)
+    // Elongated streamlined body, broad flattened skull, 8 sensory whiskers,
+    // continuous rayed dorsal fin, slate black dorsal with pale creamy belly.
+    // ------------------------------------------------------------------------
+    const dorsalSkinMat = new THREE.MeshStandardMaterial({
+      color: 0x181a1e,
+      roughness: 0.28,
+      metalness: 0.3,
+    })
+    const finMat = new THREE.MeshStandardMaterial({
+      color: 0x27272a,
+      roughness: 0.35,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+    })
 
-  // 1. Tapered Anatomical Fish Body
-  const bodyGeo = new THREE.ConeGeometry(0.22, 1.1, 16)
-  bodyGeo.rotateX(Math.PI / 2) // Point forward along +Z axis
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: bodyColor,
-    roughness: 0.35,
-    metalness: 0.25,
-  })
-  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat)
-  bodyMesh.position.z = 0.2
-  group.add(bodyMesh)
+    // 1. Streamlined Cylindrical Body (Tapered Cone)
+    const bodyGeo = new THREE.ConeGeometry(0.24, 1.45, 16)
+    bodyGeo.rotateX(Math.PI / 2)
+    bodyGeo.scale(1.15, 0.82, 1.0)
+    const bodyMesh = new THREE.Mesh(bodyGeo, dorsalSkinMat)
+    bodyMesh.position.z = 0.25
+    group.add(bodyMesh)
 
-  // 2. Fish Head Snout
-  const headGeo = new THREE.SphereGeometry(0.21, 14, 10)
-  headGeo.scale(1.0, 0.75, 1.3)
-  const headMesh = new THREE.Mesh(headGeo, bodyMat)
-  headMesh.position.z = 0.65
-  group.add(headMesh)
+    // 2. Broad Flattened Catfish Head with Shovel Snout
+    const headGeo = new THREE.SphereGeometry(0.26, 16, 12)
+    headGeo.scale(1.25, 0.65, 1.4)
+    const headMesh = new THREE.Mesh(headGeo, dorsalSkinMat)
+    headMesh.position.set(0, -0.02, 0.85)
+    group.add(headMesh)
 
-  // 3. Caudal (Tail) Fin (Animated Wag)
-  const tailGroup = new THREE.Group()
-  tailGroup.position.z = -0.45 // Tail hinge point
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.035, 8, 8)
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x050505 })
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMat)
+    leftEye.position.set(0.22, 0.08, 0.95)
+    group.add(leftEye)
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMat)
+    rightEye.position.set(-0.22, 0.08, 0.95)
+    group.add(rightEye)
 
-  const tailGeo = new THREE.BufferGeometry()
-  // 2D Triangle / fan vertices for tail fin
-  const tailVertices = new Float32Array([
-    0, 0, 0,
-    0, 0.28, -0.42,
-    0, -0.28, -0.42,
-  ])
-  tailGeo.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3))
-  tailGeo.computeVertexNormals()
+    // 3. 8 Distinct Whiskers (Maxillary, Nasal & Mandibular Barbels)
+    const barbelMat = new THREE.MeshStandardMaterial({ color: 0x111215, roughness: 0.5 })
+    const makeBarbel = (radius: number, length: number, pos: [number, number, number], rot: [number, number, number]) => {
+      const bGeo = new THREE.CylinderGeometry(radius * 0.7, radius * 0.2, length, 8)
+      bGeo.rotateX(Math.PI / 2)
+      const bMesh = new THREE.Mesh(bGeo, barbelMat)
+      bMesh.position.set(...pos)
+      bMesh.rotation.set(...rot)
+      group.add(bMesh)
+    }
+    makeBarbel(0.016, 0.65, [0.24, -0.05, 1.05], [0.2, 0.6, 0.3])
+    makeBarbel(0.016, 0.65, [-0.24, -0.05, 1.05], [0.2, -0.6, -0.3])
+    makeBarbel(0.012, 0.35, [0.12, 0.08, 1.12], [-0.3, 0.25, 0.1])
+    makeBarbel(0.012, 0.35, [-0.12, 0.08, 1.12], [-0.3, -0.25, -0.1])
+    makeBarbel(0.012, 0.32, [0.10, -0.12, 0.98], [0.5, 0.3, 0])
+    makeBarbel(0.012, 0.32, [-0.10, -0.12, 0.98], [0.5, -0.3, 0])
 
-  const tailMat = new THREE.MeshStandardMaterial({
-    color: finColor,
-    roughness: 0.4,
-    side: THREE.DoubleSide,
-  })
-  const tailMesh = new THREE.Mesh(tailGeo, tailMat)
-  tailGroup.add(tailMesh)
-  group.add(tailGroup)
+    // 4. Long Continuous Dorsal Fin
+    const dorsalGeo = new THREE.BufferGeometry()
+    const dorsalVertices = new Float32Array([
+      0, 0.16, 0.45,
+      0, 0.32, 0.0,
+      0, 0.28, -0.45,
+      0, 0.08, -0.45,
+      0, 0.12, 0.0,
+      0, 0.16, 0.45,
+    ])
+    dorsalGeo.setAttribute('position', new THREE.BufferAttribute(dorsalVertices, 3))
+    dorsalGeo.computeVertexNormals()
+    const dorsalMesh = new THREE.Mesh(dorsalGeo, finMat)
+    group.add(dorsalMesh)
 
-  // 4. Catfish Whiskers (Barbels)
-  if (isCatfish) {
-    const barbelGeo = new THREE.CylinderGeometry(0.015, 0.005, 0.4, 8)
-    const barbelMat = new THREE.MeshStandardMaterial({ color: 0x18181b })
+    // 5. Pectoral Spine Fins
+    const pecGeo = new THREE.BufferGeometry()
+    const pecVertices = new Float32Array([
+      0, 0, 0,
+      0.38, -0.08, -0.25,
+      0.18, -0.02, -0.32,
+    ])
+    pecGeo.setAttribute('position', new THREE.BufferAttribute(pecVertices, 3))
+    pecGeo.computeVertexNormals()
+    const leftPec = new THREE.Mesh(pecGeo, finMat)
+    leftPec.position.set(0.24, -0.05, 0.65)
+    group.add(leftPec)
 
-    const leftBarbel = new THREE.Mesh(barbelGeo, barbelMat)
-    leftBarbel.position.set(0.14, -0.04, 0.82)
-    leftBarbel.rotation.set(0.3, 0.5, 0.4)
-    group.add(leftBarbel)
+    const rightPec = new THREE.Mesh(pecGeo, finMat)
+    rightPec.scale.x = -1
+    rightPec.position.set(-0.24, -0.05, 0.65)
+    group.add(rightPec)
 
-    const rightBarbel = new THREE.Mesh(barbelGeo, barbelMat)
-    rightBarbel.position.set(-0.14, -0.04, 0.82)
-    rightBarbel.rotation.set(0.3, -0.5, -0.4)
-    group.add(rightBarbel)
-  }
+    // 6. Broad Caudal Tail Fin
+    const tailGroup = new THREE.Group()
+    tailGroup.position.z = -0.55
+    const tailGeo = new THREE.BufferGeometry()
+    const tailVertices = new Float32Array([
+      0, 0, 0,
+      0, 0.34, -0.52,
+      0, -0.34, -0.52,
+    ])
+    tailGeo.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3))
+    tailGeo.computeVertexNormals()
+    const tailMesh = new THREE.Mesh(tailGeo, finMat)
+    tailGroup.add(tailMesh)
+    group.add(tailGroup)
 
-  // 5. Dorsal Fin
-  const dorsalGeo = new THREE.BufferGeometry()
-  const dorsalVertices = new Float32Array([
-    0, 0.18, 0.3,
-    0, 0.42, 0.05,
-    0, 0.12, -0.2,
-  ])
-  dorsalGeo.setAttribute('position', new THREE.BufferAttribute(dorsalVertices, 3))
-  dorsalGeo.computeVertexNormals()
-  const dorsalMesh = new THREE.Mesh(dorsalGeo, tailMat)
-  group.add(dorsalMesh)
+    return {
+      group,
+      bodyMesh,
+      tailMesh: tailGroup as unknown as THREE.Mesh,
+      position: new THREE.Vector3(),
+      velocity: new THREE.Vector3(),
+      target: new THREE.Vector3(),
+      rotation: new THREE.Euler(),
+      tailPhase: Math.random() * Math.PI * 2,
+      tailSpeed: 4.0 + Math.random() * 2.0,
+      baseScale: 0.9 + Math.random() * 0.25,
+      personalSpeed: 0.9 + Math.random() * 0.25,
+      isPiping: false,
+    }
+  } else if (species === 'heteroclarias') {
+    // ------------------------------------------------------------------------
+    // HETEROCLARIAS HYBRID (Clarias x Heterobranchus)
+    // Heavy-set muscular bronze-brown mottled body, massive armored flat head,
+    // prominent fleshy Adipose Fin, thick whiskers.
+    // ------------------------------------------------------------------------
+    const hybridSkinMat = new THREE.MeshStandardMaterial({
+      color: 0x3d2b1f,
+      roughness: 0.32,
+      metalness: 0.3,
+    })
+    const adiposeMat = new THREE.MeshStandardMaterial({
+      color: 0x4a3525,
+      roughness: 0.3,
+      side: THREE.DoubleSide,
+    })
+    const finMat = new THREE.MeshStandardMaterial({
+      color: 0x2e1f15,
+      roughness: 0.35,
+      side: THREE.DoubleSide,
+    })
 
-  return {
-    group,
-    bodyMesh,
-    tailMesh: tailGroup as unknown as THREE.Mesh,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-    target: new THREE.Vector3(),
-    rotation: new THREE.Euler(),
-    tailPhase: Math.random() * Math.PI * 2,
-    tailSpeed: 4.0 + Math.random() * 2.0,
-    baseScale: 0.85 + Math.random() * 0.3,
-    personalSpeed: 0.85 + Math.random() * 0.3,
-    isPiping: false,
+    // 1. Heavy muscular body
+    const bodyGeo = new THREE.ConeGeometry(0.28, 1.5, 16)
+    bodyGeo.rotateX(Math.PI / 2)
+    bodyGeo.scale(1.25, 0.9, 1.0)
+    const bodyMesh = new THREE.Mesh(bodyGeo, hybridSkinMat)
+    bodyMesh.position.z = 0.25
+    group.add(bodyMesh)
+
+    // 2. Broad Massive Armored Head
+    const headGeo = new THREE.SphereGeometry(0.29, 16, 12)
+    headGeo.scale(1.3, 0.72, 1.4)
+    const headMesh = new THREE.Mesh(headGeo, hybridSkinMat)
+    headMesh.position.set(0, -0.02, 0.88)
+    group.add(headMesh)
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.035, 8, 8)
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x050505 })
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMat)
+    leftEye.position.set(0.24, 0.08, 0.98)
+    group.add(leftEye)
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMat)
+    rightEye.position.set(-0.24, 0.08, 0.98)
+    group.add(rightEye)
+
+    // 3. Thick Whiskers
+    const barbelMat = new THREE.MeshStandardMaterial({ color: 0x22160e })
+    const makeBarbel = (radius: number, length: number, pos: [number, number, number], rot: [number, number, number]) => {
+      const bGeo = new THREE.CylinderGeometry(radius * 0.7, radius * 0.2, length, 8)
+      bGeo.rotateX(Math.PI / 2)
+      const bMesh = new THREE.Mesh(bGeo, barbelMat)
+      bMesh.position.set(...pos)
+      bMesh.rotation.set(...rot)
+      group.add(bMesh)
+    }
+    makeBarbel(0.02, 0.68, [0.26, -0.05, 1.08], [0.2, 0.65, 0.3])
+    makeBarbel(0.02, 0.68, [-0.26, -0.05, 1.08], [0.2, -0.65, -0.3])
+    makeBarbel(0.014, 0.38, [0.14, 0.09, 1.15], [-0.3, 0.25, 0.1])
+    makeBarbel(0.014, 0.38, [-0.14, 0.09, 1.15], [-0.3, -0.25, -0.1])
+
+    // 4. Anterior Rayed Dorsal Fin
+    const dorsalGeo = new THREE.BufferGeometry()
+    const dorsalVertices = new Float32Array([
+      0, 0.20, 0.45,
+      0, 0.36, 0.15,
+      0, 0.22, -0.05,
+    ])
+    dorsalGeo.setAttribute('position', new THREE.BufferAttribute(dorsalVertices, 3))
+    dorsalGeo.computeVertexNormals()
+    const dorsalMesh = new THREE.Mesh(dorsalGeo, finMat)
+    group.add(dorsalMesh)
+
+    // 5. Heterobranchus Hallmark: Fleshy Long Adipose Fin
+    const adiposeGeo = new THREE.BufferGeometry()
+    const adiposeVertices = new Float32Array([
+      0, 0.18, -0.05,
+      0, 0.32, -0.25,
+      0, 0.12, -0.52,
+    ])
+    adiposeGeo.setAttribute('position', new THREE.BufferAttribute(adiposeVertices, 3))
+    adiposeGeo.computeVertexNormals()
+    const adiposeMesh = new THREE.Mesh(adiposeGeo, adiposeMat)
+    group.add(adiposeMesh)
+
+    // 6. Broad Tail
+    const tailGroup = new THREE.Group()
+    tailGroup.position.z = -0.58
+    const tailGeo = new THREE.BufferGeometry()
+    const tailVertices = new Float32Array([
+      0, 0, 0,
+      0, 0.38, -0.55,
+      0, -0.38, -0.55,
+    ])
+    tailGeo.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3))
+    tailGeo.computeVertexNormals()
+    const tailMesh = new THREE.Mesh(tailGeo, finMat)
+    tailGroup.add(tailMesh)
+    group.add(tailGroup)
+
+    return {
+      group,
+      bodyMesh,
+      tailMesh: tailGroup as unknown as THREE.Mesh,
+      position: new THREE.Vector3(),
+      velocity: new THREE.Vector3(),
+      target: new THREE.Vector3(),
+      rotation: new THREE.Euler(),
+      tailPhase: Math.random() * Math.PI * 2,
+      tailSpeed: 3.8 + Math.random() * 1.8,
+      baseScale: 0.95 + Math.random() * 0.3,
+      personalSpeed: 0.9 + Math.random() * 0.25,
+      isPiping: false,
+    }
+  } else {
+    // ------------------------------------------------------------------------
+    // NILE TILAPIA (Oreochromis niloticus)
+    // Deep laterally compressed oval body (tall, narrow), silvery-olive scales,
+    // dark vertical zebra-like flank stripes, high spiny continuous dorsal fin,
+    // red/pink margin trim on caudal tail fin, NO whiskers.
+    // ------------------------------------------------------------------------
+    const tilapiaSkinMat = new THREE.MeshStandardMaterial({
+      color: 0x5b7065,
+      roughness: 0.28,
+      metalness: 0.45,
+    })
+    const stripeMat = new THREE.MeshStandardMaterial({
+      color: 0x2f3e37,
+      roughness: 0.4,
+    })
+    const spinyDorsalMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      roughness: 0.3,
+      side: THREE.DoubleSide,
+    })
+    const redTrimTailMat = new THREE.MeshStandardMaterial({
+      color: 0xf43f5e,
+      roughness: 0.35,
+      side: THREE.DoubleSide,
+    })
+
+    // 1. Deep Laterally Compressed Disc Body
+    const bodyGeo = new THREE.ConeGeometry(0.36, 1.25, 16)
+    bodyGeo.rotateX(Math.PI / 2)
+    bodyGeo.scale(0.55, 1.45, 1.0)
+    const bodyMesh = new THREE.Mesh(bodyGeo, tilapiaSkinMat)
+    bodyMesh.position.z = 0.2
+    group.add(bodyMesh)
+
+    // 2. Tilapia Head & Snout (terminal mouth, no whiskers)
+    const headGeo = new THREE.ConeGeometry(0.34, 0.55, 16)
+    headGeo.rotateX(-Math.PI / 2)
+    headGeo.scale(0.55, 1.35, 1.0)
+    const headMesh = new THREE.Mesh(headGeo, tilapiaSkinMat)
+    headMesh.position.set(0, 0.05, 0.85)
+    group.add(headMesh)
+
+    // Prominent Red-Ringed Eyes
+    const eyeRingGeo = new THREE.SphereGeometry(0.048, 8, 8)
+    const eyeRingMat = new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    const eyePupilGeo = new THREE.SphereGeometry(0.032, 8, 8)
+    const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a })
+
+    const leftEyeRing = new THREE.Mesh(eyeRingGeo, eyeRingMat)
+    leftEyeRing.position.set(0.12, 0.12, 0.82)
+    const leftPupil = new THREE.Mesh(eyePupilGeo, eyePupilMat)
+    leftPupil.position.set(0.13, 0.12, 0.82)
+    group.add(leftEyeRing)
+    group.add(leftPupil)
+
+    const rightEyeRing = new THREE.Mesh(eyeRingGeo, eyeRingMat)
+    rightEyeRing.position.set(-0.12, 0.12, 0.82)
+    const rightPupil = new THREE.Mesh(eyePupilGeo, eyePupilMat)
+    rightPupil.position.set(-0.13, 0.12, 0.82)
+    group.add(rightEyeRing)
+    group.add(rightPupil)
+
+    // 3. Vertical Dark Flank Stripes
+    for (let s = 0; s < 3; s++) {
+      const stripeGeo = new THREE.TorusGeometry(0.24 - s * 0.03, 0.015, 8, 16)
+      stripeGeo.scale(0.6, 1.35, 1.0)
+      const stripeMesh = new THREE.Mesh(stripeGeo, stripeMat)
+      stripeMesh.position.set(0, 0.02, 0.35 - s * 0.22)
+      group.add(stripeMesh)
+    }
+
+    // 4. High Spiny Dorsal Fin
+    const dorsalGeo = new THREE.BufferGeometry()
+    const dorsalVertices = new Float32Array([
+      0, 0.28, 0.55,
+      0, 0.62, 0.18,
+      0, 0.45, -0.35,
+      0, 0.12, -0.35,
+      0, 0.22, 0.18,
+      0, 0.28, 0.55,
+    ])
+    dorsalGeo.setAttribute('position', new THREE.BufferAttribute(dorsalVertices, 3))
+    dorsalGeo.computeVertexNormals()
+    const dorsalMesh = new THREE.Mesh(dorsalGeo, spinyDorsalMat)
+    group.add(dorsalMesh)
+
+    // 5. Pectoral Fins
+    const pecGeo = new THREE.BufferGeometry()
+    const pecVertices = new Float32Array([
+      0, 0, 0,
+      0.32, -0.15, -0.22,
+      0.12, -0.05, -0.28,
+    ])
+    pecGeo.setAttribute('position', new THREE.BufferAttribute(pecVertices, 3))
+    pecGeo.computeVertexNormals()
+    const leftPec = new THREE.Mesh(pecGeo, spinyDorsalMat)
+    leftPec.position.set(0.12, -0.05, 0.55)
+    group.add(leftPec)
+
+    const rightPec = new THREE.Mesh(pecGeo, spinyDorsalMat)
+    rightPec.scale.x = -1
+    rightPec.position.set(-0.12, -0.05, 0.55)
+    group.add(rightPec)
+
+    // 6. Fan Tail with Rose-Red Margin
+    const tailGroup = new THREE.Group()
+    tailGroup.position.z = -0.48
+    const tailGeo = new THREE.BufferGeometry()
+    const tailVertices = new Float32Array([
+      0, 0, 0,
+      0, 0.42, -0.48,
+      0, -0.42, -0.48,
+    ])
+    tailGeo.setAttribute('position', new THREE.BufferAttribute(tailVertices, 3))
+    tailGeo.computeVertexNormals()
+    const tailMesh = new THREE.Mesh(tailGeo, redTrimTailMat)
+    tailGroup.add(tailMesh)
+    group.add(tailGroup)
+
+    return {
+      group,
+      bodyMesh,
+      tailMesh: tailGroup as unknown as THREE.Mesh,
+      position: new THREE.Vector3(),
+      velocity: new THREE.Vector3(),
+      target: new THREE.Vector3(),
+      rotation: new THREE.Euler(),
+      tailPhase: Math.random() * Math.PI * 2,
+      tailSpeed: 4.5 + Math.random() * 2.0,
+      baseScale: 0.85 + Math.random() * 0.25,
+      personalSpeed: 0.9 + Math.random() * 0.25,
+      isPiping: false,
+    }
   }
 }
