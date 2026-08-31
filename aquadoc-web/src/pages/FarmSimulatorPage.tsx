@@ -6,9 +6,10 @@
  * continuous time horizons.
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '@/app/providers'
+import { DigitalTwin3DVisualizer } from '@/components/DigitalTwin3DVisualizer'
 import {
   type DigitalTwinPondParams,
   type PondSystemType,
@@ -46,6 +47,13 @@ export function FarmSimulatorPage() {
   const [horizonDays, setHorizonDays] = useState<number>(60)
   const [activeScenario, setActiveScenario] = useState<string>('optimal')
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
+  const [activeTimelineDay, setActiveTimelineDay] = useState<number>(60)
+  const [activeViewMode, setActiveViewMode] = useState<'3d' | 'charts'>('3d')
+
+  // Keep activeTimelineDay clamped when horizonDays changes
+  useEffect(() => {
+    setActiveTimelineDay((prev) => Math.min(prev, horizonDays))
+  }, [horizonDays])
 
   // Run the digital twin projection model
   const outcome = useMemo(() => {
@@ -379,6 +387,35 @@ export function FarmSimulatorPage() {
             </div>
           </div>
 
+          {/* View Mode Switcher Tabs */}
+          <div className="twin-view-mode-tabs">
+            <button
+              type="button"
+              className={`view-tab-btn ${activeViewMode === '3d' ? 'view-tab-btn--active' : ''}`}
+              onClick={() => setActiveViewMode('3d')}
+            >
+              🎮 3D Animated Culture Tank View
+            </button>
+            <button
+              type="button"
+              className={`view-tab-btn ${activeViewMode === 'charts' ? 'view-tab-btn--active' : ''}`}
+              onClick={() => setActiveViewMode('charts')}
+            >
+              📈 Growth & Biomass Forecast Curves
+            </button>
+          </div>
+
+          {/* 3D Animated Tank Simulation View */}
+          {activeViewMode === '3d' && (
+            <DigitalTwin3DVisualizer
+              params={params}
+              outcome={outcome}
+              horizonDays={horizonDays}
+              activeDay={activeTimelineDay}
+              onDayChange={setActiveTimelineDay}
+            />
+          )}
+
           {/* KPI Summary Cards */}
           <div className="twin-kpi-grid">
             <div className="twin-kpi-card">
@@ -423,21 +460,22 @@ export function FarmSimulatorPage() {
           </div>
 
           {/* Interactive Trajectory Chart */}
-          <div className="twin-chart-card">
-            <div className="twin-chart-header">
-              <div>
-                <h3>📈 Digital Twin Growth & Biomass Forecast</h3>
-                <p>Hover over the curve to inspect any day in the cycle.</p>
+          {activeViewMode === 'charts' && (
+            <div className="twin-chart-card">
+              <div className="twin-chart-header">
+                <div>
+                  <h3>📈 Digital Twin Growth & Biomass Forecast</h3>
+                  <p>Hover over the curve to inspect any day in the cycle.</p>
+                </div>
+                <div className="twin-chart-legend">
+                  <span className="legend-item"><span className="legend-dot legend-dot--cyan" /> Individual Weight (g)</span>
+                  <span className="legend-item"><span className="legend-dot legend-dot--purple" /> Total Biomass (kg)</span>
+                </div>
               </div>
-              <div className="twin-chart-legend">
-                <span className="legend-item"><span className="legend-dot legend-dot--cyan" /> Individual Weight (g)</span>
-                <span className="legend-item"><span className="legend-dot legend-dot--purple" /> Total Biomass (kg)</span>
-              </div>
-            </div>
 
-            {/* SVG Interactive Curve */}
-            <div className="twin-svg-container">
-              <svg
+              {/* SVG Interactive Curve */}
+              <div className="twin-svg-container">
+                <svg
                 viewBox={`0 0 ${chartWidth} ${chartHeight}`}
                 className="twin-svg-chart"
                 onMouseLeave={() => setHoveredDay(null)}
@@ -540,6 +578,7 @@ export function FarmSimulatorPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* Economics & Profitability Forecast Card */}
           <div className="twin-economics-card">
