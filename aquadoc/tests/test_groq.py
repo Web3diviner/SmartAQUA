@@ -88,10 +88,56 @@ async def test_groq_provider_model_override() -> None:
             messages=[LLMMessage(role="user", content="Test prompt.")],
         )
 
-        response = await provider.generate(request, model_override="qwen/qwen3.8-27b")
+        response = await provider.generate(request, model_override="qwen/qwen3.6-27b")
 
-        assert response.model == "qwen/qwen3.8-27b"
+        assert response.model == "qwen/qwen3.6-27b"
         assert response.text == "Qwen reasoning output"
+
+
+@pytest.mark.asyncio
+async def test_groq_provider_automatic_failover_on_tpm_limit() -> None:
+    """When the primary model hits a 413 or 429 rate limit, it switches automatically."""
+    error_413_response = httpx.Response(
+        status_code=413,
+        text='{"error":{"message":"Request too large for model openai/gpt-oss-120b: Limit 8000, Requested 9003"}}',
+        request=httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions"),
+    )
+
+    success_20b_response = httpx.Response(
+        status_code=200,
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": '{"answer": "Here is the veterinary advice from the 20B model."}',
+                    },
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 120, "completion_tokens": 50},
+        },
+        request=httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions"),
+    )
+
+    provider = GroqProvider(api_key="gsk_test_key", model="openai/gpt-oss-120b")
+
+    with patch.object(provider._client, "post", new_callable=AsyncMock) as mock_post:
+        # First call fails with 413, second call succeeds with fallback model
+        mock_post.side_effect = [error_413_response, success_20b_response]
+
+        request = LLMRequest(
+            system="You are AquaDoc.",
+            messages=[LLMMessage(role="user", content="Catfish health question.")],
+            json_schema={"type": "object"},
+        )
+
+        response = await provider.generate(request)
+
+        # Successfully switched to 20B model automatically!
+        assert response.model == "openai/gpt-oss-20b"
+        assert "Here is the veterinary advice" in response.text
+        assert mock_post.call_count == 2
 
 
 @pytest.mark.asyncio

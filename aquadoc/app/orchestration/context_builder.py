@@ -31,7 +31,7 @@ from app.schemas.farm_context import FarmContext
 _TAG_LIKE = re.compile(r"<\s*/?\s*(?:source|sources|question|pond_state|rule_findings|"
                        r"missing_measurements|system|instructions?)\b[^>]*>", re.IGNORECASE)
 
-_MAX_SOURCE_CHARS = 2500
+_MAX_SOURCE_CHARS = 1200
 
 
 def sanitize_untrusted(text: str) -> str:

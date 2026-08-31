@@ -42,6 +42,15 @@ def resolve_groq_model(model_name: str | None) -> str:
     return GROQ_MODEL_ALIASES.get(cleaned, cleaned)
 
 
+# Verified active Groq models in failover priority order
+AVAILABLE_GROQ_CHAT_MODELS: list[str] = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.6-27b",
+    "groq/compound-mini",
+]
+
+
 class GroqProvider(LLMProvider):
     name = "groq"
 
@@ -77,17 +86,21 @@ class GroqProvider(LLMProvider):
         )
 
     async def generate(self, request: LLMRequest, model_override: str | None = None) -> LLMResponse:
-        """Generate structured response from Groq with resilient fallbacks."""
+        """Generate structured response from Groq with automatic multi-model failover."""
         if not self._api_key:
             raise LLMProviderError("GROQ_API_KEY is not configured.")
 
-        requested_model = model_override or self._model
-        active_model = resolve_groq_model(requested_model)
+        requested_model = resolve_groq_model(model_override or self._model)
+
+        # Construct candidate fallback chain with requested model first
+        candidate_models: list[str] = [requested_model]
+        for m in AVAILABLE_GROQ_CHAT_MODELS:
+            if m not in candidate_models:
+                candidate_models.append(m)
 
         # Build messages payload
         messages: list[dict[str, str]] = []
         if request.system:
-            # When requesting JSON schema, append explicit formatting instructions
             system_content = request.system
             if request.json_schema is not None:
                 system_content += (
@@ -99,74 +112,50 @@ class GroqProvider(LLMProvider):
         for msg in request.messages:
             messages.append({"role": msg.role, "content": msg.content})
 
-        # Groq TPM budgets: clamp max_tokens to 2000 to prevent 413 rate limit errors
-        clamped_tokens = min(request.max_tokens or 2000, 2000)
-
-        payload: dict[str, Any] = {
-            "model": active_model,
-            "messages": messages,
-            "max_tokens": clamped_tokens,
-            "temperature": 0.2,
-        }
-
-        # Request JSON mode if a schema is present
-        if request.json_schema is not None:
-            payload["response_format"] = {"type": "json_object"}
-
         started = time.perf_counter()
         data: dict[str, Any] | None = None
+        active_model = requested_model
+        last_error_msg = ""
 
-        try:
-            response = await self._client.post(
-                "/chat/completions",
-                json=payload,
-                timeout=request.timeout_seconds,
-            )
-            response.raise_for_status()
-            data = response.json()
-        except httpx.HTTPStatusError as exc:
-            status_code = exc.response.status_code
-            error_body = exc.response.text
-            logger.warning(
-                "groq_http_error",
-                extra={"status": status_code, "model": active_model, "body": error_body},
-            )
+        for candidate in candidate_models:
+            active_model = candidate
+            # Safe token clamp: 2000 for primary, 1500 for fallback models
+            clamped_tokens = min(request.max_tokens or 2000, 2000 if candidate == requested_model else 1500)
 
-            # Handle 404/400 model not found by falling back to primary high-availability models
-            if (status_code in (400, 404)) and ("model" in error_body.lower() or "not found" in error_body.lower()):
-                fallback_models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound-mini"]
-                for fb_model in fallback_models:
-                    if fb_model == active_model:
-                        continue
+            payload: dict[str, Any] = {
+                "model": active_model,
+                "messages": messages,
+                "max_tokens": clamped_tokens,
+                "temperature": 0.2,
+            }
+            if request.json_schema is not None:
+                payload["response_format"] = {"type": "json_object"}
+
+            try:
+                response = await self._client.post(
+                    "/chat/completions",
+                    json=payload,
+                    timeout=request.timeout_seconds,
+                )
+                response.raise_for_status()
+                data = response.json()
+                # Successfully received model output
+                break
+            except httpx.HTTPStatusError as exc:
+                status_code = exc.response.status_code
+                error_body = exc.response.text
+                last_error_msg = f"status {status_code}: {error_body}"
+                logger.warning(
+                    "groq_model_call_failed_switching_model",
+                    extra={"failed_model": active_model, "status": status_code, "body": error_body},
+                )
+
+                if status_code == 400 and "refusal" in error_body.lower():
+                    raise LLMRefusalError("Groq declined this request due to safety policies.") from exc
+
+                # If JSON validate failed, try once without strict response_format on this model
+                if status_code == 400 and "json_validate_failed" in error_body:
                     try:
-                        fb_payload = dict(payload)
-                        fb_payload["model"] = fb_model
-                        fb_resp = await self._client.post(
-                            "/chat/completions",
-                            json=fb_payload,
-                            timeout=request.timeout_seconds,
-                        )
-                        fb_resp.raise_for_status()
-                        data = fb_resp.json()
-                        active_model = fb_model
-                        break
-                    except Exception:
-                        continue
-
-            if data is None and status_code == 400 and "json_validate_failed" in error_body:
-                try:
-                    res_err = exc.response.json()
-                    failed_gen = res_err.get("error", {}).get("failed_generation")
-                    if failed_gen:
-                        data = {
-                            "choices": [
-                                {
-                                    "message": {"content": json.dumps({"answer": failed_gen})},
-                                    "finish_reason": "stop",
-                                }
-                            ]
-                        }
-                    else:
                         retry_payload = dict(payload)
                         retry_payload.pop("response_format", None)
                         retry_resp = await self._client.post(
@@ -176,46 +165,28 @@ class GroqProvider(LLMProvider):
                         )
                         retry_resp.raise_for_status()
                         data = retry_resp.json()
-                except Exception as retry_exc:
-                    logger.warning("groq_json_retry_failed", extra={"error": str(retry_exc)})
-            elif data is None and status_code == 429:
-                retry_seconds = 1.0
-                if "try again in" in error_body:
-                    try:
-                        match = re.search(r"try again in ([\d\.]+)s", error_body)
-                        if match:
-                            retry_seconds = min(float(match.group(1)) + 0.3, 3.0)
-                        else:
-                            ms_match = re.search(r"try again in ([\d\.]+)ms", error_body)
-                            if ms_match:
-                                retry_seconds = min((float(ms_match.group(1)) / 1000.0) + 0.2, 3.0)
-                    except Exception:
-                        retry_seconds = 1.0
-                await asyncio.sleep(retry_seconds)
-                try:
-                    retry_payload = dict(payload)
-                    retry_payload["model"] = "openai/gpt-oss-20b"
-                    retry_resp = await self._client.post(
-                        "/chat/completions",
-                        json=retry_payload,
-                        timeout=request.timeout_seconds,
-                    )
-                    retry_resp.raise_for_status()
-                    data = retry_resp.json()
-                    active_model = "openai/gpt-oss-20b"
-                except Exception as rate_exc:
-                    logger.warning("groq_rate_limit_retry_failed", extra={"error": str(rate_exc)})
-            elif data is None and status_code == 400 and "refusal" in error_body.lower():
-                raise LLMRefusalError("Groq declined this request due to safety policies.") from exc
+                        break
+                    except Exception as retry_exc:
+                        logger.warning("groq_json_retry_failed", extra={"error": str(retry_exc)})
 
-            if data is None:
-                # Re-raise to allow upstream diagnostics or retry rather than generic fallback
-                raise LLMProviderError(f"Groq API error (status {status_code}): {error_body}") from exc
-        except (LLMProviderError, LLMRefusalError):
-            raise
-        except Exception as exc:
-            logger.exception("groq_request_failed", extra={"model": active_model})
-            raise LLMProviderError(f"Groq API call failed: {exc}") from exc
+                # If rate limited (429), brief pause before testing next candidate model
+                if status_code == 429:
+                    await asyncio.sleep(0.5)
+
+                # Continue loop to switch automatically to the next model
+                continue
+            except (LLMProviderError, LLMRefusalError):
+                raise
+            except Exception as exc:
+                last_error_msg = str(exc)
+                logger.warning(
+                    "groq_request_exception_switching_model",
+                    extra={"failed_model": active_model, "error": str(exc)},
+                )
+                continue
+
+        if data is None:
+            raise LLMProviderError(f"All Groq fallback models exhausted. Last error: {last_error_msg}")
 
         latency_ms = (time.perf_counter() - started) * 1000
 
@@ -242,7 +213,7 @@ class GroqProvider(LLMProvider):
         return LLMResponse(
             text=text,
             parsed=parsed,
-            model=requested_model,
+            model=active_model,
             provider=self.name,
             stop_reason=stop_reason,
             usage=usage,
