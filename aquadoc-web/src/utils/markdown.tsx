@@ -20,6 +20,7 @@ import type { ReactNode } from 'react'
 const BOLD_OR_CODE = /(\*\*[^*]+\*\*|`[^`]+`)/g
 const BULLET = /^\s*[-*•]\s+(.*)$/
 const NUMBERED = /^\s*(\d+)[.)]\s+(.*)$/
+const HEADING = /^\s*#{1,6}\s+(.*)$/
 
 /** Render inline `**bold**` and `` `code` `` spans. */
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
@@ -39,8 +40,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 /**
  * Render an answer as React elements.
  *
- * Blocks are separated by blank lines; consecutive list items group into one
- * list so the output reads as intended rather than as one item per paragraph.
+ * Formats model output into clean, natural human prose.
  */
 export function renderAnswer(text: string): ReactNode {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
@@ -68,9 +68,23 @@ export function renderAnswer(text: string): ReactNode {
   }
 
   for (const line of lines) {
-    if (line.trim() === '') {
+    const trimmed = line.trim()
+    if (trimmed === '' || trimmed === '---' || trimmed === '***') {
       flushParagraph()
       flushList()
+      continue
+    }
+
+    const heading = HEADING.exec(line)
+    if (heading) {
+      flushParagraph()
+      flushList()
+      const key = `h-${blocks.length}`
+      blocks.push(
+        <h4 key={key} className="answer-heading">
+          {renderInline(heading[1] ?? '', key)}
+        </h4>,
+      )
       continue
     }
 
@@ -93,7 +107,7 @@ export function renderAnswer(text: string): ReactNode {
     }
 
     flushList()
-    paragraph.push(line.trim())
+    paragraph.push(trimmed)
   }
 
   flushParagraph()

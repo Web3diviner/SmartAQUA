@@ -668,6 +668,48 @@ select:focus, input:focus, textarea:focus {
   margin-bottom: 8px;
 }
 
+.message__answer {
+  color: var(--text-app);
+  font-size: 0.96rem;
+  line-height: 1.68;
+}
+
+.message__answer p {
+  margin: 0 0 14px 0;
+}
+
+.message__answer p:last-child {
+  margin-bottom: 0;
+}
+
+.message__answer ul,
+.message__answer ol {
+  margin: 0 0 14px 0;
+  padding-left: 24px;
+}
+
+.message__answer li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.answer-heading {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin: 20px 0 10px 0;
+}
+
+.answer-heading:first-child {
+  margin-top: 0;
+}
+
+.inline-code-text {
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
 .message__badges {
   display: flex;
   flex-wrap: wrap;
