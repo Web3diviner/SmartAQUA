@@ -96,34 +96,41 @@ export function ChatPage() {
     saveSessionsToStorage(sessions)
   }, [sessions])
 
+  const [isSyncing, setIsSyncing] = useState(false)
+
   // Synchronize chat history with cloud database whenever user logs in or mounts
-  useEffect(() => {
+  const handleManualSync = useCallback(async () => {
     if (!user) return
-    const userId = user.id || user.email
-    if (!userId) return
+    const userKey = (user.email || user.id).trim().toLowerCase()
+    if (!userKey) return
 
-    let cancelled = false
-    void syncSessionsWithCloud(config.baseUrl, userId, sessions).then((merged) => {
-      if (cancelled || !merged || merged.length === 0) return
-      setSessions(merged)
-      setActiveSessionId((curId) => {
-        const found = merged.find((s) => s.id === curId)
-        if (found) {
-          setTurns(found.turns || [])
+    setIsSyncing(true)
+    try {
+      const currentSaved = loadSavedSessions()
+      const merged = await syncSessionsWithCloud(config.baseUrl, userKey, currentSaved)
+      if (merged && merged.length > 0) {
+        setSessions(merged)
+        setActiveSessionId((curId) => {
+          const found = merged.find((s) => s.id === curId)
+          if (found) {
+            setTurns(found.turns || [])
+            return curId
+          }
+          if (merged.length > 0) {
+            setTurns(merged[0]!.turns || [])
+            return merged[0]!.id
+          }
           return curId
-        }
-        if (merged.length > 0) {
-          setTurns(merged[0]!.turns || [])
-          return merged[0]!.id
-        }
-        return curId
-      })
-    })
-
-    return () => {
-      cancelled = true
+        })
+      }
+    } finally {
+      setIsSyncing(false)
     }
   }, [user, config.baseUrl])
+
+  useEffect(() => {
+    void handleManualSync()
+  }, [handleManualSync])
 
   // Sync active session's turns into the sessions list and cloud
   const syncTurnsToSession = useCallback(
@@ -148,7 +155,8 @@ export function ChatPage() {
           updated[existingIndex] = targetSession
 
           if (user) {
-            void saveSessionToCloud(config.baseUrl, user.id || user.email, targetSession)
+            const userKey = (user.email || user.id).trim().toLowerCase()
+            void saveSessionToCloud(config.baseUrl, userKey, targetSession)
           }
 
           return updated
@@ -163,7 +171,8 @@ export function ChatPage() {
           }
 
           if (user) {
-            void saveSessionToCloud(config.baseUrl, user.id || user.email, targetSession)
+            const userKey = (user.email || user.id).trim().toLowerCase()
+            void saveSessionToCloud(config.baseUrl, userKey, targetSession)
           }
 
           return [targetSession, ...prevSessions]
@@ -190,7 +199,8 @@ export function ChatPage() {
     setPending(false)
     setQuestion('')
     if (user) {
-      void saveSessionToCloud(config.baseUrl, user.id || user.email, session)
+      const userKey = (user.email || user.id).trim().toLowerCase()
+      void saveSessionToCloud(config.baseUrl, userKey, session)
     }
   }
 
@@ -202,7 +212,8 @@ export function ChatPage() {
 
     void deleteConversationApi(config, sessionId)
     if (user) {
-      void deleteSessionFromCloud(config.baseUrl, user.id || user.email, sessionId)
+      const userKey = (user.email || user.id).trim().toLowerCase()
+      void deleteSessionFromCloud(config.baseUrl, userKey, sessionId)
     }
 
     setSessions((prev) => {
@@ -216,7 +227,8 @@ export function ChatPage() {
           setActiveSessionId(fresh.id)
           setTurns([])
           if (user) {
-            void saveSessionToCloud(config.baseUrl, user.id || user.email, fresh)
+            const userKey = (user.email || user.id).trim().toLowerCase()
+            void saveSessionToCloud(config.baseUrl, userKey, fresh)
           }
           return [fresh]
         }
@@ -441,6 +453,8 @@ export function ChatPage() {
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
         onDeleteSession={handleDeleteSession}
+        onSync={handleManualSync}
+        isSyncing={isSyncing}
       />
 
       <div className="chat-page">

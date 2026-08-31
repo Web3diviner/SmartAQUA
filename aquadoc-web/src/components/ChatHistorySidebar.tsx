@@ -14,6 +14,8 @@ interface ChatHistorySidebarProps {
   onSelectSession: (session: ChatSession) => void
   onNewSession: () => void
   onDeleteSession: (sessionId: string, e: React.MouseEvent) => void
+  onSync?: () => void
+  isSyncing?: boolean
 }
 
 export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
@@ -24,6 +26,8 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
   onSelectSession,
   onNewSession,
   onDeleteSession,
+  onSync,
+  isSyncing = false,
 }) => {
   const { user } = useAppState()
   const [searchQuery, setSearchQuery] = useState('')
@@ -80,7 +84,7 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
           </button>
         </div>
 
-        {/* New Consultation Action */}
+        {/* New Consultation & Sync Actions */}
         <div className="chat-history-actions">
           <button
             type="button"
@@ -94,6 +98,19 @@ export const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             <span>New Consultation</span>
             <span className="btn-plus">+</span>
           </button>
+
+          {onSync && user && (
+            <button
+              type="button"
+              className="sync-cloud-btn"
+              onClick={onSync}
+              disabled={isSyncing}
+              title="Force sync chat history across all your devices"
+            >
+              <span className={`btn-icon ${isSyncing ? 'spinning' : ''}`}>🔄</span>
+              <span>{isSyncing ? 'Syncing Cloud...' : '🔄 Sync Device History'}</span>
+            </button>
+          )}
         </div>
 
         {/* Search Input */}

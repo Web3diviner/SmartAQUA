@@ -888,14 +888,13 @@ class GoogleLoginRequest(BaseModel):
 async def dev_auth_signup(payload: SignupRequest) -> dict[str, Any]:
     """Register a new user account and increment platform onboarding telemetry."""
     import uuid
-    import random
 
     email_clean = payload.email.strip().lower()
     for u in _USERS_STORE:
         if u["email"] == email_clean:
             return {"error": "An account with this email address already exists. Please log in.", "status_code": 400}
 
-    user_id = f"USR-{random.randint(1100, 9999)}"
+    user_id = _generate_user_id_for_email(email_clean)
     token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -908,7 +907,7 @@ async def dev_auth_signup(payload: SignupRequest) -> dict[str, Any]:
         "farm_location": payload.farm_location.strip() or "Nigeria",
         "primary_species": payload.primary_species,
         "farming_system": payload.farming_system,
-        "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+        "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={email_clean}",
         "provider": "credentials",
         "token": token,
         "created_at": now_str,
@@ -933,8 +932,7 @@ async def dev_auth_login(payload: LoginRequest) -> dict[str, Any]:
     # For development ease, if email looks valid, auto-create
     if "@" in email_clean:
         import uuid
-        import random
-        user_id = f"USR-{random.randint(1100, 9999)}"
+        user_id = _generate_user_id_for_email(email_clean)
         token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
         now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
         name_part = email_clean.split("@")[0].replace(".", " ").title()
@@ -948,7 +946,7 @@ async def dev_auth_login(payload: LoginRequest) -> dict[str, Any]:
             "farm_location": "Lagos, Nigeria",
             "primary_species": "African Catfish (Clarias gariepinus)",
             "farming_system": "Concrete Tanks",
-            "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+            "avatar_url": f"https://api.dicebear.com/7.x/bottts/svg?seed={email_clean}",
             "provider": "credentials",
             "token": token,
             "created_at": now_str,
@@ -966,14 +964,13 @@ async def dev_auth_login(payload: LoginRequest) -> dict[str, Any]:
 async def dev_auth_google(payload: GoogleLoginRequest) -> dict[str, Any]:
     """Instant sign-in and account provisioning with Google Gmail."""
     import uuid
-    import random
 
     email_clean = payload.email.strip().lower()
     for u in _USERS_STORE:
         if u["email"] == email_clean:
             return {"user": u, "token": u["token"], "message": "Google authentication successful."}
 
-    user_id = f"USR-{random.randint(1100, 9999)}"
+    user_id = _generate_user_id_for_email(email_clean)
     token = f"aqua_usr_{uuid.uuid4().hex[:16]}"
     now_str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -986,7 +983,7 @@ async def dev_auth_google(payload: GoogleLoginRequest) -> dict[str, Any]:
         "farm_location": payload.farm_location or "Lagos, Nigeria",
         "primary_species": payload.primary_species,
         "farming_system": payload.farming_system,
-        "avatar_url": payload.avatar_url or f"https://api.dicebear.com/7.x/bottts/svg?seed={user_id}",
+        "avatar_url": payload.avatar_url or f"https://api.dicebear.com/7.x/bottts/svg?seed={email_clean}",
         "provider": "google",
         "token": token,
         "created_at": now_str,
@@ -1059,11 +1056,43 @@ class ChatSessionSyncRequest(BaseModel):
     sessions: list[ChatSessionPayload] = []
 
 
-_USER_CHAT_SESSIONS: dict[str, list[dict[str, Any]]] = {}
+_CACHE_FILE = Path(__file__).resolve().parent.parent.parent / "scratch" / "user_chat_sessions.json"
+
+
+def _generate_user_id_for_email(email: str) -> str:
+    cleaned = email.strip().lower()
+    digest = hashlib.sha256(cleaned.encode()).hexdigest()[:8].upper()
+    return f"USR-{digest}"
 
 
 def _normalize_user_key(user_id_or_email: str) -> str:
-    return user_id_or_email.strip().lower()
+    cleaned = user_id_or_email.strip().lower()
+    for u in _USERS_STORE:
+        if u.get("id", "").lower() == cleaned:
+            return u["email"].lower()
+    return cleaned
+
+
+def _load_user_chat_store() -> dict[str, list[dict[str, Any]]]:
+    try:
+        if _CACHE_FILE.exists():
+            with open(_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as err:
+        logger.warning("failed_to_load_chat_sessions_cache", extra={"error": str(err)})
+    return {}
+
+
+def _save_user_chat_store(store: dict[str, list[dict[str, Any]]]) -> None:
+    try:
+        _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(store, f, indent=2, ensure_ascii=False)
+    except Exception as err:
+        logger.warning("failed_to_save_chat_sessions_cache", extra={"error": str(err)})
+
+
+_USER_CHAT_SESSIONS: dict[str, list[dict[str, Any]]] = _load_user_chat_store()
 
 
 @router.get(
@@ -1113,6 +1142,7 @@ async def sync_user_chat_sessions(
         reverse=True,
     )
     _USER_CHAT_SESSIONS[key] = merged
+    _save_user_chat_store(_USER_CHAT_SESSIONS)
     logger.info("user_chat_sessions_synced", extra={"user_id": key, "session_count": len(merged)})
     return {"sessions": merged, "count": len(merged), "message": "Chat sessions synchronized successfully."}
 
@@ -1136,6 +1166,7 @@ async def save_user_chat_session(
     else:
         existing.insert(0, session_dict)
 
+    _save_user_chat_store(_USER_CHAT_SESSIONS)
     return {"session": session_dict, "success": True, "message": "Session saved to cloud."}
 
 
@@ -1151,6 +1182,7 @@ async def delete_user_chat_session(
     key = _normalize_user_key(user_id)
     if key in _USER_CHAT_SESSIONS:
         _USER_CHAT_SESSIONS[key] = [s for s in _USER_CHAT_SESSIONS[key] if s["id"] != session_id]
+        _save_user_chat_store(_USER_CHAT_SESSIONS)
     return {"success": True, "session_id": session_id, "message": "Session removed from cloud."}
 
 
@@ -1162,7 +1194,5 @@ async def clear_user_chat_sessions(user_id: str) -> dict[str, Any]:
     """Remove all consultation history for this user."""
     key = _normalize_user_key(user_id)
     _USER_CHAT_SESSIONS[key] = []
+    _save_user_chat_store(_USER_CHAT_SESSIONS)
     return {"success": True, "message": "All user chat sessions cleared."}
-
-
-

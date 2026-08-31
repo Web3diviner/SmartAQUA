@@ -4176,6 +4176,9 @@ select:focus, input:focus, textarea:focus {
 
 .chat-history-actions {
   padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .new-chat-btn {
@@ -4204,6 +4207,43 @@ select:focus, input:focus, textarea:focus {
 .new-chat-btn .btn-plus {
   font-size: 1.2rem;
   font-weight: 400;
+}
+
+.sync-cloud-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sync-cloud-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.sync-cloud-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinning {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .chat-history-search {

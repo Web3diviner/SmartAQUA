@@ -84,6 +84,16 @@ function loadStoredUser(): AuthUser | null {
   }
 }
 
+export function generateUserIdForEmail(email: string): string {
+  const clean = email.trim().toLowerCase()
+  let hash = 0
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash << 5) - hash + clean.charCodeAt(i)
+    hash |= 0
+  }
+  return `USR-${Math.abs(hash).toString(16).toUpperCase().padStart(8, '0')}`
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
   const config = useMemo(readClientConfig, [])
   const debugAvailable = import.meta.env.VITE_ENABLE_DEBUG_PANEL === 'true'
@@ -162,7 +172,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       } catch {
         // Offline / Fallback login
         const fallbackUser: AuthUser = {
-          id: `USR-${Date.now().toString().slice(-4)}`,
+          id: generateUserIdForEmail(email),
           name: (email.split('@')[0] ?? 'Farmer')
             .replace('.', ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase()),
@@ -172,9 +182,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           farmLocation: 'Lagos, Nigeria',
           primarySpecies: 'African Catfish (Clarias gariepinus)',
           farmingSystem: 'Concrete Tanks',
-          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`,
+          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
           provider: 'credentials',
-          token: `aqua_usr_${Date.now()}`,
+          token: `aqua_usr_${generateUserIdForEmail(email)}`,
           createdAt: new Date().toISOString(),
         }
         setUser(fallbackUser)
@@ -198,7 +208,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             email,
             name,
             avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-            google_id: `g_${Date.now()}`,
+            google_id: `g_${generateUserIdForEmail(email)}`,
             farm_name: `${name}'s Fishery`,
             farm_location: 'Epe, Lagos State',
             primary_species: 'African Catfish (Clarias gariepinus)',
@@ -214,7 +224,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Google login failed' }
       } catch {
         const googleUser: AuthUser = {
-          id: `USR-G${Date.now().toString().slice(-4)}`,
+          id: generateUserIdForEmail(email),
           name,
           email,
           phone: '+2348071055742',
@@ -224,7 +234,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           farmingSystem: 'Concrete Tanks',
           avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
           provider: 'google',
-          token: `aqua_google_${Date.now()}`,
+          token: `aqua_google_${generateUserIdForEmail(email)}`,
           createdAt: new Date().toISOString(),
         }
         setUser(googleUser)
@@ -261,7 +271,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Registration failed' }
       } catch {
         const newUser: AuthUser = {
-          id: `USR-${Date.now().toString().slice(-4)}`,
+          id: generateUserIdForEmail(formData.email),
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -271,7 +281,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           farmingSystem: formData.farmingSystem,
           avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(formData.email)}`,
           provider: 'credentials',
-          token: `aqua_usr_${Date.now()}`,
+          token: `aqua_usr_${generateUserIdForEmail(formData.email)}`,
           createdAt: new Date().toISOString(),
         }
         setUser(newUser)
