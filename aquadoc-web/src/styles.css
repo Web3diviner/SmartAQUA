@@ -272,8 +272,68 @@ code, pre, .font-mono {
 .app__status {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 0.8rem;
+}
+
+/* Model Selector */
+.model-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+}
+
+.model-selector:hover {
+  border-color: var(--accent-cyan);
+}
+
+.model-selector__label {
+  display: flex;
+  align-items: center;
+}
+
+.model-selector__provider-tag {
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.model-selector__select {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  max-width: 140px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.model-selector__select option {
+  background: #0b1726;
+  color: #ffffff;
+}
+
+.model-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-cyan);
+  white-space: nowrap;
 }
 
 .theme-toggle-btn {
@@ -3429,6 +3489,212 @@ select:focus, input:focus, textarea:focus {
 }
 
 /* ==========================================================================
+   Disease Assessment & Clinical Triage Page Styles
+   ========================================================================== */
+
+.disease-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.disease-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.disease-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-section h3 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin: 0;
+}
+
+.form-section__hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 6px 0;
+}
+
+.symptom-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symptom-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.symptom-chip:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+}
+
+.symptom-chip--active {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.checkbox-indicator {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.7rem;
+}
+
+.symptom-chip--active .checkbox-indicator {
+  background: var(--accent-cyan);
+  color: #041019;
+  font-weight: 800;
+}
+
+.disease-report {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-card {
+  padding: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-app);
+}
+
+.disclaimer-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan);
+}
+
+.escalation-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  border-radius: var(--radius-md);
+  color: #fca5a5;
+  font-size: 0.88rem;
+}
+
+.alert-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #ef4444;
+}
+
+.report-block {
+  padding: 16px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-md);
+}
+
+.report-block h4 {
+  font-family: var(--font-heading);
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-bottom: 10px;
+}
+
+.possible-causes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cause-item {
+  padding: 10px 14px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-sm);
+}
+
+.cause-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cause-prob {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  padding: 2px 8px;
+  background: rgba(6, 182, 212, 0.12);
+  border-radius: var(--radius-pill);
+}
+
+.cause-expl {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 6px 0 0 0;
+}
+
+/* ==========================================================================
    Comprehensive Mobile & Tablet Responsive Design System
    ========================================================================== */
 
@@ -3439,6 +3705,11 @@ select:focus, input:focus, textarea:focus {
   }
 
   .simulator-page {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .disease-container {
     grid-template-columns: 1fr;
     gap: 20px;
   }
@@ -3458,13 +3729,15 @@ select:focus, input:focus, textarea:focus {
 
 /* --- Mobile Viewports (<= 768px) --- */
 @media (max-width: 768px) {
-  html, body {
+  html, body, #root, .app {
     font-size: 14px;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Header & Navigation */
   .app__header {
-    padding: 10px 14px;
+    padding: 10px 12px;
     gap: 8px;
   }
 
@@ -3473,21 +3746,21 @@ select:focus, input:focus, textarea:focus {
   }
 
   .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
   }
 
   .brand-mark svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
 
   .app__brand-copy h1 {
-    font-size: 1.05rem;
+    font-size: 1.02rem;
   }
 
   .app__ecosystem {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
   }
 
   .app__nav {
@@ -3501,9 +3774,9 @@ select:focus, input:focus, textarea:focus {
   .app__nav a {
     flex: 1;
     justify-content: center;
-    padding: 6px 8px;
-    font-size: 0.8rem;
-    gap: 5px;
+    padding: 6px 6px;
+    font-size: 0.78rem;
+    gap: 4px;
   }
 
   .nav-label--wide {
@@ -3515,12 +3788,30 @@ select:focus, input:focus, textarea:focus {
   }
 
   .nav-icon {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
   }
 
   .app__status {
     gap: 6px;
+  }
+
+  .model-selector {
+    padding: 3px 6px;
+    max-width: 110px;
+  }
+
+  .model-selector__label {
+    display: none;
+  }
+
+  .model-selector__select {
+    max-width: 90px;
+    font-size: 0.72rem;
+  }
+
+  .model-badge {
+    display: none;
   }
 
   .theme-toggle-btn {
@@ -3532,13 +3823,13 @@ select:focus, input:focus, textarea:focus {
   }
 
   .user-profile-badge {
-    padding: 4px 8px;
-    gap: 6px;
+    padding: 3px 6px;
+    gap: 4px;
   }
 
   .user-avatar {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 
   .user-farm {
@@ -3546,49 +3837,52 @@ select:focus, input:focus, textarea:focus {
   }
 
   .user-name {
-    font-size: 0.76rem;
-    max-width: 80px;
+    font-size: 0.74rem;
+    max-width: 65px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .btn-logout {
-    padding: 2px 6px;
-    font-size: 0.7rem;
+    padding: 2px 4px;
+    font-size: 0.68rem;
   }
 
   .auth-login-btn {
-    padding: 6px 10px;
-    font-size: 0.78rem;
+    padding: 5px 8px;
+    font-size: 0.74rem;
   }
 
   /* Main Container */
   .app__main {
-    padding: 14px 10px 32px;
+    padding: 12px 10px 28px;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Chat Page */
   .chat-page {
     gap: 16px;
+    max-width: 100%;
   }
 
   .chat-page__intro {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
     padding: 16px 14px;
     border-radius: var(--radius-md);
   }
 
   .chat-page__intro h2 {
-    font-size: 1.35rem;
+    font-size: 1.3rem;
     line-height: 1.25;
     margin-bottom: 4px;
   }
 
   .chat-page__intro p {
-    font-size: 0.86rem;
+    font-size: 0.85rem;
   }
 
   .chat-page__principle {
@@ -3604,19 +3898,19 @@ select:focus, input:focus, textarea:focus {
 
   .chat-page__context {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   .chat-page__controls {
     justify-content: flex-end;
     width: 100%;
-    gap: 8px;
+    gap: 6px;
   }
 
   .chat-history-toggle-btn,
   .new-consultation-btn {
-    padding: 5px 10px;
-    font-size: 0.78rem;
+    padding: 5px 8px;
+    font-size: 0.76rem;
   }
 
   .chat-page__suggestions {
@@ -3625,8 +3919,8 @@ select:focus, input:focus, textarea:focus {
   }
 
   .chat-page__suggestions button {
-    padding: 10px 14px;
-    font-size: 0.86rem;
+    padding: 10px 12px;
+    font-size: 0.84rem;
   }
 
   /* Chat Input Bar on Mobile */
@@ -3636,7 +3930,7 @@ select:focus, input:focus, textarea:focus {
   }
 
   .chat-page__input-container {
-    padding: 6px 8px 6px 14px;
+    padding: 6px 8px 6px 12px;
     min-height: 48px;
     border-radius: 24px;
     align-items: flex-end;
@@ -3646,7 +3940,7 @@ select:focus, input:focus, textarea:focus {
   .chat-page__textarea {
     font-size: 0.92rem;
     min-height: 22px;
-    max-height: 260px;
+    max-height: 240px;
     line-height: 1.4;
     overflow-y: auto;
   }
@@ -3656,57 +3950,78 @@ select:focus, input:focus, textarea:focus {
   }
 
   .button-mic {
+    width: 36px;
+    height: 36px;
+  }
+
+  .button-send {
     width: 38px;
     height: 38px;
   }
 
-  .button-send {
-    width: 40px;
-    height: 40px;
-  }
-
   /* Messages & Bubbles */
   .message {
-    padding: 14px 14px;
+    padding: 12px 14px;
     border-radius: var(--radius-md);
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .message--user {
     max-width: 92%;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .message--assistant {
     width: 100%;
     max-width: 100%;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     border-left-width: 3px;
   }
 
   .message__badges {
     gap: 6px;
-    margin-top: 12px;
+    margin-top: 10px;
   }
 
   .badge {
-    padding: 2px 8px;
-    font-size: 0.72rem;
+    padding: 2px 7px;
+    font-size: 0.7rem;
   }
 
   /* History Drawer */
   .chat-history-sidebar {
     width: 85vw;
-    max-width: 300px;
+    max-width: 290px;
   }
 
-  /* Simulator & Form Elements */
-  .farm-panel, .simulator-page__preview {
+  /* Disease Test & Simulator Pages */
+  .disease-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .disease-form, .report-card {
     padding: 16px 14px;
   }
 
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .symptom-chip {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  .farm-panel, .simulator-page__preview {
+    padding: 16px 12px;
+  }
+
   .farm-panel__group {
-    padding: 14px 12px;
-    margin-bottom: 14px;
+    padding: 12px 10px;
+    margin-bottom: 12px;
   }
 
   .field {
@@ -3717,18 +4032,27 @@ select:focus, input:focus, textarea:focus {
 
   .field__label {
     flex: none;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
 
   .twin-kpi-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .twin-kpi-card {
+    padding: 12px;
+  }
+
+  .twin-kpi-value {
+    font-size: 1.4rem;
   }
 
   .twin-horizon-bar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+    padding: 10px 14px;
   }
 
   .twin-horizon-presets {
@@ -3745,31 +4069,31 @@ select:focus, input:focus, textarea:focus {
   }
 
   /* Auth Modal */
-  .auth-modal {
-    width: 94vw;
-    max-width: 400px;
-    padding: 20px 16px;
-    margin: 12px auto;
+  .auth-modal-card {
+    width: 95vw;
+    max-width: 380px;
+    padding: 18px 14px;
+    margin: 10px auto;
   }
 
   /* Footer */
   .app__footer {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     text-align: center;
-    padding: 14px 16px;
-    font-size: 0.76rem;
+    padding: 12px 14px;
+    font-size: 0.74rem;
   }
 }
 
 /* --- Small Mobile Phones (<= 480px) --- */
 @media (max-width: 480px) {
   .app__brand-copy h1 {
-    font-size: 0.96rem;
+    font-size: 0.94rem;
   }
 
   .chat-page__intro h2 {
-    font-size: 1.18rem;
+    font-size: 1.15rem;
   }
 
   .chat-page__context-note {
@@ -3782,8 +4106,8 @@ select:focus, input:focus, textarea:focus {
   }
 
   .button-send svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
   }
 
   .button-mic {
@@ -3792,15 +4116,15 @@ select:focus, input:focus, textarea:focus {
   }
 
   .button-mic svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
   }
 
   .message {
-    padding: 12px 12px;
+    padding: 10px 12px;
   }
 
   .chat-page__input-container {
-    padding: 4px 6px 4px 12px;
+    padding: 4px 6px 4px 10px;
   }
 }
