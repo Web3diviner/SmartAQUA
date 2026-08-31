@@ -115,6 +115,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_exception_handlers(app)
 
+    @app.get("/", tags=["Root"])
+    async def root() -> dict[str, object]:
+        return {
+            "service": "SmartAQUA - AquaDoc AI Engine",
+            "version": settings.service_version,
+            "status": "online",
+            "environment": settings.app_env,
+            "docs": "/docs" if not settings.is_production else "disabled",
+            "health": "/internal/v1/health/live",
+            "message": "Welcome to SmartAQUA Aquaculture Intelligence API",
+        }
+
     app.include_router(health.router)
     app.include_router(internal.router)
 
