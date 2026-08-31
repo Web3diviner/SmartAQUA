@@ -580,6 +580,79 @@ export function FarmSimulatorPage() {
           </div>
           )}
 
+          {/* Tank Dimensions & Size-to-Duration Ratio Sizing Card */}
+          <div className="twin-dimensions-card">
+            <div className="twin-dimensions-header">
+              <h3>📐 Recommended Tank Dimensions for Size-to-Duration Ratio</h3>
+              <div
+                className={`dim-status-badge dim-status-badge--${outcome.recommendedTankDimensions.capacityStatus}`}
+              >
+                {outcome.recommendedTankDimensions.capacityStatus === 'optimal' && '✅ Optimal Tank Sizing'}
+                {outcome.recommendedTankDimensions.capacityStatus === 'moderate_overcrowding' && '⚠️ Moderate Overcrowding'}
+                {outcome.recommendedTankDimensions.capacityStatus === 'severely_undersized' && '🚨 Undersized Tank / Stunting Risk'}
+                {outcome.recommendedTankDimensions.capacityStatus === 'underutilized' && 'ℹ️ Tank Underutilized'}
+                {' '}({outcome.recommendedTankDimensions.capacityUtilizationPct}% Capacity)
+              </div>
+            </div>
+
+            {/* Primary Dimension Statistics Grid */}
+            <div className="dim-grid">
+              <div className="dim-stat">
+                <span className="dim-stat__label">Required Water Volume</span>
+                <strong className="dim-stat__val dim-stat__val--highlight">
+                  {outcome.recommendedTankDimensions.requiredWaterVolumeM3} <small>m³</small>
+                </strong>
+                <small>
+                  {(outcome.recommendedTankDimensions.requiredWaterVolumeM3 * 1000).toLocaleString()} Liters (Safe limit: {outcome.recommendedTankDimensions.safeDensityLimitKgM3} kg/m³)
+                </small>
+              </div>
+
+              <div className="dim-stat">
+                <span className="dim-stat__label">Physical Dimensions (Metric)</span>
+                <strong className="dim-stat__val">
+                  {outcome.recommendedTankDimensions.singleTankDimensionsLabel}
+                </strong>
+                <small>
+                  {outcome.recommendedTankDimensions.numberOfTanksRecommended > 1
+                    ? `Split across ${outcome.recommendedTankDimensions.numberOfTanksRecommended} modular units`
+                    : 'Single culture tank unit'}
+                </small>
+              </div>
+
+              <div className="dim-stat">
+                <span className="dim-stat__label">Physical Dimensions (Imperial)</span>
+                <strong className="dim-stat__val">
+                  {outcome.recommendedTankDimensions.singleTankDimensionsFeetLabel}
+                </strong>
+                <small>Operational water depth: {outcome.recommendedTankDimensions.depthFt} ft</small>
+              </div>
+            </div>
+
+            {/* Growth Phase Sizing Timeline Breakdown */}
+            <div className="dim-phases-grid">
+              <div className="dim-phase-card">
+                <span className="dim-phase-card__title">🌱 Nursery / Juvenile Stage (Day 0 – 30)</span>
+                <strong className="dim-phase-card__val">
+                  {outcome.recommendedTankDimensions.nurseryPhaseVolumeM3} m³ ({(outcome.recommendedTankDimensions.nurseryPhaseVolumeM3 * 1000).toLocaleString()} L)
+                </strong>
+                <small>Stock size: {params.initialAvgWeightG}g → ~350g (prevents feed loss & improves grading)</small>
+              </div>
+
+              <div className="dim-phase-card">
+                <span className="dim-phase-card__title">🐟 Final Grow-Out Stage (Day 30 – {horizonDays})</span>
+                <strong className="dim-phase-card__val">
+                  {outcome.recommendedTankDimensions.growoutPhaseVolumeM3} m³ ({(outcome.recommendedTankDimensions.growoutPhaseVolumeM3 * 1000).toLocaleString()} L)
+                </strong>
+                <small>Stock size: ~350g → {outcome.finalAvgWeightG}g ({outcome.finalBiomassKg.toLocaleString()}kg total harvest biomass)</small>
+              </div>
+            </div>
+
+            {/* Size to Duration Insight Banner */}
+            <div className="dim-insight-banner">
+              💡 <strong>Biomass Sizing Advice:</strong> {outcome.recommendedTankDimensions.sizeToDurationRatioInsight}
+            </div>
+          </div>
+
           {/* Economics & Profitability Forecast Card */}
           <div className="twin-economics-card">
             <h3>💰 Projected Commercial Harvest Economics</h3>

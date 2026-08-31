@@ -55,6 +55,34 @@ export interface DailySimulationStep {
   isAmmoniaWarning: boolean
 }
 
+export interface RecommendedTankDimensions {
+  systemType: PondSystemType
+  systemLabel: string
+  requiredWaterVolumeM3: number
+  currentWaterVolumeM3: number
+  capacityUtilizationPct: number
+  capacityStatus: 'underutilized' | 'optimal' | 'moderate_overcrowding' | 'severely_undersized'
+  safeDensityLimitKgM3: number
+  projectedHarvestDensityKgM3: number
+  lengthM?: number
+  widthM?: number
+  heightM?: number
+  lengthFt?: number
+  widthFt?: number
+  heightFt?: number
+  diameterM?: number
+  diameterFt?: number
+  depthM: number
+  depthFt: number
+  numberOfTanksRecommended: number
+  singleTankVolumeM3: number
+  singleTankDimensionsLabel: string
+  singleTankDimensionsFeetLabel: string
+  nurseryPhaseVolumeM3: number
+  growoutPhaseVolumeM3: number
+  sizeToDurationRatioInsight: string
+}
+
 export interface DigitalTwinOutcome {
   horizonDays: number
   initialParams: DigitalTwinPondParams
@@ -73,6 +101,7 @@ export interface DigitalTwinOutcome {
   riskLevel: 'optimal' | 'moderate' | 'high_risk' | 'critical'
   bottlenecks: string[]
   recommendations: string[]
+  recommendedTankDimensions: RecommendedTankDimensions
 }
 
 export const SYSTEM_CAPACITY_LIMITS: Record<PondSystemType, { maxDensityKgM3: number; label: string }> = {
@@ -303,6 +332,16 @@ export function simulateDigitalTwin(
     )
   }
 
+  const recommendedTankDimensions = calculateRecommendedTankDimensions(
+    params.systemType,
+    Number(finalBiomassKg.toFixed(1)),
+    params.waterVolumeM3,
+    days,
+    params.initialAvgWeightG,
+    Number(currentWeight.toFixed(1)),
+    params.aerationHoursPerDay,
+  )
+
   return {
     horizonDays: days,
     initialParams: params,
@@ -321,6 +360,148 @@ export function simulateDigitalTwin(
     riskLevel,
     bottlenecks,
     recommendations,
+    recommendedTankDimensions,
+  }
+}
+
+/**
+ * Calculates optimal physical tank dimensions and volume needed for the projected
+ * fish size to duration ratio to maintain healthy carrying densities.
+ */
+export function calculateRecommendedTankDimensions(
+  systemType: PondSystemType,
+  finalBiomassKg: number,
+  currentWaterVolumeM3: number,
+  horizonDays: number,
+  initialWeightG: number,
+  finalWeightG: number,
+  aerationHours: number,
+): RecommendedTankDimensions {
+  const systemConfig = SYSTEM_CAPACITY_LIMITS[systemType]
+  const aerationBoost = aerationHours >= 10 ? 1.2 : aerationHours >= 6 ? 1.1 : 1.0
+  const safeDensityLimitKgM3 = Number((systemConfig.maxDensityKgM3 * aerationBoost).toFixed(1))
+
+  const requiredWaterVolumeM3 = Number(((finalBiomassKg / safeDensityLimitKgM3) * 1.1).toFixed(1))
+  const projectedHarvestDensityKgM3 = Number((finalBiomassKg / Math.max(0.1, currentWaterVolumeM3)).toFixed(1))
+  const capacityUtilizationPct = Number(((projectedHarvestDensityKgM3 / safeDensityLimitKgM3) * 100).toFixed(0))
+
+  let capacityStatus: RecommendedTankDimensions['capacityStatus'] = 'optimal'
+  if (capacityUtilizationPct < 65) {
+    capacityStatus = 'underutilized'
+  } else if (capacityUtilizationPct <= 105) {
+    capacityStatus = 'optimal'
+  } else if (capacityUtilizationPct <= 140) {
+    capacityStatus = 'moderate_overcrowding'
+  } else {
+    capacityStatus = 'severely_undersized'
+  }
+
+  const nurseryPhaseVolumeM3 = Number((requiredWaterVolumeM3 * 0.28).toFixed(1))
+  const growoutPhaseVolumeM3 = requiredWaterVolumeM3
+
+  const M_TO_FT = 3.28084
+  let depthM = 1.2
+  let numberOfTanksRecommended = 1
+  let singleTankVolumeM3 = requiredWaterVolumeM3
+
+  let lengthM: number | undefined
+  let widthM: number | undefined
+  let heightM: number | undefined
+  let lengthFt: number | undefined
+  let widthFt: number | undefined
+  let heightFt: number | undefined
+  let diameterM: number | undefined
+  let diameterFt: number | undefined
+  let singleTankDimensionsLabel = ''
+  let singleTankDimensionsFeetLabel = ''
+
+  if (systemType === 'concrete') {
+    depthM = 1.2
+    const totalWallHeight = 1.5
+    if (requiredWaterVolumeM3 > 50) {
+      numberOfTanksRecommended = Math.ceil(requiredWaterVolumeM3 / 40)
+      singleTankVolumeM3 = Number((requiredWaterVolumeM3 / numberOfTanksRecommended).toFixed(1))
+    }
+    const floorArea = singleTankVolumeM3 / depthM
+    const w = Math.sqrt(floorArea / 2)
+    const l = 2 * w
+    widthM = Number(w.toFixed(1))
+    lengthM = Number(l.toFixed(1))
+    heightM = totalWallHeight
+    widthFt = Number((w * M_TO_FT).toFixed(1))
+    lengthFt = Number((l * M_TO_FT).toFixed(1))
+    heightFt = Number((totalWallHeight * M_TO_FT).toFixed(1))
+
+    singleTankDimensionsLabel = `${lengthM}m (L) × ${widthM}m (W) × ${heightM}m (H)`
+    singleTankDimensionsFeetLabel = `${lengthFt}ft (L) × ${widthFt}ft (W) × ${heightFt}ft (H)`
+  } else if (systemType === 'tarpaulin' || systemType === 'ras') {
+    depthM = systemType === 'ras' ? 1.3 : 1.0
+    const totalHeight = systemType === 'ras' ? 1.5 : 1.2
+    const maxSingleVol = systemType === 'ras' ? 45 : 30
+    if (requiredWaterVolumeM3 > maxSingleVol) {
+      numberOfTanksRecommended = Math.ceil(requiredWaterVolumeM3 / maxSingleVol)
+      singleTankVolumeM3 = Number((requiredWaterVolumeM3 / numberOfTanksRecommended).toFixed(1))
+    }
+    const floorArea = singleTankVolumeM3 / depthM
+    const d = 2 * Math.sqrt(floorArea / Math.PI)
+    diameterM = Number(d.toFixed(1))
+    diameterFt = Number((d * M_TO_FT).toFixed(1))
+    heightM = totalHeight
+    heightFt = Number((totalHeight * M_TO_FT).toFixed(1))
+
+    singleTankDimensionsLabel = `Ø ${diameterM}m Diameter × ${heightM}m Height`
+    singleTankDimensionsFeetLabel = `Ø ${diameterFt}ft Diameter × ${heightFt}ft Height`
+  } else {
+    depthM = 1.3
+    const totalHeight = 1.7
+    if (requiredWaterVolumeM3 > 350) {
+      numberOfTanksRecommended = Math.ceil(requiredWaterVolumeM3 / 250)
+      singleTankVolumeM3 = Number((requiredWaterVolumeM3 / numberOfTanksRecommended).toFixed(1))
+    }
+    const floorArea = singleTankVolumeM3 / depthM
+    const l = Math.sqrt(1.8 * floorArea)
+    const w = floorArea / l
+    widthM = Number(w.toFixed(1))
+    lengthM = Number(l.toFixed(1))
+    heightM = totalHeight
+    widthFt = Number((w * M_TO_FT).toFixed(1))
+    lengthFt = Number((l * M_TO_FT).toFixed(1))
+    heightFt = Number((totalHeight * M_TO_FT).toFixed(1))
+
+    singleTankDimensionsLabel = `${lengthM}m (L) × ${widthM}m (W) × ${heightM}m Depth (${Number(floorArea.toFixed(0))}m²)`
+    singleTankDimensionsFeetLabel = `${lengthFt}ft (L) × ${widthFt}ft (W) × ${heightFt}ft Depth`
+  }
+
+  const weightGainRatio = Number((finalWeightG / Math.max(1, initialWeightG)).toFixed(1))
+  const growthRateGPerDay = Number(((finalWeightG - initialWeightG) / horizonDays).toFixed(1))
+  const sizeToDurationRatioInsight = `For a ${horizonDays}-day cycle achieving a ${weightGainRatio}x size expansion (${initialWeightG}g → ${finalWeightG}g at ~${growthRateGPerDay}g/day), your stock will reach ${finalBiomassKg.toLocaleString()}kg harvest biomass. This requires a minimum of ${requiredWaterVolumeM3}m³ (${(requiredWaterVolumeM3 * 1000).toLocaleString()} Liters) across ${numberOfTanksRecommended} ${systemConfig.label}${numberOfTanksRecommended > 1 ? 's' : ''} to prevent stunting and cannibalism.`
+
+  return {
+    systemType,
+    systemLabel: systemConfig.label,
+    requiredWaterVolumeM3,
+    currentWaterVolumeM3,
+    capacityUtilizationPct,
+    capacityStatus,
+    safeDensityLimitKgM3,
+    projectedHarvestDensityKgM3,
+    lengthM,
+    widthM,
+    heightM,
+    lengthFt,
+    widthFt,
+    heightFt,
+    diameterM,
+    diameterFt,
+    depthM,
+    depthFt: Number((depthM * M_TO_FT).toFixed(1)),
+    numberOfTanksRecommended,
+    singleTankVolumeM3,
+    singleTankDimensionsLabel,
+    singleTankDimensionsFeetLabel,
+    nurseryPhaseVolumeM3,
+    growoutPhaseVolumeM3,
+    sizeToDurationRatioInsight,
   }
 }
 

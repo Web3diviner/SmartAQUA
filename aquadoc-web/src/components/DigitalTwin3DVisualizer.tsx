@@ -656,6 +656,12 @@ export function DigitalTwin3DVisualizer({
               {outcome.survivalRatePct}% · {behavioralState.activeDensity.toFixed(1)} kg/m³
             </strong>
           </div>
+          <div className="hud-badge">
+            <span className="hud-label">Required Tank Sizing</span>
+            <strong className="hud-val" style={{ fontSize: '0.82rem' }}>
+              {outcome.recommendedTankDimensions.singleTankDimensionsLabel} ({outcome.recommendedTankDimensions.requiredWaterVolumeM3} m³)
+            </strong>
+          </div>
         </div>
 
         {/* Drag Hint */}

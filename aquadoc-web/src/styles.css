@@ -1366,6 +1366,7 @@ select:focus, input:focus, textarea:focus {
   color: var(--accent-cyan);
 }
 
+.twin-dimensions-card,
 .twin-economics-card,
 .twin-insights-card {
   padding: 22px;
@@ -1378,6 +1379,15 @@ select:focus, input:focus, textarea:focus {
   gap: 16px;
 }
 
+.twin-dimensions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.twin-dimensions-header h3,
 .twin-economics-card h3,
 .twin-insights-card h3 {
   font-family: var(--font-heading);
@@ -1385,6 +1395,120 @@ select:focus, input:focus, textarea:focus {
   font-weight: 700;
   color: var(--accent-cyan);
   margin: 0;
+}
+
+.dim-status-badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.dim-status-badge--optimal {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.dim-status-badge--moderate_overcrowding {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.dim-status-badge--severely_undersized {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+.dim-status-badge--underutilized {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.dim-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.dim-stat {
+  padding: 16px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dim-stat__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dim-stat__val {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.dim-stat__val--highlight {
+  color: var(--accent-cyan);
+}
+
+.dim-stat small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.dim-phases-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dim-phase-card {
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-app);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dim-phase-card__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.dim-phase-card__val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.dim-phase-card small {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.dim-insight-banner {
+  padding: 12px 16px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: var(--radius-md);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-main);
 }
 
 .twin-econ-grid {
@@ -4802,20 +4926,25 @@ select:focus, input:focus, textarea:focus {
     font-size: 0.78rem;
   }
 
+  .twin-dimensions-card,
   .twin-economics-card,
   .twin-insights-card {
     padding: 16px 12px;
   }
 
+  .dim-grid,
+  .dim-phases-grid,
   .twin-econ-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
+  .dim-stat,
   .econ-stat {
     padding: 12px 12px;
   }
 
+  .dim-stat__val,
   .econ-stat__val {
     font-size: 1.25rem;
   }
