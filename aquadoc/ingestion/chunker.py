@@ -40,6 +40,7 @@ _TABLE_ROW = re.compile(r"^\s*\S+(?:\s{2,}|\s*\|\s*)\S+.*$")
 _TABLE_MIN_ROWS = 3
 
 
+
 def estimate_tokens(text: str) -> int:
     return max(1, len(text) // CHARS_PER_TOKEN)
 

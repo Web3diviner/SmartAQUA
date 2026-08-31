@@ -27,6 +27,17 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     """Assign a request ID, bind it to logging, and echo it back."""
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        origin = request.headers.get("origin", "*") or "*"
+
+        # Explicitly handle CORS preflight OPTIONS requests immediately
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*, Authorization, Content-Type, Accept, X-Request-ID"
+            response.headers["Access-Control-Max-Age"] = "86400"
+            return response
+
         # Reuse the caller's ID so a single farmer question can be traced across
         # Flutter -> Go backend -> AquaDoc.
         incoming = request.headers.get(REQUEST_ID_HEADER, "").strip()
@@ -55,6 +66,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         duration_ms = round((time.perf_counter() - started) * 1000, 2)
         response.headers[REQUEST_ID_HEADER] = request_id
+
+        # Guarantee CORS headers on all regular responses and error bodies
+        if "access-control-allow-origin" not in response.headers:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*, Authorization, Content-Type, Accept, X-Request-ID"
 
         # Query strings are omitted: they can carry farmer-supplied text.
         logger.info(
