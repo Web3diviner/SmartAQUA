@@ -1,0 +1,59 @@
+{
+  "id": "com.smartaqua.aquadoc",
+  "name": "Smart AquaDoc AI - Aquaculture Veterinarian & Digital Twin",
+  "short_name": "AquaDoc",
+  "description": "Intelligent Aquaculture Veterinarian, Precision Farm Simulator & Disease Diagnostic Mobile App",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#030712",
+  "theme_color": "#06b6d4",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["agriculture", "productivity", "utilities", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 144x144 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Consult AquaDoc AI",
+      "short_name": "Consult",
+      "description": "Ask AquaDoc about fish health, water quality, and feeding",
+      "url": "/",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "3D Digital Twin Simulator",
+      "short_name": "Simulator",
+      "description": "Simulate growth, harvest biomass, and tank sizing",
+      "url": "/simulator",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Disease Triage & Diagnostics",
+      "short_name": "Disease Test",
+      "description": "Clinical diagnosis and treatment protocols",
+      "url": "/disease-test",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

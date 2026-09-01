@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#083344" />
+      <stop offset="50%" stop-color="#030712" />
+      <stop offset="100%" stop-color="#0c4a6e" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <g transform="translate(64, 48) scale(0.75)">
+    <path d="M 380,256 C 320,160 180,140 100,200 C 60,230 40,256 20,256 C 60,256 100,300 160,330 C 240,370 340,330 380,256 Z" fill="url(#cyanGrad)" />
+    <path d="M 360,256 L 460,160 C 440,220 440,292 460,352 Z" fill="url(#cyanGrad)" opacity="0.9" />
+    <path d="M 200,160 C 240,100 300,120 320,170 Z" fill="#38bdf8" />
+    <circle cx="120" cy="225" r="14" fill="#030712" />
+    <circle cx="124" cy="222" r="5" fill="#ffffff" />
+    <path d="M 120,270 L 170,270 L 195,230 L 225,310 L 255,245 L 285,285 L 305,270 L 350,270" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <text x="256" y="445" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" fill="#22d3ee" text-anchor="middle" letter-spacing="3">AQUADOC</text>
+</svg>
