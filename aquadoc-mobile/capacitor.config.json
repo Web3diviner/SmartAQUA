@@ -1,0 +1,14 @@
+{
+  "appId": "com.smartaqua.aquadoc",
+  "appName": "AquaDoc AI",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
