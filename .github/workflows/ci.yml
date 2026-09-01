@@ -24,10 +24,13 @@ jobs:
         working-directory: ./aquadoc
         run: |
           pip install --upgrade pip
-          pip install . pytest pytest-asyncio anyio httpx
+          pip install -e .
+          pip install pytest pytest-asyncio anyio httpx
 
       - name: Run Backend Unit & RAG Tests
         working-directory: ./aquadoc
+        env:
+          PYTHONPATH: .
         run: |
           pytest tests/test_retrieval_and_grounding.py tests/test_safety_guardrails.py tests/test_config_and_feeding.py tests/test_ingestion.py
 
@@ -38,14 +41,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: "npm"
           cache-dependency-path: |
-            aquadoc-web/package.json
-            aquadoc-admin/package.json
+            aquadoc-web/package-lock.json
+            aquadoc-mobile/package-lock.json
 
       - name: Build Farmer Web Application
         working-directory: ./aquadoc-web
@@ -54,8 +57,9 @@ jobs:
           npm run typecheck
           npm run build
 
-      - name: Build Admin Operations Portal
-        working-directory: ./aquadoc-admin
+      - name: Build Mobile Application
+        working-directory: ./aquadoc-mobile
         run: |
           npm ci
+          npm run typecheck
           npm run build
