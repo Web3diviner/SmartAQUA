@@ -27,7 +27,9 @@ jobs:
 
       - name: Install Flutter Dependencies
         working-directory: ./project/mobile
-        run: flutter pub get
+        run: |
+          flutter pub get
+          chmod +x android/gradlew || true
 
       - name: Build Flutter APK (Universal Release)
         working-directory: ./project/mobile
