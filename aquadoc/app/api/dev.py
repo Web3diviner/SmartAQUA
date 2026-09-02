@@ -1199,3 +1199,152 @@ async def clear_user_chat_sessions(user_id: str) -> dict[str, Any]:
     _USER_CHAT_SESSIONS[key] = []
     _save_user_chat_store(_USER_CHAT_SESSIONS)
     return {"success": True, "message": "All user chat sessions cleared."}
+
+
+# ==============================================================================
+# IoT SENSOR TELEMETRY DIRECT INGESTION & MONITORING ENGINE
+# ==============================================================================
+
+class SensorTelemetryPayload(BaseModel):
+    device_id: str | None = Field(default="ESP32-SA-001", description="Hardware device or probe ID")
+    pond_id: str | None = Field(default="pond-1", description="Associated pond/tank identifier")
+    farm_id: str | None = Field(default="farm-1", description="Farm identifier")
+    temperature_c: float | None = Field(default=None, ge=-5, le=60)
+    ph: float | None = Field(default=None, ge=0, le=14)
+    dissolved_oxygen_mg_l: float | None = Field(default=None, ge=0, le=30)
+    turbidity_ntu: float | None = Field(default=None, ge=0, le=5000)
+    ammonia_mg_l: float | None = Field(default=None, ge=0, le=100, description="Total Ammonia Nitrogen (TAN)")
+    nitrite_mg_l: float | None = Field(default=None, ge=0, le=100, description="Nitrite (NO2)")
+    nitrate_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Nitrate (NO3)")
+    un_ionized_ammonia_mg_l: float | None = Field(default=None, ge=0, le=20, description="Toxic NH3")
+    orp_mv: float | None = Field(default=None, ge=-1000, le=1000, description="Redox Potential (mV)")
+    salinity_ppt: float | None = Field(default=None, ge=0, le=100, description="Salinity (ppt)")
+    tds_ppm: float | None = Field(default=None, ge=0, le=50000, description="Total Dissolved Solids (ppm)")
+    water_level_cm: float | None = Field(default=None, ge=0, le=2000, description="Water Level / Depth (cm)")
+    alkalinity_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Alkalinity as CaCO3 (mg/L)")
+    hardness_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Hardness as CaCO3 (mg/L)")
+    battery_percent: float | None = Field(default=None, ge=0, le=100)
+    signal_rssi_dbm: int | None = None
+    recorded_at: str | None = None
+    source: str = "iot_device"  # iot_device, manual, probe, imported
+
+
+_TELEMETRY_CACHE_FILE = Path(__file__).resolve().parent.parent.parent / "scratch" / "sensor_telemetry_history.json"
+
+
+def _load_telemetry_store() -> list[dict[str, Any]]:
+    if _TELEMETRY_CACHE_FILE.exists():
+        try:
+            return json.loads(_TELEMETRY_CACHE_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+    return []
+
+
+def _save_telemetry_store(data: list[dict[str, Any]]) -> None:
+    try:
+        _TELEMETRY_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _TELEMETRY_CACHE_FILE.write_text(json.dumps(data[-500:], indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+_TELEMETRY_STORE: list[dict[str, Any]] = _load_telemetry_store()
+
+
+@router.post(
+    "/telemetry/readings",
+    summary="Direct IoT Sensor Telemetry Ingestion API (ESP32, LoRaWAN, Probes)",
+    status_code=status.HTTP_201_CREATED,
+)
+async def ingest_sensor_telemetry(payload: SensorTelemetryPayload) -> dict[str, Any]:
+    """Directly ingest live readings from water quality probes or ESP32 feeders."""
+    now_iso = datetime.now(UTC).isoformat()
+    raw_dict = payload.model_dump()
+
+    # Calculate derived toxic NH3 if not provided
+    if (
+        raw_dict.get("un_ionized_ammonia_mg_l") is None
+        and raw_dict.get("ammonia_mg_l") is not None
+        and raw_dict.get("ph") is not None
+        and raw_dict.get("temperature_c") is not None
+    ):
+        p_ka = 0.09018 + (2729.92 / (raw_dict["temperature_c"] + 273.15))
+        fraction = 1.0 / (10.0 ** (p_ka - raw_dict["ph"]) + 1.0)
+        raw_dict["un_ionized_ammonia_mg_l"] = round(raw_dict["ammonia_mg_l"] * fraction, 4)
+
+    # Convert to WaterQuality schema and evaluate rules
+    from app.rules.water_quality import evaluate_water_quality
+    from app.schemas.farm_context import WaterQuality
+
+    wq = WaterQuality(**{k: v for k, v in raw_dict.items() if k in WaterQuality.model_fields})
+    findings = evaluate_water_quality(wq)
+
+    alarms = [
+        {"sensor": f.measurement, "status": f.status, "value": f.value, "unit": f.unit, "message": f.message}
+        for f in findings
+        if f.status in ("watch", "concern")
+    ]
+
+    entry = {
+        "id": f"TEL-{len(_TELEMETRY_STORE) + 1001}",
+        "timestamp": payload.recorded_at or now_iso,
+        "readings": raw_dict,
+        "alarms": alarms,
+        "alarm_level": "critical" if any(a["status"] == "concern" for a in alarms) else ("warning" if alarms else "normal"),
+        "rule_evaluations": len(findings),
+    }
+
+    _TELEMETRY_STORE.append(entry)
+    _save_telemetry_store(_TELEMETRY_STORE)
+
+    return {
+        "status": "ingested",
+        "telemetry_id": entry["id"],
+        "pond_id": payload.pond_id,
+        "alarms": alarms,
+        "alarm_level": entry["alarm_level"],
+        "timestamp": entry["timestamp"],
+        "message": f"Ingested {len(wq.available())} active sensor parameters successfully.",
+    }
+
+
+@router.get(
+    "/telemetry/latest",
+    summary="Get latest real-time sensor snapshot for a pond",
+)
+async def get_latest_telemetry(pond_id: str | None = None) -> dict[str, Any]:
+    """Retrieve the newest sensor readings and alarm diagnostics."""
+    items = _TELEMETRY_STORE if not pond_id else [t for t in _TELEMETRY_STORE if t["readings"].get("pond_id") == pond_id]
+    if not items:
+        return {
+            "pond_id": pond_id or "default",
+            "has_telemetry": False,
+            "readings": None,
+            "alarms": [],
+            "message": "No sensor readings recorded yet.",
+        }
+    latest = items[-1]
+    return {
+        "pond_id": latest["readings"].get("pond_id"),
+        "has_telemetry": True,
+        "latest": latest,
+    }
+
+
+@router.get(
+    "/telemetry/history",
+    summary="Get time-series sensor history for trending and charts",
+)
+async def get_telemetry_history(
+    pond_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=500),
+) -> dict[str, Any]:
+    """Retrieve recent time-series telemetry points."""
+    items = _TELEMETRY_STORE if not pond_id else [t for t in _TELEMETRY_STORE if t["readings"].get("pond_id") == pond_id]
+    subset = items[-limit:]
+    return {
+        "pond_id": pond_id,
+        "count": len(subset),
+        "history": subset,
+    }

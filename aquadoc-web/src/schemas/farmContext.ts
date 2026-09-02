@@ -1,7 +1,7 @@
 /**
  * Farm context — the simulated pond state the developer supplies.
  *
- * 15_AQUADOC_FRONTEND.md section 4, "Farm Context Simulator": before the Go
+ * 15_AQUADOC_FRONTEND.md section 4: "Farm Context Simulator": before the Go
  * backend supplies real pond context, developers must be able to simulate it.
  *
  * The invariant that matters: an unmeasured value is `null`, never `0`. The
@@ -19,6 +19,14 @@ export const waterQualitySchema = z.object({
   turbidity_ntu: z.number().nullable(),
   ammonia_mg_l: z.number().nullable(),
   nitrite_mg_l: z.number().nullable(),
+  nitrate_mg_l: z.number().nullable().optional(),
+  un_ionized_ammonia_mg_l: z.number().nullable().optional(),
+  orp_mv: z.number().nullable().optional(),
+  salinity_ppt: z.number().nullable().optional(),
+  tds_ppm: z.number().nullable().optional(),
+  water_level_cm: z.number().nullable().optional(),
+  alkalinity_mg_l: z.number().nullable().optional(),
+  hardness_mg_l: z.number().nullable().optional(),
 })
 
 export const farmContextSchema = z.object({
@@ -62,6 +70,14 @@ export interface FarmContextForm {
   turbidity_ntu: string
   ammonia_mg_l: string
   nitrite_mg_l: string
+  nitrate_mg_l?: string
+  un_ionized_ammonia_mg_l?: string
+  orp_mv?: string
+  salinity_ppt?: string
+  tds_ppm?: string
+  water_level_cm?: string
+  alkalinity_mg_l?: string
+  hardness_mg_l?: string
   daily_ration_g: string
   last_feeding_g: string
   feeds_per_day: string
@@ -72,10 +88,6 @@ export interface FarmContextForm {
 
 /**
  * Defaults reflecting what this deployment actually measures today.
- *
- * 15_AQUADOC_FRONTEND.md section 4: "Current project defaults should reflect
- * reality" — temperature is the live water measurement; pH, dissolved oxygen
- * and turbidity sensors are not installed yet, so those start empty.
  */
 export const DEFAULT_FARM_CONTEXT_FORM: FarmContextForm = {
   farm_name: 'Demo Farm',
@@ -90,6 +102,14 @@ export const DEFAULT_FARM_CONTEXT_FORM: FarmContextForm = {
   turbidity_ntu: '',
   ammonia_mg_l: '',
   nitrite_mg_l: '',
+  nitrate_mg_l: '',
+  un_ionized_ammonia_mg_l: '',
+  orp_mv: '',
+  salinity_ppt: '',
+  tds_ppm: '',
+  water_level_cm: '',
+  alkalinity_mg_l: '',
+  hardness_mg_l: '',
   daily_ration_g: '3750',
   last_feeding_g: '1800',
   feeds_per_day: '2',
@@ -111,6 +131,14 @@ export const EMPTY_FARM_CONTEXT_FORM: FarmContextForm = {
   turbidity_ntu: '',
   ammonia_mg_l: '',
   nitrite_mg_l: '',
+  nitrate_mg_l: '',
+  un_ionized_ammonia_mg_l: '',
+  orp_mv: '',
+  salinity_ppt: '',
+  tds_ppm: '',
+  water_level_cm: '',
+  alkalinity_mg_l: '',
+  hardness_mg_l: '',
   daily_ration_g: '',
   last_feeding_g: '',
   feeds_per_day: '',
@@ -121,25 +149,22 @@ export const EMPTY_FARM_CONTEXT_FORM: FarmContextForm = {
 
 /**
  * Parse an optional numeric form field.
- *
- * Returns `null` for blank input. This is the single most important function
- * in the simulator: `Number('')` is `0`, so a naive conversion would report an
- * unmeasured parameter as a real zero reading — exactly the failure
- * 04_AQUADOC_RAG_LLM.md section 9 prohibits.
  */
-export function parseOptionalNumber(raw: string): number | null {
+export function parseOptionalNumber(raw: string | undefined): number | null {
+  if (!raw) return null
   const trimmed = raw.trim()
   if (trimmed === '') return null
   const value = Number(trimmed)
   return Number.isFinite(value) ? value : null
 }
 
-function parseOptionalInt(raw: string): number | null {
+function parseOptionalInt(raw: string | undefined): number | null {
   const value = parseOptionalNumber(raw)
   return value === null ? null : Math.trunc(value)
 }
 
-function parseOptionalString(raw: string): string | null {
+function parseOptionalString(raw: string | undefined): string | null {
+  if (!raw) return null
   const trimmed = raw.trim()
   return trimmed === '' ? null : trimmed
 }
@@ -162,6 +187,14 @@ export function formToFarmContext(form: FarmContextForm): FarmContext {
       turbidity_ntu: parseOptionalNumber(form.turbidity_ntu),
       ammonia_mg_l: parseOptionalNumber(form.ammonia_mg_l),
       nitrite_mg_l: parseOptionalNumber(form.nitrite_mg_l),
+      nitrate_mg_l: parseOptionalNumber(form.nitrate_mg_l),
+      un_ionized_ammonia_mg_l: parseOptionalNumber(form.un_ionized_ammonia_mg_l),
+      orp_mv: parseOptionalNumber(form.orp_mv),
+      salinity_ppt: parseOptionalNumber(form.salinity_ppt),
+      tds_ppm: parseOptionalNumber(form.tds_ppm),
+      water_level_cm: parseOptionalNumber(form.water_level_cm),
+      alkalinity_mg_l: parseOptionalNumber(form.alkalinity_mg_l),
+      hardness_mg_l: parseOptionalNumber(form.hardness_mg_l),
     },
     feeding: {
       daily_ration_g: parseOptionalNumber(form.daily_ration_g),
@@ -183,16 +216,24 @@ export function formToFarmContext(form: FarmContextForm): FarmContext {
 
 /** Which water measurements the simulator is currently leaving unknown. */
 export function unmeasuredParameters(form: FarmContextForm): string[] {
-  const labels: Record<keyof WaterQuality, string> = {
+  const labels: Record<string, string> = {
     temperature_c: 'Temperature',
     ph: 'pH',
     dissolved_oxygen_mg_l: 'Dissolved Oxygen',
     turbidity_ntu: 'Turbidity',
-    ammonia_mg_l: 'Ammonia',
-    nitrite_mg_l: 'Nitrite',
+    ammonia_mg_l: 'Total Ammonia (TAN)',
+    nitrite_mg_l: 'Nitrite (NO2)',
+    nitrate_mg_l: 'Nitrate (NO3)',
+    un_ionized_ammonia_mg_l: 'Un-ionized Ammonia (NH3)',
+    orp_mv: 'Redox / ORP',
+    salinity_ppt: 'Salinity',
+    tds_ppm: 'Total Dissolved Solids',
+    water_level_cm: 'Water Level',
+    alkalinity_mg_l: 'Alkalinity',
+    hardness_mg_l: 'Hardness',
   }
-  const water = formToFarmContext(form).water
-  return (Object.keys(labels) as (keyof WaterQuality)[])
-    .filter((key) => water[key] === null)
+  const water = formToFarmContext(form).water as Record<string, number | null | undefined>
+  return Object.keys(labels)
+    .filter((key) => water[key] === null || water[key] === undefined)
     .map((key) => labels[key])
 }

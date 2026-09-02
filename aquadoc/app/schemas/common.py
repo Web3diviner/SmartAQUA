@@ -91,6 +91,14 @@ class MeasurementKey(StrEnum):
     TURBIDITY_NTU = "turbidity_ntu"
     AMMONIA_MG_L = "ammonia_mg_l"
     NITRITE_MG_L = "nitrite_mg_l"
+    NITRATE_MG_L = "nitrate_mg_l"
+    UN_IONIZED_AMMONIA_MG_L = "un_ionized_ammonia_mg_l"
+    ORP_MV = "orp_mv"
+    SALINITY_PPT = "salinity_ppt"
+    TDS_PPM = "tds_ppm"
+    WATER_LEVEL_CM = "water_level_cm"
+    ALKALINITY_MG_L = "alkalinity_mg_l"
+    HARDNESS_MG_L = "hardness_mg_l"
 
 
 #: Human-readable labels for missing-data display.
@@ -99,8 +107,16 @@ MEASUREMENT_LABELS: dict[str, str] = {
     MeasurementKey.PH: "pH",
     MeasurementKey.DISSOLVED_OXYGEN_MG_L: "Dissolved Oxygen",
     MeasurementKey.TURBIDITY_NTU: "Turbidity",
-    MeasurementKey.AMMONIA_MG_L: "Ammonia",
-    MeasurementKey.NITRITE_MG_L: "Nitrite",
+    MeasurementKey.AMMONIA_MG_L: "Total Ammonia (TAN)",
+    MeasurementKey.NITRITE_MG_L: "Nitrite (NO2)",
+    MeasurementKey.NITRATE_MG_L: "Nitrate (NO3)",
+    MeasurementKey.UN_IONIZED_AMMONIA_MG_L: "Un-ionized Ammonia (NH3)",
+    MeasurementKey.ORP_MV: "Redox / ORP",
+    MeasurementKey.SALINITY_PPT: "Salinity",
+    MeasurementKey.TDS_PPM: "Total Dissolved Solids (TDS)",
+    MeasurementKey.WATER_LEVEL_CM: "Water Level",
+    MeasurementKey.ALKALINITY_MG_L: "Alkalinity (CaCO3)",
+    MeasurementKey.HARDNESS_MG_L: "Hardness (CaCO3)",
 }
 
 

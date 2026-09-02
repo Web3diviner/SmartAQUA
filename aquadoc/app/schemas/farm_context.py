@@ -27,9 +27,25 @@ class WaterQuality(BaseModel):
     ph: float | None = Field(default=None, ge=0, le=14)
     dissolved_oxygen_mg_l: float | None = Field(default=None, ge=0, le=30)
     turbidity_ntu: float | None = Field(default=None, ge=0, le=5000)
-    ammonia_mg_l: float | None = Field(default=None, ge=0, le=100)
-    nitrite_mg_l: float | None = Field(default=None, ge=0, le=100)
+    ammonia_mg_l: float | None = Field(default=None, ge=0, le=100, description="Total Ammonia Nitrogen (TAN)")
+    nitrite_mg_l: float | None = Field(default=None, ge=0, le=100, description="Nitrite (NO2)")
+    nitrate_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Nitrate (NO3)")
+    un_ionized_ammonia_mg_l: float | None = Field(default=None, ge=0, le=20, description="Toxic NH3")
+    orp_mv: float | None = Field(default=None, ge=-1000, le=1000, description="Redox Potential (mV)")
+    salinity_ppt: float | None = Field(default=None, ge=0, le=100, description="Salinity (ppt)")
+    tds_ppm: float | None = Field(default=None, ge=0, le=50000, description="Total Dissolved Solids (ppm)")
+    water_level_cm: float | None = Field(default=None, ge=0, le=2000, description="Water Level / Depth (cm)")
+    alkalinity_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Total Alkalinity as CaCO3 (mg/L)")
+    hardness_mg_l: float | None = Field(default=None, ge=0, le=1000, description="Total Hardness as CaCO3 (mg/L)")
     measured_at: datetime | None = None
+
+    def calculate_un_ionized_ammonia(self) -> float | None:
+        """Compute toxic un-ionized ammonia (NH3) from TAN, pH, and Temperature."""
+        if self.ammonia_mg_l is None or self.ph is None or self.temperature_c is None:
+            return self.un_ionized_ammonia_mg_l
+        p_ka = 0.09018 + (2729.92 / (self.temperature_c + 273.15))
+        fraction = 1.0 / (10.0 ** (p_ka - self.ph) + 1.0)
+        return round(self.ammonia_mg_l * fraction, 4)
 
     def available(self) -> dict[str, float]:
         """Measurements that were actually taken."""
