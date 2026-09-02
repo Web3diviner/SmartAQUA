@@ -303,6 +303,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSensorMatrix(BuildContext context, dynamic deviceState, dynamic todayFeedings, dynamic alertsState) {
+    final sensorData = ref.watch(sensorDataProvider).currentData;
+    final tempStr = sensorData != null && sensorData.waterTemperature > 0
+        ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
+        : '28.4 °C';
+    final q10Factor = sensorData != null && sensorData.waterTemperature > 0
+        ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
+        : 'Q10: 1.05x';
+
+    final onlineCount = deviceState.devices.where((d) => d.status.name == 'online').length;
+
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 12,
@@ -321,8 +331,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         _SensorCard(
           title: 'Water Temperature',
-          value: '28.4 °C',
-          badge: 'Q10: 1.05x',
+          value: tempStr,
+          badge: q10Factor,
           icon: Icons.thermostat,
           color: Colors.orangeAccent,
           onTap: () => context.go('/monitoring'),
@@ -337,7 +347,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         _SensorCard(
           title: 'Active Feeders',
-          value: '${deviceState.devices.length} Online',
+          value: deviceState.devices.isEmpty ? '0 Registered' : '$onlineCount / ${deviceState.devices.length} Online',
           badge: '${todayFeedings.length} Feeds Today',
           icon: Icons.router_outlined,
           color: AppTheme.primaryTeal,
@@ -448,22 +458,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _ActionTile(
           icon: Icons.waves,
           label: 'My Ponds',
-          sub: 'Farm Units',
-          gradient: const LinearGradient(colors: [Color(0xFF4E65FF), Color(0xFF92EFFD)]),
+          sub: 'Unit Management',
+          gradient: const LinearGradient(colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)]),
           onTap: () => context.go('/farm'),
         ),
         _ActionTile(
           icon: Icons.restaurant,
           label: 'Feed Now',
           sub: 'Manual Dispense',
-          gradient: const LinearGradient(colors: [Color(0xFFF7971E), Color(0xFFFFD200)]),
+          gradient: const LinearGradient(colors: [Color(0xFF43E97B), Color(0xFF38F9D7)]),
           onTap: () => context.go('/feeding/manual'),
         ),
         _ActionTile(
           icon: Icons.calculate,
           label: 'Calculator',
-          sub: 'FCR & Nutrition',
-          gradient: const LinearGradient(colors: [Color(0xFF11998E), Color(0xFF38EF7D)]),
+          sub: 'Feed & FCR',
+          gradient: const LinearGradient(colors: [Color(0xFFB176FC), Color(0xFFE0C3FC)]),
           onTap: () => context.go('/calculator'),
         ),
       ],
@@ -471,21 +481,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildRecentActivity(BuildContext context, dynamic feedingState) {
+    final List<FeedingEvent> events = feedingState.events ?? [];
+    if (events.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.history_toggle_off, color: Colors.grey[500], size: 32),
+            const SizedBox(height: 8),
+            Text(
+              'No recent feeding events recorded',
+              style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Dispensed rations and schedules will appear here in real time.',
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: 3,
+        itemCount: events.take(5).length,
         separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
         itemBuilder: (context, index) {
-          final titles = ['Auto-Schedule Dispensed', 'Q10 Metabolic Factor Calibrated', 'Manual Feeding Logged'];
-          final times = ['Today, 13:00', 'Today, 10:30', 'Today, 08:00'];
-          final amounts = ['250g dispensed', '1.05x (28.4°C)', '300g dispensed'];
+          final event = events[index];
+          final title = event.feedScheduleId != null ? 'Scheduled Feed Dispensed' : 'Manual Feed Dispensed';
+          final amount = '${event.actualAmountGrams.toStringAsFixed(0)}g dispensed';
           return ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -495,8 +534,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               child: const Icon(Icons.restaurant, color: AppTheme.primaryCyan, size: 20),
             ),
-            title: Text(titles[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            subtitle: Text(times[index], style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            subtitle: Text(
+              '${event.timestamp.hour.toString().padLeft(2, '0')}:${event.timestamp.minute.toString().padLeft(2, '0')}',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -504,7 +546,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                amounts[index],
+                amount,
                 style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
