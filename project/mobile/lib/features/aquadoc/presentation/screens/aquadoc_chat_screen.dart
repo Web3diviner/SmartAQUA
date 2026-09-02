@@ -55,13 +55,9 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
   final List<AquaDocMessage> _messages = [
     AquaDocMessage(
       id: 'msg-01',
-      text: 'Hello! I am **AquaDoc**, your AI Clinical Aquaculture Advisor.\n\n'
-          'I have injected live telemetry from **Earthen Pond 1**:\n'
-          '• **Dissolved Oxygen**: 5.8 mg/L (Optimal)\n'
-          '• **Water Temp**: 28.4°C (Q10 Metabolic Factor: 1.05)\n'
-          '• **Biomass**: 1,552 kg (African Catfish)\n'
-          '• **Ammonia TAN**: 0.15 mg/L\n\n'
-          'How can I assist your farm today?',
+      text: 'Hello! I am AquaDoc, your aquaculture clinical advisor.\n\n'
+          'I have connected to Earthen Pond 1. Your dissolved oxygen is currently 5.8 mg/L, water temperature is 28.4°C, and total ammonia is at a safe 0.15 mg/L across your 1,552 kg catfish biomass.\n\n'
+          'How can I help you manage your farm today?',
       isUser: false,
       timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
       severity: 'info',
@@ -128,11 +124,9 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     if (lower.contains('do') || lower.contains('oxygen')) {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: '### Dissolved Oxygen Analysis\n\n'
-            '• **Current DO**: **5.8 mg/L** at 28.4°C.\n'
-            '• **Status**: **Optimal** for *Clarias gariepinus* (> 5.0 mg/L).\n\n'
-            '**Deterministic Safety Interlock Rule**:\n'
-            'If DO drops below **3.0 mg/L**, automatic feeding will be strictly **BLOCKED** by the core decision engine to prevent post-prandial respiratory collapse.',
+        text: 'Dissolved Oxygen Analysis\n\n'
+            'Your dissolved oxygen level is currently 5.8 mg/L at 28.4°C, which is in the optimal range for African Catfish.\n\n'
+            'Safety policy: If dissolved oxygen drops below 3.0 mg/L, automated feeding is automatically paused by the safety interlock system to protect your stock from respiratory stress.',
         isUser: false,
         timestamp: now,
         severity: 'info',
@@ -149,11 +143,9 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     } else if (lower.contains('tan') || lower.contains('ammonia')) {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: '### Ammonia TAN Evaluation\n\n'
-            '• **Measured TAN**: **0.15 mg/L** at pH 7.4.\n'
-            '• **Un-ionized Ammonia (NH3)**: Calculated at **< 0.015 mg/L** (Safe threshold < 0.05 mg/L).\n\n'
-            '**Safety Policy**:\n'
-            'TAN is well below the safety interlock threshold of 2.0 mg/L. Full feed ration is permitted.',
+        text: 'Ammonia Assessment\n\n'
+            'Total ammonia (TAN) is measured at 0.15 mg/L with a water pH of 7.4. Toxic un-ionized ammonia is calculated at less than 0.015 mg/L, which is well below the critical risk threshold of 0.05 mg/L.\n\n'
+            'Water quality is safe for normal feeding schedules.',
         isUser: false,
         timestamp: now,
         severity: 'info',
@@ -171,12 +163,10 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     } else {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: '### Clinical Aquaculture Assessment\n\n'
-            'Based on telemetry and biometric state for **Pond 1**:\n\n'
-            '1. **Growth Rate (SGR)**: Estimated at **2.45% / day** under current 28.4°C water conditions.\n'
-            '2. **Feed Conversion Ratio (FCR)**: 1.18 cumulative.\n'
-            '3. **Recommendation**: Maintain 3 daily rations of 250g-300g per feeding schedule.\n\n'
-            '> *Note: Unmeasured parameters (Nitrite, Alkalinity) are marked UNKNOWN per zero-assumption policy.*',
+        text: 'Pond 1 Clinical Assessment\n\n'
+            'Based on current telemetry and pond conditions, your stock has an estimated specific growth rate of 2.45% per day at 28.4°C, with a cumulative feed conversion ratio of 1.18.\n\n'
+            'Recommendation: Continue with your planned 3 daily feeding cycles of 250g to 300g each.\n\n'
+            'Note: Unmeasured parameters like Nitrite and Alkalinity are marked as UNKNOWN until sensors or manual water tests are logged.',
         isUser: false,
         timestamp: now,
         severity: 'info',
