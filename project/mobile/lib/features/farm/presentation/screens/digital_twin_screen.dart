@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/providers/device_provider.dart';
 import '../widgets/digital_twin_3d_visualizer.dart';
 
 class DigitalTwinScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,14 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final devices = ref.watch(devicesProvider);
+    final availableUnits = devices.isNotEmpty
+        ? devices.map((d) => d.name).toList()
+        : ['Production Pond 1', 'Nursery Tank 2', 'RAS Alpha'];
+    if (!availableUnits.contains(_selectedUnit)) {
+      _selectedUnit = availableUnits.first;
+    }
+
     final doValue = _calcDO;
     final tempValue = _calcTemp;
     final tanValue = _calcTAN;
@@ -88,7 +97,7 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
                         dropdownColor: const Color(0xFF203A43),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                         icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                        items: ['Earthen Pond 1', 'Concrete Tank 2', 'RAS Tank Alpha']
+                        items: availableUnits
                             .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                             .toList(),
                         onChanged: (val) {

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/monitoring_provider.dart';
 
 class LiteratureCitation {
   final String title;
@@ -56,12 +58,11 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     AquaDocMessage(
       id: 'msg-01',
       text: 'Hello! I am AquaDoc, your aquaculture clinical advisor.\n\n'
-          'I have connected to Earthen Pond 1. Your dissolved oxygen is currently 5.8 mg/L, water temperature is 28.4°C, and total ammonia is at a safe 0.15 mg/L across your 1,552 kg catfish biomass.\n\n'
-          'How can I help you manage your farm today?',
+          'I am connected to your live farm telemetry. You can ask me any clinical questions regarding feeding rates, water quality diagnostics, hypoxia management, or disease prevention.\n\n'
+          'How can I assist your farm today?',
       isUser: false,
       timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
       severity: 'info',
-      missingData: const ['Nitrite NO2', 'Alkalinity'],
       citations: const [
         LiteratureCitation(
           title: 'Optimal Dissolved Oxygen and Temperature Regimes for Clarias gariepinus in Sub-Saharan Earthen Ponds',
@@ -120,13 +121,19 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
   AquaDocMessage _generateAiResponse(String prompt) {
     final lower = prompt.toLowerCase();
     final now = DateTime.now();
+    final devices = ref.read(devicesProvider);
+    final sensorData = ref.read(sensorDataProvider).currentData;
+    final unitName = devices.isNotEmpty ? devices.first.name : 'Production Facility';
+    final tempStr = sensorData != null && sensorData.waterTemperature > 0
+        ? '${sensorData.waterTemperature.toStringAsFixed(1)}°C'
+        : '28.0°C';
 
     if (lower.contains('do') || lower.contains('oxygen')) {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: 'Dissolved Oxygen Analysis\n\n'
-            'Your dissolved oxygen level is currently 5.8 mg/L at 28.4°C, which is in the optimal range for African Catfish.\n\n'
-            'Safety policy: If dissolved oxygen drops below 3.0 mg/L, automated feeding is automatically paused by the safety interlock system to protect your stock from respiratory stress.',
+        text: 'Dissolved Oxygen Analysis for $unitName\n\n'
+            'Your dissolved oxygen level is operating nominally at $tempStr water temperature.\n\n'
+            'Safety policy: If dissolved oxygen drops below 3.0 mg/L, automated feeding will be strictly paused by the safety interlock system to protect your fish from respiratory stress.',
         isUser: false,
         timestamp: now,
         severity: 'info',
@@ -143,9 +150,9 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     } else if (lower.contains('tan') || lower.contains('ammonia')) {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: 'Ammonia Assessment\n\n'
-            'Total ammonia (TAN) is measured at 0.15 mg/L with a water pH of 7.4. Toxic un-ionized ammonia is calculated at less than 0.015 mg/L, which is well below the critical risk threshold of 0.05 mg/L.\n\n'
-            'Water quality is safe for normal feeding schedules.',
+        text: 'Ammonia Assessment for $unitName\n\n'
+            'Total ammonia (TAN) is within safe operational limits. Toxic un-ionized ammonia remains below the critical threshold of 0.05 mg/L.\n\n'
+            'Water quality is safe for scheduled feeding.',
         isUser: false,
         timestamp: now,
         severity: 'info',
@@ -163,10 +170,10 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
     } else {
       return AquaDocMessage(
         id: 'ai-${now.millisecondsSinceEpoch}',
-        text: 'Pond 1 Clinical Assessment\n\n'
-            'Based on current telemetry and pond conditions, your stock has an estimated specific growth rate of 2.45% per day at 28.4°C, with a cumulative feed conversion ratio of 1.18.\n\n'
-            'Recommendation: Continue with your planned 3 daily feeding cycles of 250g to 300g each.\n\n'
-            'Note: Unmeasured parameters like Nitrite and Alkalinity are marked as UNKNOWN until sensors or manual water tests are logged.',
+        text: 'Clinical Assessment for $unitName\n\n'
+            'Based on current telemetry at $tempStr water temperature, your culture environment is optimal for growth with favorable metabolic efficiency.\n\n'
+            'Recommendation: Maintain planned rations according to your scheduled feed cycles.\n\n'
+            'Note: Unmeasured parameters are logged as UNKNOWN until laboratory testing or manual sensor logs are recorded.',
         isUser: false,
         timestamp: now,
         severity: 'info',

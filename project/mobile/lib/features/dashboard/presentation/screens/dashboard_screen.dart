@@ -205,6 +205,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildHeroFarmCard(BuildContext context) {
+    final devices = ref.watch(devicesProvider);
+    final sensorData = ref.watch(sensorDataProvider).currentData;
+    final alerts = ref.watch(alertsProvider).alerts;
+
+    final healthScore = alerts.isEmpty ? 100 : (100 - (alerts.length * 10)).clamp(50, 100);
+    final hopperStr = sensorData != null && sensorData.feedLevel > 0
+        ? '${sensorData.feedLevel.toStringAsFixed(0)}% Full'
+        : (devices.isNotEmpty ? 'Hopper OK' : 'No Hardware');
+    final hopperSub = sensorData != null && sensorData.feedLevel > 0
+        ? '${(sensorData.feedLevel * 0.05).toStringAsFixed(1)} kg Remaining'
+        : 'Connect Feeder';
+
+    final facilitySub = devices.isEmpty
+        ? 'No feeders connected • Tap + to pair'
+        : '${devices.length} Connected Unit${devices.length == 1 ? '' : 's'} • Live Monitoring';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -232,23 +248,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'AquaCore Commercial Facility',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SmartAQUA Facility',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '3 Production Units • African Catfish & Tilapia',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      facilitySub,
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -256,9 +274,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'HEALTH 99%',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                child: Text(
+                  'HEALTH $healthScore%',
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -268,29 +286,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Expanded(
                 child: _HeroStat(
-                  label: 'Total Biomass',
-                  value: '1,552 kg',
-                  sub: '+2.45% SGR/day',
-                  icon: Icons.bubble_chart,
+                  label: 'Connected',
+                  value: '${devices.length} Units',
+                  sub: '${devices.where((d) => d.isOnline).length} Active Online',
+                  icon: Icons.hub_outlined,
                   color: AppTheme.primaryCyan,
                 ),
               ),
               Container(width: 1, height: 45, color: Colors.white12),
               Expanded(
                 child: _HeroStat(
-                  label: 'Average DO',
-                  value: '5.8 mg/L',
-                  sub: 'Optimal Saturation',
-                  icon: Icons.air,
+                  label: 'Water Temp',
+                  value: sensorData != null && sensorData.waterTemperature > 0
+                      ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
+                      : '-- °C',
+                  sub: sensorData != null ? 'Telemetry Sync' : 'Awaiting Sensor',
+                  icon: Icons.thermostat,
                   color: AppTheme.primaryTeal,
                 ),
               ),
               Container(width: 1, height: 45, color: Colors.white12),
-              const Expanded(
+              Expanded(
                 child: _HeroStat(
                   label: 'Feed Hopper',
-                  value: '78% Full',
-                  sub: '3.9 kg Remaining',
+                  value: hopperStr,
+                  sub: hopperSub,
                   icon: Icons.inventory_2_outlined,
                   color: AppTheme.neonAmber,
                 ),
@@ -523,8 +543,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
         itemBuilder: (context, index) {
           final event = events[index];
-          final title = event.feedScheduleId != null ? 'Scheduled Feed Dispensed' : 'Manual Feed Dispensed';
-          final amount = '${event.actualAmountGrams.toStringAsFixed(0)}g dispensed';
+          final title = event.type == 'scheduled' ? 'Scheduled Feed Dispensed' : 'Manual Feed Dispensed';
+          final amountVal = event.actualAmount ?? event.amount;
+          final amount = '${amountVal.toStringAsFixed(0)}g dispensed';
+          final eventTime = event.completedAt ?? event.scheduledAt;
           return ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
@@ -536,7 +558,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             subtitle: Text(
-              '${event.timestamp.hour.toString().padLeft(2, '0')}:${event.timestamp.minute.toString().padLeft(2, '0')}',
+              '${eventTime.hour.toString().padLeft(2, '0')}:${eventTime.minute.toString().padLeft(2, '0')}',
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
             trailing: Container(
