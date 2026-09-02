@@ -1,18 +1,49 @@
-name: Build AquaDoc Android APK
+name: Build Android APKs (Flutter & Capacitor)
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'aquadoc-mobile/**'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
-  build-apk:
-    name: Build Android APK
+  build-flutter-apk:
+    name: Build SmartAQUA Flutter APK
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter Dependencies
+        working-directory: ./project/mobile
+        run: flutter pub get
+
+      - name: Build Flutter APK (Universal Release)
+        working-directory: ./project/mobile
+        run: flutter build apk --release
+
+      - name: Upload SmartAQUA Flutter APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartAQUA-Flutter-Release-APK
+          path: project/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+
+  build-capacitor-apk:
+    name: Build AquaDoc Capacitor APK
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +54,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Node.js
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -50,9 +81,9 @@ jobs:
         working-directory: ./aquadoc-mobile/android
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Upload AquaDoc Capacitor APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AquaDoc-Mobile-APK
+          name: AquaDoc-Capacitor-APK
           path: aquadoc-mobile/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
