@@ -1,0 +1,49 @@
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Build output
+.build/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compiled files
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+
+# Library dependencies (managed by PlatformIO)
+lib/
+
+# Test output
+.test/
+
+# Environment files
+.env
+.env.local
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+tmp/

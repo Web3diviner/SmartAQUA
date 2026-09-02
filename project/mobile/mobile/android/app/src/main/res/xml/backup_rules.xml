@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include app data -->
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+    <include domain="file" path="." />
+    
+    <!-- Exclude sensitive data from backups -->
+    <exclude domain="sharedpref" path="FlutterSecureStorage" />
+    <exclude domain="sharedpref" path="auth_tokens.xml" />
+    <exclude domain="database" path="secure.db" />
+    <exclude domain="file" path="keys/" />
+    <exclude domain="file" path="certificates/" />
+</full-backup-content>

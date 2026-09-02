@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+smart-fish-feeder
+server.exe
+test.exe
+
+# Test files
+*_test.go
+coverage.out
+coverage.html
+*.prof
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+.env
+.env.local
+*.log
+tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local storage
+storage/
+
+# Scripts (not needed in container)
+scripts/pre-commit
+scripts/pre-commit.ps1
+build.ps1
+Makefile
+
+# Config examples
+.env.example
+configs/config.local.yaml

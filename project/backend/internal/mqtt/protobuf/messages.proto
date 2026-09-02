@@ -1,0 +1,280 @@
+syntax = "proto3";
+
+package smartfeeder;
+
+option go_package = "smart-fish-feeder/internal/mqtt/protobuf";
+
+// Telemetry message from device
+message DeviceTelemetry {
+  string device_id = 1;
+  int64 timestamp = 2;
+  
+  // Sensor readings
+  float temperature = 3;
+  float dissolved_oxygen = 4;
+  float ph = 5;
+  float turbidity = 6;
+  float weight_grams = 7;
+  float weight_percentage = 8;
+  
+  // Power status
+  int32 battery_level = 9;
+  float battery_voltage = 10;
+  PowerSource power_source = 11;
+  float solar_voltage = 12;
+  
+  // Connectivity
+  int32 cellular_signal = 13;  // CSQ value
+  int32 wifi_rssi = 14;
+  
+  // Device status
+  DeviceStatus status = 15;
+}
+
+// Power source enum
+enum PowerSource {
+  POWER_SOURCE_UNKNOWN = 0;
+  POWER_SOURCE_SOLAR = 1;
+  POWER_SOURCE_BATTERY = 2;
+  POWER_SOURCE_ELECTRIC = 3;
+}
+
+// Device status enum
+enum DeviceStatus {
+  DEVICE_STATUS_UNKNOWN = 0;
+  DEVICE_STATUS_ONLINE = 1;
+  DEVICE_STATUS_OFFLINE = 2;
+  DEVICE_STATUS_SLEEPING = 3;
+  DEVICE_STATUS_ERROR = 4;
+  DEVICE_STATUS_MAINTENANCE = 5;
+}
+
+// Feeding event message
+message FeedingEvent {
+  string device_id = 1;
+  int64 timestamp = 2;
+  float quantity_grams = 3;
+  int32 duration_seconds = 4;
+  FeedingTrigger trigger = 5;
+  FeedingResult result = 6;
+  string error_message = 7;
+  
+  // Environmental conditions during feeding
+  float temperature = 8;
+  float dissolved_oxygen = 9;
+  float ph = 10;
+  
+  // Q10 adjustment factor applied
+  float q10_factor = 11;
+  float obm_safety_factor = 12;
+}
+
+// Feeding trigger enum
+enum FeedingTrigger {
+  FEEDING_TRIGGER_UNKNOWN = 0;
+  FEEDING_TRIGGER_SCHEDULED = 1;
+  FEEDING_TRIGGER_MANUAL = 2;
+  FEEDING_TRIGGER_EMERGENCY = 3;
+  FEEDING_TRIGGER_ADAPTIVE = 4;
+}
+
+// Feeding result enum
+enum FeedingResult {
+  FEEDING_RESULT_UNKNOWN = 0;
+  FEEDING_RESULT_SUCCESS = 1;
+  FEEDING_RESULT_PARTIAL = 2;
+  FEEDING_RESULT_FAILED = 3;
+  FEEDING_RESULT_JAMMED = 4;
+  FEEDING_RESULT_CANCELLED = 5;
+  FEEDING_RESULT_EARLY_CUTOFF = 6;
+}
+
+// Alert message
+message DeviceAlert {
+  string device_id = 1;
+  int64 timestamp = 2;
+  AlertSeverity severity = 3;
+  AlertType type = 4;
+  string message = 5;
+  map<string, string> metadata = 6;
+  bool acknowledged = 7;
+}
+
+// Alert severity enum
+enum AlertSeverity {
+  ALERT_SEVERITY_UNKNOWN = 0;
+  ALERT_SEVERITY_INFO = 1;
+  ALERT_SEVERITY_LOW = 2;
+  ALERT_SEVERITY_MEDIUM = 3;
+  ALERT_SEVERITY_HIGH = 4;
+  ALERT_SEVERITY_CRITICAL = 5;
+}
+
+// Alert type enum
+enum AlertType {
+  ALERT_TYPE_UNKNOWN = 0;
+  ALERT_TYPE_LOW_FEED = 1;
+  ALERT_TYPE_LOW_BATTERY = 2;
+  ALERT_TYPE_LOW_OXYGEN = 3;
+  ALERT_TYPE_HIGH_TEMPERATURE = 4;
+  ALERT_TYPE_LOW_TEMPERATURE = 5;
+  ALERT_TYPE_PH_OUT_OF_RANGE = 6;
+  ALERT_TYPE_FEEDER_JAMMED = 7;
+  ALERT_TYPE_SENSOR_ERROR = 8;
+  ALERT_TYPE_CONNECTIVITY_LOST = 9;
+  ALERT_TYPE_POWER_FAILURE = 10;
+  ALERT_TYPE_MAINTENANCE_REQUIRED = 11;
+}
+
+// Command message to device
+message DeviceCommand {
+  string device_id = 1;
+  string command_id = 2;
+  int64 timestamp = 3;
+  CommandType type = 4;
+  bytes payload = 5;
+  int32 timeout_seconds = 6;
+}
+
+// Command type enum
+enum CommandType {
+  COMMAND_TYPE_UNKNOWN = 0;
+  COMMAND_TYPE_FEED_NOW = 1;
+  COMMAND_TYPE_STOP_FEEDING = 2;
+  COMMAND_TYPE_UPDATE_SCHEDULE = 3;
+  COMMAND_TYPE_UPDATE_CONFIG = 4;
+  COMMAND_TYPE_CALIBRATE_SENSORS = 5;
+  COMMAND_TYPE_REBOOT = 6;
+  COMMAND_TYPE_ENTER_SLEEP = 7;
+  COMMAND_TYPE_WAKE_UP = 8;
+  COMMAND_TYPE_RUN_DIAGNOSTICS = 9;
+  COMMAND_TYPE_CAPTURE_IMAGE = 10;
+  COMMAND_TYPE_ANTI_JAM = 11;
+}
+
+// Command response from device
+message CommandResponse {
+  string device_id = 1;
+  string command_id = 2;
+  int64 timestamp = 3;
+  bool success = 4;
+  string error_message = 5;
+  bytes result_payload = 6;
+}
+
+// Feeding schedule configuration
+message FeedingSchedule {
+  string device_id = 1;
+  repeated ScheduleEntry entries = 2;
+  bool enabled = 3;
+  int64 updated_at = 4;
+}
+
+// Single schedule entry
+message ScheduleEntry {
+  int32 hour = 1;
+  int32 minute = 2;
+  float quantity_grams = 3;
+  int32 duration_seconds = 4;
+  repeated int32 days_of_week = 5;  // 0=Sunday, 6=Saturday
+  bool enabled = 6;
+}
+
+// Device configuration
+message DeviceConfig {
+  string device_id = 1;
+  int64 updated_at = 2;
+  
+  // Feeding parameters
+  float max_daily_feed_grams = 3;
+  float min_feeding_interval_minutes = 4;
+  bool q10_enabled = 5;
+  bool obm_enabled = 6;
+  bool fuzzy_logic_enabled = 7;
+  bool ddpg_enabled = 8;
+  
+  // Thresholds
+  float low_feed_threshold_percent = 9;
+  float low_battery_threshold_percent = 10;
+  float critical_do_threshold = 11;
+  float optimal_do_threshold = 12;
+  float min_temperature = 13;
+  float max_temperature = 14;
+  float min_ph = 15;
+  float max_ph = 16;
+  
+  // Communication settings
+  int32 telemetry_interval_seconds = 17;
+  int32 mqtt_keepalive_seconds = 18;
+  bool wifi_enabled = 19;
+  bool gsm_primary = 20;
+  
+  // Power management
+  bool deep_sleep_enabled = 21;
+  int32 sleep_duration_minutes = 22;
+  int32 wake_before_feeding_minutes = 23;
+}
+
+// Diagnostics report
+message DiagnosticsReport {
+  string device_id = 1;
+  int64 timestamp = 2;
+  
+  // System info
+  string firmware_version = 3;
+  int64 uptime_seconds = 4;
+  int32 free_heap_bytes = 5;
+  float cpu_temperature = 6;
+  
+  // Sensor status
+  bool weight_sensor_ok = 7;
+  bool temperature_sensor_ok = 8;
+  bool do_sensor_ok = 9;
+  bool ph_sensor_ok = 10;
+  bool turbidity_sensor_ok = 11;
+  
+  // Motor status
+  bool motor_ok = 12;
+  int32 stall_count = 13;
+  int32 jam_count = 14;
+  
+  // Connectivity status
+  bool gsm_connected = 15;
+  bool wifi_connected = 16;
+  bool mqtt_connected = 17;
+  int32 gsm_signal_strength = 18;
+  int32 wifi_signal_strength = 19;
+  
+  // Power status
+  float battery_voltage = 20;
+  float solar_voltage = 21;
+  bool charging = 22;
+  
+  // Error log
+  repeated string recent_errors = 23;
+}
+
+// Vision analysis result
+message VisionAnalysis {
+  string device_id = 1;
+  int64 timestamp = 2;
+  
+  // Boil index analysis
+  float pre_feed_boil_index = 3;
+  float active_feed_boil_index = 4;
+  float post_feed_boil_index = 5;
+  float satiety_threshold = 6;
+  bool early_cutoff_triggered = 7;
+  
+  // Pellet detection
+  int32 pellet_count = 8;
+  float pellet_coverage_percent = 9;
+  
+  // Feeding activity
+  float feeding_efficiency = 10;
+  float optical_flow_magnitude = 11;
+  float surface_activity_level = 12;
+  
+  // Confidence
+  float confidence_score = 13;
+}

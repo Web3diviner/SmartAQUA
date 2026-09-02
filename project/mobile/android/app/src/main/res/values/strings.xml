@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SmartAQUA</string>
+    <string name="app_description">IoT-enabled automated fish feeding system for aquaculture</string>
+    
+    <!-- Permission Rationale Messages -->
+    <string name="bluetooth_permission_rationale">Bluetooth is required to connect and configure your SmartAQUA devices</string>
+    <string name="location_permission_rationale">Location permission is required for Bluetooth device scanning on Android</string>
+    <string name="camera_permission_rationale">Camera access is needed to scan QR codes for device pairing</string>
+    <string name="notification_permission_rationale">Notifications keep you informed about feeding events and device alerts</string>
+    
+    <!-- Error Messages -->
+    <string name="error_bluetooth_not_supported">Bluetooth Low Energy is not supported on this device</string>
+    <string name="error_bluetooth_disabled">Please enable Bluetooth to connect to devices</string>
+    <string name="error_location_disabled">Please enable Location services for Bluetooth scanning</string>
+    <string name="error_permission_denied">Permission denied. Please grant permission in Settings</string>
+    
+    <!-- Notification Channels -->
+    <string name="notification_channel_feeding">Feeding Notifications</string>
+    <string name="notification_channel_alerts">Device Alerts</string>
+    <string name="notification_channel_system">System Notifications</string>
+</resources>

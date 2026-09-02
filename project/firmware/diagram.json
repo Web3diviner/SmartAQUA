@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "Smart Fish Feeder",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 10, "left": 20, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultra", "top": -140, "left": 350, "attrs": {} },
+    { "type": "wokwi-ds18b20", "id": "temp", "top": 110, "left": 360, "attrs": {} },
+    { "type": "wokwi-esp32-cam", "id": "cam", "top": -10, "left": 360, "attrs": {} },
+    { "type": "wokwi-a4988", "id": "dm542", "top": -30, "left": -310, "attrs": {} },
+    { "type": "wokwi-text", "id": "lbl", "top": -120, "left": -320, "attrs": { "text": "DM542 (Step/Dir/EN stand-in)" } },
+    { "type": "wokwi-stepper-motor", "id": "motor", "top": 130, "left": -320, "attrs": { "size": "17" } }
+  ],
+  "connections": [
+    ["esp:5V", "ultra:VCC", "red", ["h40", "v-30"]],
+    ["esp:GND.1", "ultra:GND", "black", ["h40", "v-10"]],
+    ["esp:12", "ultra:TRIG", "green", ["h110", "v0"]],
+    ["esp:13", "ultra:ECHO", "blue", ["h110", "v20"]],
+
+    ["esp:3V3", "temp:VCC", "red", ["h40", "v90"]],
+    ["esp:GND.2", "temp:GND", "black", ["h40", "v110"]],
+    ["esp:14", "temp:DQ", "yellow", ["h120", "v130"]],
+
+    ["esp:5V", "dm542:VDD", "red", ["h-70", "v-20"]],
+    ["esp:GND.3", "dm542:GND", "black", ["h-70", "v0"]],
+    ["esp:25", "dm542:STEP", "green", ["h-120", "v-40"]],
+    ["esp:19", "dm542:DIR", "blue", ["h-120", "v-20"]],
+    ["esp:0", "dm542:EN", "orange", ["h-120", "v0"]],
+
+    ["dm542:1A", "motor:A+", "purple", ["v80"]],
+    ["dm542:1B", "motor:A-", "purple", ["v80"]],
+    ["dm542:2A", "motor:B+", "purple", ["v80"]],
+    ["dm542:2B", "motor:B-", "purple", ["v80"]],
+
+    ["esp:16", "cam:U0R", "cyan", ["h140", "v-20"]],
+    ["esp:17", "cam:U0T", "cyan", ["h140", "v0"]],
+    ["esp:5V", "cam:5V", "red", ["h80", "v-40"]],
+    ["esp:GND.4", "cam:GND", "black", ["h80", "v-20"]]
+  ],
+  "dependencies": {}
+}

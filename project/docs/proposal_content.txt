@@ -1,0 +1,375 @@
+A
+PROJECT PROPOSAL
+ON THE
+EFFECT OF SMART ASSISTED AUTOMATIC FISH FEEDER ON THE GROWTH PERFORMANCE AND NUTRIENT UTILIZATION OF AFRICAN CATFISH
+BY
+OGUNBUNMI OLUWADARASIMI PHILIP
+FAT/20/4438
+SUBMITTED TO
+DR. O.K GBADAMOSI
+(PROJECT SUPERVISOR)
+DEPARTMENT OF FISHERIES AND AQUACULTURE TECHNOLOGY
+FEDERAL UNIVERSITY OF TECHNOLOGY AKURE
+DECEMBER 2025.
+CHAPTER ONE
+1.1 Background to the Study
+The trajectory of global food security in the twenty-first century was increasingly defined by the capacity of nations to transition from extractive food systems to regenerative and precision-based production models. Within this paradigm, aquaculture emerged not merely as an alternative to capture fisheries, but as the primary engine for aquatic protein production globally. According to the Food and Agriculture Organization (FAO), global fisheries and aquaculture production surged to record levels in recent years, driven by a strategic Blue Transformation aimed at ending hunger (FAO, 2024). However, this global abundance was not evenly distributed; while Asia dominated the sector, Africa accounted for a mere fraction of the world total, highlighting a profound developmental gap (WorldFish Center, 2025).
+Nigeria, the demographic heavyweight of Africa, has emerged as the second-largest aquaculture producer on the continent, with production heavily dominated by African catfish (Clarias gariepinus) and related Clariidae species (Ogunji and Wuertz, 2023; Anyanwu and Gabriel, 2013; Bradley et al., 2022.). The dominance of the African sharptooth catfish (Clarias gariepinus) was a direct consequence of the species' extraordinary biological hardiness, rapid growth rate, and tolerance for poor water quality conditions that would be lethal to other species (Dauda et al., 2022).
+Despite these impressive production volumes, Nigeria faced a staggering deficit in fish supply. The country relied heavily on imports to bridge the gap between domestic production and consumption, a reliance that exposed the national food system to external shocks (Business Day, 2024). The path to self-sufficiency lay in the intensification of local aquaculture; however, this intensification brought challenges regarding economic efficiency. The sector grappled with a crisis of profitability driven by the hyper-inflation of input costs. Feed accounted for between 60 to 70 percent of the total operational cost in intensive catfish farming (Adewolu, 2023). Following economic reforms in 2023, the price of fish feed rose by over 100 percent in a single year, evaporating traditional margins for error in farm management (Business Day, 2024). Farmers could no longer afford the inefficiencies associated with manual feeding regimes, which were prone to wastage and poor Feed Conversion Ratios (FCR).
+It was within this context of economic urgency that the concept of Smart Aquaculture became relevant. The integration of technology into biological systems—specifically the use of Smart Assisted Automatic Fish Feeders—offered a mechanism to decouple production efficiency from human fallibility. Unlike basic mechanical automation, smart assisted systems leveraged environmental data, such as water temperature, to optimize the timing and quantity of feed delivery (Dorgham, 2025). This project, situated within the Department of Fisheries and Aquaculture Technology at the Federal University of Technology, Akure (FUTA), sought to explore the efficacy of such systems. By aligning engineering precision with the metabolic rhythms of Clarias gariepinus, the study aimed to demonstrate that smart feeding was a survival strategy for the modern fish farmer.
+1.2 Justification of the Study
+The Nigerian aquaculture industry was trapped in a cycle of high input costs and suboptimal production efficiencies, a situation that threatened the sustainability of the sub-sector. Specifically, traditional manual feeding methods utilized by the majority of farmers were labor-intensive and inaccurate. These methods relied on the subjective judgment of farm operators, which inevitably led to overfeeding or underfeeding. Estimates suggested that manual feeding could result in significant feed wastage, which, in a high-cost economy, translated directly to financial insolvency (Thornburg et al., 2025).
+Biologically, the manual feeding approach failed to account for the physiological constraints of the cultured organism. Clarias gariepinus is a poikilothermic (cold-blooded) vertebrate, meaning its metabolic rate and appetite are inextricably linked to ambient water temperature—a relationship governed by the Q10 temperature coefficient (Mundim et al., 2020). Manual feeding schedules were typically rigid and did not account for daily temperature fluctuations. This created a metabolic mismatch where feed was provided when the fish were physiologically unable to metabolize it efficiently due to low temperatures, or withheld when their metabolic demand was highest during warm periods (Lai et al., 2025).
+Furthermore, the lack of precision in feeding contributed significantly to environmental degradation. Uneaten feed decomposed to release ammonia, a toxic compound that induced stress and mortality in fish (Reda et al., 2024). This pollution necessitated frequent water changes, increasing energy costs and straining local water resources. The Smart Assisted Automatic Fish Feeder was justified as a necessary intervention to solve these problems. By synchronizing feed delivery with real-time water temperature, the system aimed to optimize the Feed Conversion Ratio (FCR), reduce toxic ammonia spikes, and provide the economic data necessary to convince farmers that technological adoption was a viable hedge against inflation.
+1.3 OBJECTIVES OF THE STUDY
+The primary aim of this project was to evaluate the effects of a smart assisted automatic fish feeder on the growth performance, nutrient utilization, and water quality parameters in the culture of African catfish (Clarias gariepinus) juveniles.
+To achieve this aim, the study pursued specific objectives. First, it sought to design and utilize a smart assisted automatic fish feeder capable of dispensing feed based on pre-set time intervals adjusted by real-time water temperature readings. Second, the study aimed to determine the growth performance parameters, specifically Mean Weight Gain (MWG) and Specific Growth Rate (SGR), of Clarias gariepinus fed using the smart assisted feeder compared to a control group fed manually. Third, it evaluated the nutrient utilization indices, including Feed Conversion Ratio (FCR) and Protein Efficiency Ratio (PER), of the fish under both feeding regimes. Finally, the study monitored and compared selected water quality parameters—Dissolved Oxygen, Temperature, pH, and Total Ammonia Nitrogen—in the culture tanks to assess the environmental impact of the feeding methods.
+CHAPTER 2
+2.1 Biology and Economic Importance of Clarias gariepinus
+The African catfish (Clarias gariepinus) emerged as one of the most economically significant aquaculture species in sub-Saharan Africa, with Nigeria maintaining its position as the world's largest producer. Research by Chukwu (2023) indicated that Nigeria's production rate of African catfish from the 1980s to 2018 exceeded that of Ghana at a ratio of 3:1, underscoring the species' dominance in West African aquaculture. According to FAO estimates, annual catfish production in Nigeria reached approximately one million tonnes in 2021, valued at around USD 2.6 billion, representing 67% of global African catfish production. The domestication of C. gariepinus in Nigeria dated back to the 1950s, though its formal inclusion as a culturable species commenced in the 1970s, marking the genesis of its commercial significance in the region.
+The biological characteristics of C. gariepinus rendered it exceptionally suitable for intensive aquaculture systems. The species demonstrated remarkable hardiness and adaptability to diverse environmental conditions, contributing to its widespread adoption in commercial fish farming operations. As a member of the family Clariidae (airbreathing catfishes), C. gariepinus possessed the ability to utilize atmospheric oxygen through accessory respiratory organs, enabling survival in low-dissolved-oxygen environments that would prove lethal to many other fish species. This physiological adaptation made the species particularly valuable for high-density culture systems where dissolved oxygen concentrations frequently fluctuated.
+The feeding behavior of C. gariepinus revealed critical insights relevant to feeding management strategies. The species exhibited an omnivorous diet as a bottom feeder, consuming a wide variety of feed types including agricultural by-products, which made it economically attractive for farmers seeking to reduce feed costs. Studies documented that catfish demonstrated scotophilic (light-avoiding) behavior, feeding most aggressively during dark periods. Indriastuti et al. (2022) observed that juvenile catfish reared in continuously dark conditions exhibited more continuous swimming behavior compared to fish in other light treatments, which reduced aggressive interactions among juveniles. This scotophilic feeding pattern proved crucial for understanding optimal feeding schedules in aquaculture operations, as fish farmers traditionally fed during daylight hours primarily for operational convenience rather than aligning with the species' natural feeding rhythms.
+From an economic perspective, C. gariepinus played an indispensable role in Nigerian food security and rural development. According to the National Bureau of Statistics, over ₦1.3 trillion was spent annually on fish and seafood in Nigeria, with a substantial proportion allocated to catfish consumption. Total fish production per year in Nigeria approached 1 million metric tons, with 313,231 metric tons produced from aquaculture operations. The species' contribution extended beyond direct market value to encompass employment generation, particularly in rural communities where aquaculture provided alternative livelihood opportunities. Data from a national survey of African catfish production in Nigeria demonstrated that after tilapia, C. gariepinus represented the most commonly cultured fish species in Africa.
+The rapid growth characteristics of C. gariepinus further enhanced its economic appeal. N'Gbaramou et al. (2020) demonstrated that locally produced feeds for African catfish juveniles achieved competitive growth performance, with daily weight gains ranging from 3.83 to 5.54 g/day and specific growth rates of 2.99 to 3.29 g/day. These growth rates, combined with feed conversion ratios of 1.01 to 1.12, indicated the species' efficiency in converting feed to biomass, making it economically viable for commercial production. The ability of C. gariepinus to fetch competitive prices in local and international markets (currently ₦3,200 to ₦5,000 per kilogram for table-size fish in Nigeria) made it an attractive investment for both small-scale and commercial farmers.
+2.2 Nutritional Requirements for Optimal Growth
+The nutritional requirements of C. gariepinus for optimal growth performance had been extensively studied, with particular emphasis on protein and energy requirements that directly influenced production efficiency. Research consistently indicated that juvenile African catfish required dietary protein levels between 40-50% crude protein for optimal growth performance, while adult fish performed well with 30-40% crude protein. A comprehensive review published in 2024 emphasized that proper nutrition remained essential for the growth and development of the fish, and understanding their nutritional requirements proved critical for producing healthy and high-quality fish.
+A 2025 study assessed commercial fish feeds on the growth performance and biochemical condition of juvenile C. gariepinus using 240 fish samples with mean weights of 136±5.12g. The findings showed that fish fed with Vital feed, which had high content of protein (45%) and fat (14%), demonstrated significantly higher specific growth rates than fish fed other commercial treatments. The study revealed that fish fed Blue Crown feed achieved the highest weight gain of 913.24±0.78g, followed by those fed Coppens feed (867.06±1.21g), while fish fed Aquaboom recorded the lowest weight gain (797.31±1.0g). All treatments showed high survival rates exceeding 80%, indicating that within optimal protein ranges, catfish exhibited resilience across various feed formulations.
+Research by Nigerian scientists demonstrated that feeds produced at a 35% protein level without the addition of minerals, vitamins, and specific amino acids achieved competitive growth performance and feed efficiency values compared to commercial formulations. However, a 2022 study from Agrobiological Records established that experimental diets containing 45% crude protein, 14% lipid content, 2.6% crude fiber, and 10.0% ash content were considered adequate for optimal growth performance in the culture of C. gariepinus juveniles. The study recorded condition factors (K) ranging from 0.77 to 0.89, and high survival rates exceeding 85% among all treatments.
+Nutrient utilization efficiency represented a fundamental concept in aquaculture nutrition, with Feed Conversion Ratio (FCR) and Protein Efficiency Ratio (PER) serving as primary indicators of feeding effectiveness. The FCR measured the amount of feed required to produce one unit of fish biomass (calculated as Feed intake ÷ Fish weight gain), while PER indicated how efficiently dietary protein was converted to fish protein. These parameters proved critical for evaluating the economic viability of different feeding strategies and feed formulations. Research demonstrated that optimal FCR values for C. gariepinus ranged from 0.90 to 1.37, with lower values indicating better feed conversion efficiency.
+A 2022 study evaluating nutrient utilization and growth performance of African catfish fed varying levels of composite meal in replacement of fishmeal reported that FCR varied between 1.17 and 1.37. The results from growth, feed utilization, and survival levels showed an overall good growth of the fish in the experimental diets, indicating that composite meal constituted a potential replacement for fish meal in the diets of C. gariepinus fingerlings. Similarly, a study on growth performance and feed utilization of African catfish in biofloc systems enhanced with probiotics revealed that the treatment achieved an FCR of 0.90 (below 1.00) with feed efficiency higher than 100%, demonstrating that biofloc played an important role as alternative natural feed for cultured fish due to its crude protein content of 48-53%.
+Studies consistently showed that irregular feeding patterns, commonly associated with manual feeding methods, led to poor nutrient utilization and elevated FCR values. The inconsistency in feed delivery timing and quantity resulted in suboptimal growth performance, with fish experiencing stress-related physiological responses that negatively impacted feed efficiency. A 2025 investigation into unpredictable feeding patterns examined the effect of unpredictable feed supply on ninety African catfish (C. gariepinus, 10.65 ± 0.11 g) under culture conditions for 8 weeks. The study revealed that irregular feeding significantly impaired growth rate and feed conversion efficiency compared to consistent feeding regimens, highlighting the importance of predictable feeding schedules in maximizing nutrient utilization and growth performance in C. gariepinus production systems.
+Research on feeding frequency and feeding rate demonstrated that proper feeding management, combined with appropriate dietary formulations, significantly improved feed utilization efficiency and overall growth performance under intensive farming conditions. A study on Heterobranchus bidorsalis fry showed that the best growth performance was achieved at 2 meals/day feeding frequency, coupled with 40% feeding level, as demonstrated by average final weight gain results. The research concluded that increasing feeding frequency from two to four times a day did not improve feed utilization and growth parameters, suggesting that feeding rate represented the more important variable in determining weight gain. Another comprehensive investigation on African catfish fingerlings by Dauda et al. (2022) established that feeding three times a day constituted the optimal feeding frequency, while feeding time also influenced fish performance, with fish fed in the evening showing better performance than fish fed in the morning alone.
+Energy requirements for C. gariepinus were closely linked to protein utilization efficiency. The species required adequate energy levels to support protein synthesis and growth processes. When energy levels were insufficient, dietary protein was catabolized for energy rather than being utilized for growth, resulting in poor feed conversion efficiency and reduced growth rates. This protein-sparing effect of adequate energy levels proved essential for optimizing feed formulations and feeding strategies. Research conducted on dietary energy requirements of C. gariepinus juveniles at fixed crude protein levels established that at digestible energy levels of 2400 and 2600 Kcal/kg diets, feed intake remained similar and significantly higher than feed intake at 2800 and 3000Kcal/kg, indicating that beyond 2600Kcal/kg diets, feed intake reduced significantly.
+2.3 The Physiology of Feeding: Temperature and the Q10 Rule
+The poikilothermic (cold-blooded) nature of C. gariepinus fundamentally influenced its metabolic processes and feeding requirements, making temperature-responsive feeding strategies essential for optimal growth performance. As ectothermic organisms, African catfish exhibited metabolic rates that varied directly with environmental temperature, creating significant implications for feeding management in aquaculture systems. Unlike homeothermic (warm-blooded) animals that maintained constant body temperatures through metabolic regulation, poikilotherms like catfish assumed the temperature of their surrounding water environment, resulting in body temperatures that fluctuated with ambient conditions.
+The Q10 Temperature Coefficient represented a critical concept in understanding catfish feeding physiology, describing the rate at which metabolic processes changed with temperature. Specifically, the Q10 value quantified the factor by which the rate of a biological process increased when temperature was raised by 10°C. Research demonstrated that for most biological systems, Q10 values ranged from 2 to 3, meaning that metabolic rates approximately doubled or tripled for every 10°C rise in temperature. A 2024 comprehensive study on the effects of body weight, temperature, and daily time periods on oxygen consumption rate of juvenile silver pomfret (Pampus argenteus) established that body weight and water temperature significantly affected oxygen consumption rate (OCR) of fish, with OCR increasing linearly with increasing temperature.
+Temperature fluctuations significantly affected metabolic demands and feeding requirements in aquatic organisms, including C. gariepinus. Liu et al. (2025) noted that body weight exerted a more significant influence on metabolic rate compared to temperature, with optimal temperature ranges identified between 27 and 30°C for maximum metabolic efficiency. The study revealed that Q10 values increased from the range of 21 to 24°C to range of 24-27°C but decreased from range of 24-27°C to range of 27-30°C, indicating non-linear thermal sensitivity across different temperature ranges. This finding proved particularly relevant for Nigerian catfish farmers, as pond water temperatures typically ranged from 25-32°C depending on season and location, placing catfish within zones of variable metabolic sensitivity.
+Research on thermal sensitivity of fish metabolism provided compelling evidence for the Q10 effect in aquatic organisms. A 2024 study on Atlantic wolffish (Anarhichas lupus) demonstrated significant increases in standard metabolic rate (SMR) for fish acutely exposed to 15°C relative to fish kept at 10°C (117.1 ± 8.3 vs. 58.5 ± 6.4 mg O₂ kg⁻¹ h⁻¹), with corresponding effects on growth performance. Similarly, a 2022 study on cold-induced metabolic depression in cunner (Tautogolabrus adspersus) revealed dramatic reductions in respiratory control ratio and substantial drops in State 3 respiration between 10 and 5°C, with Q10 values in 10°C and 0°C-acclimated fish of 14.5 and 141.2, respectively. These studies illustrated that temperature sensitivity varied across species and temperature ranges, but the fundamental principle that metabolic rate responded to temperature changes remained consistent across fish species.
+A 2024 investigation into environmental variation associated with overwintering in brook char (Salvelinus fontinalis) provided insights into metabolic plasticity in response to temperature changes. The study revealed that resting metabolic rate (RMR) decreased substantially during initial cooling from 8°C to 2°C (Q10=4.2-4.5), but brook char exhibited remarkable thermal compensation during acclimation (Q10=1.4-1.6). Conversely, RMR was substantially lower (40-48%) in starved fish, conserving energy and demonstrating that the absolute magnitude of thermal plasticity could be masked or modified under food restriction. These findings emphasized the complex interplay between temperature, feeding, and metabolism in fish physiology.
+Studies on temperature sensitivity revealed that different biological processes exhibited varying Q10 values, indicating the need for feeding strategies to account for these differential responses. Panessiti et al. (2021) found significant temperature sensitivity in axolotl feeding behaviors, suggesting similar patterns in C. gariepinus where feeding behavior and efficiency would be affected by temperature variations. A 2020 review on effects of temperature on feeding and digestive processes in fish emphasized that acute short-term variations of temperature might have drastic, often detrimental, effects on fish physiology, while long-term gradual variations might lead to acclimation through variations in metabolic and digestive enzyme profiles.
+Fixed feeding schedules typical of manual feeding systems often failed to account for temperature-induced metabolic variations, leading to significant inefficiencies in production systems. During colder periods (typically November to February in southern Nigeria), fish exhibited reduced metabolic rates and lower feed requirements, making standard feeding amounts excessive and resulting in feed waste and water quality deterioration. Conversely, during warmer periods (March to October), elevated metabolic rates increased nutritional demands, and fixed feeding schedules could result in underfeeding and suboptimal growth performance. A 2024 study on temperature and feeding frequency interactions with growth in Nile tilapia demonstrated that at 30°C, fish showed the highest final body weight when fed twice daily, while at lower temperatures (26°C), the same feeding frequency resulted in suboptimal growth.
+The implications of temperature-dependent metabolic rates for feeding management proved profound. Turnip et al. (2025) successfully developed a model of an integrated system for feeding catfish and monitoring pond temperature based on Internet of Things (IoT) technology, recognizing the critical importance of temperature monitoring in optimizing feeding strategies. Their system not only offered economic benefits through increased production yield but also promoted more sustainable fish farming practices by integrating environmental monitoring with feeding control. The integration of temperature sensors with automated feeding systems allowed for real-time adjustments to feeding rates based on temperature-driven metabolic demands, representing a significant advancement over traditional fixed-schedule feeding approaches.
+2.4 Evolution of Feeding Systems in Aquaculture
+The evolution of feeding systems in aquaculture progressed through distinct phases, each addressing specific limitations of previous approaches while incorporating technological advances to improve production efficiency. Understanding this evolutionary trajectory provided context for appreciating the advantages and limitations of smart assisted automatic feeding systems for C. gariepinus production.
+2.4.1 Manual Feeding Systems
+Manual feeding represented the traditional approach characterized by significant limitations including high labor costs, inconsistency in feed delivery, and human error in timing and quantity determination. In Nigerian catfish farming, manual feeding remained the predominant method among small and medium-scale farmers, with farmers typically feeding twice daily (morning and evening) based on operational convenience rather than fish physiological needs. According to a 2022 assessment of challenges and coping strategies of catfish farmers, 100% of surveyed farmers reported feeding their fish twice a day, with 50.4% admitting they did not feed their fish to satiation while 49.6% confirmed they fed to satiation.
+Manual feeding systems suffered from inherent variability in feed distribution, timing inconsistencies, and the inability to respond to real-time environmental changes. These limitations often led to suboptimal growth performance, poor feed conversion efficiency, and increased production costs. A 2023 study comparing feeding practices revealed that farmers identified several challenges associated with manual feeding: feed was wasted if fish were fed in excess (37.6%), catfish required extensive food management to prevent stunted growth (36%), and maintaining high water quality would assist in resolving growth issues (36%). The study also noted that 84% of farmers used multiple fish feeds, primarily due to cost and accessibility concerns (48%) and varied protein requirements of catfish at different life stages (48%).
+The labor-intensive nature of manual feeding made it economically challenging for large-scale commercial operations, particularly in regions where labor costs were high or skilled workers were scarce. A 2025 investigation into automated fish feeding systems for nursing ponds noted that manual feeding methods often led to uneven distribution of feed, contributing to inefficiencies. The study emphasized that in contrast to manual systems, automated systems provided uniform feeding, minimizing waste and maximizing resource utilization, ultimately benefiting aquaculture operations.
+Manual feeding also failed to account for nocturnal feeding behavior of catfish. Despite documented evidence that catfish were scotophilic and fed most actively at night, farmers continued to feed primarily during daylight hours (typically between 7-9 AM and 5-7 PM) for operational convenience. This temporal mismatch between natural feeding rhythms and feeding schedules likely contributed to reduced feed intake and suboptimal growth performance.
+2.4.2 Automatic and Demand Feeding Systems
+Automatic and demand feeding systems emerged as technological solutions to address manual feeding limitations. These mechanical feeders provided more consistent feed delivery and reduced labor requirements, with studies demonstrating superior performance compared to manual feeding approaches. Research consistently showed that automatic feeding resulted in better specific growth rates (SGR) and lower feed conversion ratios (FCR), indicating improved feed efficiency and growth performance.
+A 2025 comparative study on the impact of feeding frequency on growth performance of white shrimp in intensive aquaculture using automatic feeders found that automatic feeding significantly improved final body weight, specific growth rate, and feed conversion ratio compared to manual feeding. Among automatic feeding groups, feeding 6-8 times per day showed optimal performance, with a quadratic regression identifying 7.83 times/day as the optimal frequency. The study emphasized that the key advantage of automatic feeders was their ability to enable frequent feeding, even during the night, which proved particularly beneficial for species like C. gariepinus that exhibited nocturnal feeding behavior.
+A 2025 evaluation of smart fish feeding system using artificial intelligence noted that automatic feeders could increase feed accuracy and reduce waste compared to manual methods. Other feeding methods like demand feeders, which released food when triggered by a fish, could lead to excessive or wasted feed if not properly calibrated. The study emphasized that automatic feeders, when properly programmed, improved feed conversion ratios by delivering feed at optimal times and quantities.
+Demand feeders represented a specific type of automatic feeding system that allowed fish to trigger feed delivery based on their feeding behavior. These systems reduced feed waste by delivering feed only when fish demonstrated feeding activity, improving both economic efficiency and environmental sustainability. A comparative study by Songphatkaew on different feeding machines established that Nile tilapia (Oreochromis niloticus) gained 72% more body weight when fed by demand feeder than when hand-fed once a day; however, feed conversion was 45% poorer for fish fed by demand feeder, indicating that while growth improved, feed efficiency decreased due to potential overfeeding.
+The development of self-feeding systems (previously familiar as demand feeding systems) was based on the learning ability of fish to activate feeders. A 2021 review on machinery feeding development for sustainable aquaculture noted that self-feeding systems worked by releasing a certain amount of feed from feed dispensers into fish tanks or net cages based on trigger actuation by fish. Under this circumstance, fish could eat anytime they wanted, potentially improving growth rates. However, the technology required that self-feeders must have at least four parts: switch, feeder with feed dispenser, control unit, and microcomputer.
+Despite their advantages, both automatic and demand feeders still required further sophistication to adjust feeding strategies based on environmental conditions or fish physiological status. A 2023 review on types of auto-feeder technologies for efficient fish farming noted that demand-based feeders employed advanced algorithms to dispense feed based on fish appetite, ensuring optimal feeding rates and minimizing wastage, while time-based feeders provided feed at predetermined intervals, offering a more straightforward approach but requiring careful calibration. The review concluded that further research was needed to overcome challenges such as accurate appetite estimation, sensor calibration, and cost-effectiveness.
+2.4.3 Smart and Precision Feeding Systems
+Smart and precision feeding systems represented the latest evolution in aquaculture feeding technology, incorporating Internet of Things (IoT) devices, artificial intelligence algorithms, fuzzy logic systems, and computer vision technologies to monitor water quality parameters and adjust feeding protocols accordingly. These advanced systems differed fundamentally from simple automatic feeders by utilizing real-time data to make informed feeding decisions rather than following predetermined schedules.
+A 2024 review on IoT-driven smart feeding systems emphasized that these systems were revolutionizing the aquaculture industry by leveraging advanced technologies, especially IoT, automation, and AI, to optimize feeding practices. The core function of smart feeding systems was to automate the scheduling, quantity, and delivery of feed to aquatic organisms, ensuring precision and consistency across all stages of production. By matching feeding to fish needs and environmental conditions, these smart systems helped farmers save money, grow healthier fish, and protect the environment.
+The integration of artificial intelligence and machine learning technologies enhanced the capabilities of smart feeding systems, enabling them to learn from historical data patterns and predict optimal feeding times and quantities while adapting to changing environmental conditions. A 2025 study on evaluation of smart fish feeding system using artificial intelligence demonstrated significant increases in tilapia growth performance in the smart system compared to manual feeding. Fish reared under a smart feeding system showed better feed conversion ratio (1.24 vs 1.76 for manual feeding), higher average daily weight gain, specific growth rate, and protein efficiency ratio (2.7 vs 1.9 for manual feeding).
+Research on AI-driven IoT-based feeding systems illustrated the sophisticated decision-making capabilities of modern smart feeders. A 2025 Mediterranean aquaculture journal article detailed an AI-driven IoT-based feeding system that integrated real-time water quality monitoring with machine learning optimization to enhance feeding utilization. The system included Arduino-based sensors for temperature, pH, dissolved oxygen, total dissolved solids, salinity, and turbidity measurements, coupled with an XGBoost algorithm that adjusted feeding rates based on thermal growth coefficients and environmental factors. For a 125-day culture period, comparison between manual feeding technique (until satiation) and smart feeding technique demonstrated that AI-IoT feeding was more efficient, with fish achieving higher growth rates, better feed conversion ratio, and improved protein efficiency ratio.
+Computer vision technology enabled smart feeding systems to monitor fish behavior and feeding response in real-time, providing feedback on feeding effectiveness and allowing for immediate adjustments to feeding strategies. This technology could detect feeding intensity, identify uneaten feed, and assess fish health status, equipping farmers with comprehensive information for optimizing feeding management. A 2024 review on precise feeding technology for outdoor pond aquaculture based on computer vision noted that one system used underwater cameras and a deep learning model called R(2+1)D to spot ripples and waves on the water surface, while another system combined computer vision with particle filtering to track feed in real-time and avoid overfeeding.
+The ability of smart feeding systems to process multiple data streams simultaneously allowed for more sophisticated decision-making processes that optimized both growth performance and resource utilization. A 2025 article on IoT-driven smart feeding systems advancing precision aquaculture explained that IoT-enabled smart feeding systems allowed continuous monitoring of environmental parameters and fish behavior, enabling automated and optimized feeding operations. By leveraging real-time data from sensors and applying advanced analytics, farmers could precisely adjust feed distribution, improving growth rates, reducing waste, and enhancing water quality.
+Integration with farm management systems further enhanced the value of smart feeding technologies. A 2024 review emphasized that integration of IoT-driven smart feeding systems with farm management systems enabled centralized monitoring and control of feeding alongside other critical aquaculture operations such as water quality management, fish health monitoring, growth tracking, and harvest planning. This unified platform allowed farmers to coordinate activities more efficiently, automate feed adjustments based on real-time sensor data, maintain complete feeding records for traceability, and analyze historical trends to optimize production.
+2.5 Impact of Feeding on Water Quality
+The relationship between feeding practices and water quality constituted a critical aspect of sustainable aquaculture management, with uneaten feed serving as a primary source of water pollution through the production of Total Ammonia Nitrogen (TAN) and other nitrogenous compounds. Understanding this relationship proved essential for developing feeding strategies that balanced growth optimization with environmental sustainability.
+2.5.1 Mechanisms of Water Quality Deterioration from Feeding
+The accumulation of uneaten feed in aquaculture systems led to increased organic loading, elevated ammonia levels, and reduced dissolved oxygen concentrations, creating stressful conditions for fish. Ammonia in ponds originated primarily from feed and nutrients entering with water. Research established that if feed remained uneaten, then more ammonia was present than if it was consumed by fish. For every kilogram of feed fed, approximately 30 grams of ammonia could be produced through decomposition and fish excretion.
+The decomposition of uneaten feed and fish waste significantly contributed to the deterioration of water quality parameters. Organic matter decomposition consumed dissolved oxygen and released ammonia, nitrites, and other potentially toxic compounds into the water. A 2020 review on aqua-feed wastes emphasized that dietary composition of aquaculture feeds (aquafeeds) determined the quality of wastes from aquaculture production systems. These wastes, which were derived mainly from nitrogenous and phosphorus compounds, subsequently affected water quality in culture systems and the ambient environment.
+Research demonstrated that the percentage of nitrogen applied to ponds in fertilizers and feeds that was retained in biomass of culture species and removed at harvest typically ranged from 20-25%, meaning approximately 75-80% of nitrogen inputs remained in the system or was discharged in effluent. A comprehensive study on biodegradation of nitrogen in commercial recirculating aquaculture facilities noted that while digestive breakdown of lipids and carbohydrates yielded water and carbon dioxide as waste products, digestion of proteins also yielded nitrogenous compounds. In teleost (bony) fishes like C. gariepinus, these nitrogenous wastes were excreted predominately as ammonia.
+2.5.2 Ammonia Toxicity and Fish Health
+Ammonia toxicity represented one of the most significant water quality challenges in intensive aquaculture. Two forms of ammonia occurred in aquaculture systems: ionized (NH₄⁺) and un-ionized (NH₃). The un-ionized form proved extremely toxic to fish, while the ionized form was not. Both forms were grouped together as total ammonia. The proportion of toxic un-ionized ammonia increased with rising pH and temperature, making these parameters critical factors in assessing ammonia toxicity risk.
+Research on water quality standards for total ammonia nitrogen established that toxicity levels for un-ionized ammonia depended on individual species; however, levels below 0.02 ppm were considered safe. Dangerously high ammonia concentrations were usually limited to water recirculation systems or hauling tanks where water was continually recycled, and in pond culture after phytoplankton die-offs. A 2015 investigation on ammonia nitrogen in aquaculture noted that literature on ammonia toxicity to channel catfish suggested that the no-observed-effect level (NOEL) was around 1.0 mg L⁻¹ NH₃-N in ponds with pH of 7.5 and above.
+Low concentrations of ammonia could damage gills and reduce growth or cause mortality. A 2020 article on water quality in aquaculture emphasized that preventing accumulation of toxic ammonia required diligence in monitoring both ammonia and phytoplankton (which take up ammonia as a food source) and responding quickly by reducing or stopping feeding, fertilizing to stimulate more phytoplankton, or exchanging water. The Global Aquaculture Alliance effluent standard for total ammonia nitrogen was initially 5 milligrams per liter, with a target of 3 milligrams per liter.
+2.5.3 Effects of Overfeeding on Water Quality Parameters
+Overfeeding represented a major cause of high ammonia concentrations in aquaculture systems. Research consistently demonstrated that organic turbidity, caused by uneaten feed, waste, and decaying organisms, was particularly dangerous as it fueled bacterial growth, leading to oxygen depletion and ammonia accumulation.
+Research on optimal dietary protein/energy ratio and phosphorus level on water quality in recirculating aquaculture systems revealed that the trend in water quality within 6 hours after feeding was similar among different feed groups. The relative concentrations of ammonia nitrogen, total nitrogen, active phosphate, and total phosphorus reached a maximum 2 hours after feeding, and the relative concentration of nitrite reached a maximum 1 hour after feeding. High protein/energy ratio feed increased the concentrations of total ammonia nitrogen and nitrite nitrogen, while high dietary phosphorus levels increased total phosphorus concentration in water.
+2.5.4 Precision Feeding and Water Quality Management
+Research consistently demonstrated that precision feeding systems reduced water pollution and improved fish survival rates compared to traditional feeding approaches. The precise control of feed delivery, based on real-time monitoring of environmental parameters, minimized waste production while ensuring adequate nutrition for optimal growth performance. This integration of water quality monitoring with feeding control represented a significant advancement in sustainable aquaculture practices.
+Smart feeding systems addressed water quality challenges by optimizing feed delivery to minimize waste while maintaining adequate nutrition. A 2023 study on improving aquaculture water quality using dual-input fuzzy logic control for ammonia nitrogen management proposed a closed-loop control system that integrated an ammonia nitrogen sensor and solenoid valves for water exchange. The experimental results demonstrated that the intelligent controller could rapidly eliminate ammonia nitrogen within the range of 2.0 ppm and maintain robust control in response to changes in ammonia nitrogen excretion from a school of fish, with power and water savings achieved above 95%.
+Integration of water quality sensors with feeding control systems allowed for real-time adjustments to feeding strategies based on environmental conditions. When water quality parameters indicated stress conditions, feeding could be reduced or temporarily suspended to prevent further deterioration. A 2024 study on IoT water quality monitoring and control system in moving bed biofilm reactor to reduce total ammonia nitrogen demonstrated that when the amount of dissolved oxygen in the bioreactor was optimal, the highest TAN removal efficiency reached 50%, with biofilm thickness reaching 119.88 μm.
+The economic implications of water quality management through precision feeding proved substantial. Poor water quality led to increased mortality, reduced growth rates, higher disease incidence, and increased treatment costs. By maintaining optimal water quality through precise feeding management, producers could achieve better production outcomes while reducing operational costs associated with water treatment and fish health management.
+CHAPTER 3
+3.1 Study Area and Experimental Setup
+This study was conducted to evaluate the effect of a smart assisted automatic fish feeder on the growth performance and nutrient utilization of African catfish (Clarias gariepinus). The experiment was designed as a comparative study between conventional manual feeding and smart automated feeding using a Q10 temperature-adjusted algorithm.
+The experimental setup consisted of two treatment groups: a control group that received manual feeding at fixed intervals and a treatment group that received automated feeding adjusted based on real-time water temperature measurements using the Q10 metabolic model.
+Figure 3.1: Experimental Setup Layout
+3.2 Materials
+3.2.1 Hardware Components
+The smart assisted automatic fish feeder system was designed and constructed using the following components:
+Table 3.1: Hardware Components Specification
+3.2.2 Component Descriptions
+LILYGO T-A7670 R2 Microcontroller: The LILYGO T-A7670 R2 served as the main controller for the smart fish feeder system. This development board integrated an ESP32-WROVER-B microcontroller with an A7670G 4G LTE Cat1 modem, enabling cellular connectivity in remote pond locations without WiFi access. The board featured a built-in 18650 battery holder with charging circuit, making it suitable for solar-powered applications. The ESP32 provided dual-core processing at 240MHz, 520KB SRAM, and multiple GPIO pins for interfacing with sensors and actuators. The A7670G modem supported LTE-FDD/LTE-TDD/GSM/GPRS/EDGE networks and enabled MQTT communication with the cloud backend for real-time data transmission and remote control.
+ESP32-CAM Module: The ESP32-CAM (AI-Thinker) module was employed for feeding verification through image capture. This module featured an OV2640 camera sensor capable of capturing 2-megapixel JPEG images at resolutions up to 1600×1200 pixels. The camera was positioned to capture images of the feeding area during each dispensing event, providing visual verification of feed delivery and enabling future analysis of fish feeding behavior. The module communicated with the main controller via UART serial interface at 115200 baud rate. Images were compressed as JPEG and uploaded to Cloudinary CDN through the cloud backend for storage and retrieval via the mobile application.
+NEMA 23 Stepper Motor: A NEMA 23 bipolar stepper motor was selected as the prime mover for the feed dispensing mechanism. The motor featured a step angle of 1.8 degrees (200 steps per revolution), rated current of 2.8A per phase, and holding torque sufficient to drive the auger under load. The NEMA 23 frame size (57mm × 57mm) provided adequate torque for dispensing fish feed pellets through the auger mechanism. The motor was operated at 30 RPM (800 steps per second with 8× microstepping), providing smooth rotation and precise feed quantity control. The stepper motor design ensured accurate positioning without the need for feedback sensors, as each step pulse corresponded to a known angular displacement.
+DM542 Stepper Motor Driver: The DM542 digital stepper driver was used to control the NEMA 23 motor. This driver accepted step and direction pulse signals from the ESP32 microcontroller and generated the appropriate current waveforms for the motor coils. The driver supported input voltages from 20V to 50V DC and output currents up to 4.2A, configurable via DIP switches. Microstepping was set to 8× (1600 steps per revolution) to achieve smoother motor operation and reduced vibration. The driver featured built-in overcurrent, overvoltage, and overtemperature protection. Control signals included PUL+ (step pulse), DIR+ (direction), and ENA+ (enable), with corresponding negative terminals connected to ground.
+20mm Wood Drill Auger: A 20mm diameter stainless steel wood drill auger bit was adapted as the feed dispensing mechanism. The auger featured a helical flighting with 20mm pitch, meaning each complete revolution of the auger advanced the feed material by approximately 20mm along the dispensing tube. Through calibration, it was determined that one revolution of the auger dispensed approximately 25 grams of commercial catfish pellets. This volumetric dispensing approach provided consistent feed delivery regardless of hopper fill level. The auger was housed in a PVC tube connected to the feed hopper, with the motor shaft coupled directly to the auger via a flexible coupling to accommodate minor misalignment.
+HX711 Load Cell Amplifier and 20kg Load Cell: The HX711 24-bit analog-to-digital converter (ADC) was paired with a 20kg capacity strain gauge load cell for precise weight measurement of the feed hopper. The HX711 provided high-resolution weight readings with a sensitivity of approximately 0.1 grams after calibration. The load cell was mounted beneath the feed hopper to continuously monitor feed level and detect when refilling was required. The system generated low-feed alerts when the hopper weight dropped below 10% of capacity (1.5kg remaining from 15kg total capacity). The HX711 communicated with the ESP32 via a two-wire interface (DOUT and SCK pins), with 10 samples averaged for each reading to reduce noise.
+DS18B20 Waterproof Temperature Sensor: The DS18B20 digital temperature sensor was used to monitor water temperature in real-time. This sensor featured a waterproof stainless steel probe with 1-meter cable length, suitable for submersion in the fish tank. The sensor provided 12-bit resolution (0.0625°C precision) with an accuracy of ±0.5°C over the range of -10°C to +85°C. Temperature readings were taken every 5 minutes and used by the Q10 algorithm to adjust feeding rates based on fish metabolic activity. The sensor communicated via the OneWire protocol, requiring only a single data pin plus a 4.7kΩ pull-up resistor to 3.3V. Water temperature data were logged to the cloud database for historical analysis and correlation with growth performance.
+JSN-SR04T Waterproof Ultrasonic Sensor: The JSN-SR04T waterproof ultrasonic distance sensor was employed for water level monitoring. This sensor featured an IP67-rated transducer probe suitable for outdoor and wet environments. The sensor operated by emitting ultrasonic pulses at 40kHz and measuring the time-of-flight for the echo return, with an effective range of 25cm to 400cm and accuracy of ±1cm. The sensor was mounted above the water surface to measure the distance to the water level, enabling detection of water level changes that could affect feeding operations. The sensor required two GPIO pins: TRIG (trigger pulse output) and ECHO (echo pulse input).
+Solar Panel (50-80W Monocrystalline): A monocrystalline solar panel rated at 50-80W served as the primary power source for the smart feeder system. Monocrystalline panels were selected for their higher efficiency (typically 18-22%) compared to polycrystalline alternatives, ensuring adequate power generation even during cloudy conditions. The panel output voltage (typically 18-21V open circuit) was regulated by the charge controller before charging the 12V battery. The solar-powered design eliminated the need for grid electricity, making the system suitable for deployment at remote pond locations. Panel orientation was optimized for maximum solar exposure based on the installation latitude.
+MPPT/PWM Charge Controller: A charge controller (MPPT or PWM type, 10-20A capacity) was used to regulate the charging of the 12V battery from the solar panel. The controller prevented overcharging and deep discharge of the battery, extending battery lifespan. MPPT (Maximum Power Point Tracking) controllers were preferred for their higher efficiency in converting solar panel output to battery charging current, particularly when panel voltage exceeded battery voltage significantly. The controller featured LED indicators for charging status and battery level, and provided load output terminals for powering the feeder electronics.
+12V Battery (Lead-Acid or LiFePO4): A 12V rechargeable battery with 12-20Ah capacity provided energy storage for the system, enabling operation during nighttime and cloudy periods when solar generation was insufficient. Two battery chemistry options were considered: sealed lead-acid (SLA) batteries offered lower initial cost but heavier weight and shorter cycle life (300-500 cycles), while lithium iron phosphate (LiFePO4) batteries provided lighter weight, longer cycle life (2000+ cycles), and better performance in high-temperature environments typical of tropical fish farming. The battery capacity was sized to provide at least 24 hours of autonomous operation without solar charging, accounting for the power consumption of the ESP32, sensors, and periodic motor operation.
+LM2596 DC-DC Step-Down Converter: Two LM2596-based adjustable DC-DC step-down (buck) converter modules were used to regulate the 12V battery voltage to the required levels for different components. One converter was set to output 5V for powering the ESP32-CAM and other 5V peripherals, while the second was set to 3.3V for sensors requiring lower voltage. The LM2596 provided up to 3A output current with efficiency typically exceeding 90%, minimizing power losses in the voltage conversion process. The adjustable output voltage was set using the onboard potentiometer and verified with a multimeter before connecting to sensitive electronics.
+Figure 3.2: Hardware Block Diagram
+3.2.3 Sensor Specifications
+Table 3.2: Sensor Specifications
+3.2.4 Motor Control System
+The feed dispensing mechanism utilized a NEMA 23 bipolar stepper motor coupled with a DM542 stepper driver and a 20mm wood drill auger. The motor control parameters were configured to achieve precise feed dispensing with the following specifications:
+		Table 3.3: Motor Control Parameters
+Figure 3.3: Motor Control Signal Timing Diagram
+DM542 DIP Switch Configuration:
+For 8 microstepping (1600 steps/rev): SW1=OFF, SW2=ON, SW3=ON
+For 2.8A motor current: SW4=ON, SW5=OFF, SW6=ON
+3.2.5 Software Technologies
+The smart fish feeder system comprised three software layers: embedded firmware running on the ESP32 microcontroller, a cloud backend providing API services and data storage, and a mobile application for user interaction and monitoring.
+Table 3.4: Software Technologies
+Firmware Layer: The embedded firmware was developed using PlatformIO IDE with the Arduino framework for ESP32. The firmware implemented sensor reading, motor control, feeding scheduling, Q10 algorithm calculations, and MQTT communication. The TinyGSM library provided abstraction for the A7670G LTE modem, enabling TCP/IP connectivity for MQTT messaging. Firmware was organized into modular components including DeviceManager, SensorManager, FeedingController, CommunicationManager, and PowerManager for maintainability and testing.
+Backend Layer: The cloud backend was developed in Go programming language using the Gin web framework. The backend provided RESTful API endpoints for user authentication, device management, feeding control, and data retrieval. PostgreSQL database stored user accounts, device configurations, feeding schedules, sensor readings, and feeding event logs. Redis provided caching for frequently accessed data and session management. The backend also implemented an MQTT client for bidirectional communication with feeder devices, enabling real-time commands and telemetry. The backend was deployed on Railway cloud platform for scalability and reliability.
+Mobile Application Layer: The mobile application was developed using Flutter framework with Dart programming language, enabling deployment on both iOS and Android platforms from a single codebase. The application provided user interface for device pairing, feeding schedule configuration, manual feeding triggers, real-time sensor monitoring, feeding history visualization, and alert notifications. Riverpod state management library was used for reactive UI updates and separation of business logic from presentation. The application communicated with the backend via HTTPS REST API calls and received push notifications for feeding events and alerts.
+Figure 3.4: Software Architecture Diagram
+3.3 Methods
+3.3.1 System Architecture
+The smart fish feeder system architecture consisted of three main layers: the hardware layer (sensors and actuators at the fish pond), the cloud infrastructure (backend services, database, and MQTT broker), and the mobile application layer (user interface for monitoring and control). Communication between the hardware layer and cloud infrastructure was established via LTE cellular network using MQTT protocol, while the mobile application communicated with the backend via HTTPS REST API.
+Figure 3.5: System Architecture Diagram
+3.3.2 Q10 Temperature-Adjusted Feeding Algorithm
+The Q10 model was employed to adjust feeding rates based on water temperature. The Q10 coefficient represented the factor by which metabolic rate increased for every 10°C rise in temperature. For African catfish (Clarias gariepinus), a Q10 value of 2.1 was used based on established literature (Hogendoorn, 1983; Hecht, 2013). This temperature-dependent feeding approach aimed to match feed supply with the metabolic demands of the fish, potentially improving feed conversion efficiency and reducing feed waste.
+Q10 Metabolic Adjustment Formula:
+FR_adj = SFR × Q10^((T - T_ref) / 10) × TIF
+Where:
+• FR_adj = Adjusted feeding rate (g/day)
+• SFR = Standard feeding rate (g/day)
+• Q10 = Temperature coefficient (2.1 for African catfish)
+• T = Current water temperature (°C)
+• T_ref = Reference temperature (25°C)
+• TIF = Thermal Inhibition Factor (penalty when T > 32°C or T < 18°C)
+Table 3.5: Q10 Algorithm Parameters
+Figure 3.6a: Feeding Control Algorithm - Decision Phase
+Figure 3.6b: Feeding Control Algorithm - Execution Phase
+3.3.3 Feed Dispensing Process
+The feed dispensing process involved calculating the required motor steps based on the target feed amount, executing the motor movement, and verifying the dispensed quantity using the load cell sensor. The process was initiated either by scheduled feeding times or manual commands from the mobile application.
+Motor Steps Calculation:
+Total_Steps = (Target_Grams / Grams_Per_Rev) × Steps_Per_Rev × Microsteps
+Motor RPM Calculation:
+RPM = (Steps_Per_Second × 60) / Effective_Steps_Per_Revolution
+RPM = (800 × 60) / 1600 = 30 RPM
+Dispensing Time Calculation:
+Time_Seconds = Total_Steps / Steps_Per_Second
+Feed Dispensing Rate:
+Dispensing_Rate = RPM × Grams_Per_Revolution = 30 × 25 = 750 grams/minute
+Table 3.6: Feed Dispensing Calculation Example
+		Figure 3.7a: Feed Dispensing Mechanism - Calculation Phase
+Figure 3.7b: Feed Dispensing Mechanism - Motor Execution Phase
+3.3.4 Experimental Design
+A completely randomized design (CRD) was employed with two treatment groups. African catfish fingerlings were randomly assigned to either the control group (manual feeding) or the treatment group (smart automated feeding). The experiment was conducted over an 8-week period with weekly measurements of growth parameters.
+Table 3.7: Experimental Design Parameters
+Figure 3.8: Experimental Design Flowchart
+3.3.5 Growth Performance Parameters
+The following growth performance parameters were measured and calculated to evaluate the effect of the smart feeding system on African catfish growth:
+Table 3.8: Growth Performance Parameters
+Specific Growth Rate (SGR) Formula:
+SGR = ((ln W₂ - ln W₁) / t) × 100
+Where:
+• W₂ = Final body weight (g)
+• W₁ = Initial body weight (g)
+• t = Time period (days)
+• ln = Natural logarithm
+Feed Conversion Ratio (FCR) Formula:
+FCR = Total Feed Consumed (g) / Total Weight Gain (g)
+Note: Lower FCR indicated better feed efficiency. Target FCR for catfish: 1.0 - 1.5
+3.3.6 Statistical Analysis
+Data collected from the experiment were analyzed using descriptive and inferential statistics. The Independent Samples t-Test was employed to compare the means of growth performance parameters between the control group (manual feeding) and the treatment group (smart automated feeding).
+Independent Samples t-Test:
+The t-Test was chosen as the appropriate statistical method because the study involved comparing the means of two independent groups (control vs. treatment). The following assumptions were verified before conducting the t-Test:
+1. Independence of observations: Fish were randomly assigned to groups
+2. Normal distribution: Data were tested for normality using Shapiro-Wilk test
+3. Homogeneity of variance: Levene's test was used to verify equal variances
+t-Test Formula:
+t = (X̄₁ - X̄₂) / √(s²p × (1/n₁ + 1/n₂))
+Where:
+• X̄₁, X̄₂ = Sample means of group 1 and group 2
+• s²p = Pooled variance
+• n₁, n₂ = Sample sizes of group 1 and group 2
+Pooled Variance Formula:
+s²p = ((n₁-1)s₁² + (n₂-1)s₂²) / (n₁ + n₂ - 2)
+Degrees of Freedom:
+df = n₁ + n₂ - 2
+Statistical Significance:
+A significance level of α = 0.05 was used for all statistical tests. Results were considered statistically significant when p < 0.05. The null hypothesis (H₀) stated that there was no significant difference between the means of the two groups, while the alternative hypothesis (H₁) stated that there was a significant difference.
+• H₀: μ₁ = μ₂ (No significant difference between groups)
+• H₁: μ₁ ≠ μ₂ (Significant difference exists between groups)
+Decision Rule:
+• If |t_calculated| > t_critical or p-value < 0.05: Reject H₀
+• If |t_calculated| ≤ t_critical or p-value ≥ 0.05: Fail to reject H₀
+Table 3.9: Statistical Analysis Methods
+3.3.7 Hardware Wiring Connections
+The following wiring connections were established between the microcontroller and peripheral components:
+Motor Driver Connections (DM542):
+Table 3.10: Motor Driver Wiring
+Sensor Connections:
+Table 3.11: Sensor Wiring Connections
+Figure 3.9: Complete Wiring Diagram
+3.4 Data Collection
+Data collection was performed automatically by the smart feeder system and manually for certain parameters. The following data were collected throughout the experiment:
+Water temperature: Recorded every 5 minutes via DS18B20 sensor
+Feed dispensed: Recorded for each feeding event via HX711 load cell
+Feeding images: Captured via ESP32-CAM for each feeding event
+Fish weight: Measured weekly using digital scale (individual sampling)
+Fish length: Measured weekly using measuring board
+Mortality: Recorded daily
+Water quality: Monitored weekly (pH, ammonia, nitrite)
+All sensor data were transmitted via LTE cellular connection to the cloud backend and stored in a PostgreSQL database for analysis. The mobile application provided real-time monitoring and historical data visualization. Feeding images were stored on Cloudinary CDN and linked to feeding event records in the database.
+3.5 Ethical Considerations
+This study was conducted in accordance with ethical guidelines for animal research. The fish were handled humanely, and proper care was taken to minimize stress during measurements. Water quality was maintained within optimal ranges for African catfish, and any fish showing signs of disease or distress were promptly treated or removed from the experiment. Feeding rates were designed to meet nutritional requirements without overfeeding, which could lead to water quality deterioration and health issues.
+REFERENCES
+Adeleke, L., and Akinola, J. B. (2025). Analysing food and fish consumption patterns in Nigeria: Insights from catfish consumption in Ijare, Akure North, Ondo State [Conference abstract]. In Tropentag 2025: Reconciling land system changes with planetary health (Bonn, Germany).
+Adewolu, M. A., Ikenweiwe, N. B., and Mulero, S. M. (2022). Performance and economic viability of Clarias gariepinus fed diets containing blends of vegetable oils. Aquaculture Reports, 24, 100963.
+Akhter, F., Siddiquei, H. R., Alahi, M. E. E., and Mukhopadhyay, S. C. (2021). Recent advancement of the sensors for monitoring the water quality parameters in smart fisheries farming. Computers, 10(3), 26.
+BusinessDay. (2024, July 9). High feed costs hurt Nigeria’s N120bn fish industry. BusinessDay Nigeria.
+Chukwu, G. U., Eyo, V. O., and Sani, N. A. (2023). Review on status of African catfish aquaculture in Nigeria. International Journal of Latest Technology in Engineering, Management and Applied Science, 12(8), 102–111.
+Dauda, A. B., Salele, H. A., and Orimogunje, O. G. (2022). Influence of feeding frequency and feeding time on growth performance and feed utilisation of African catfish (Clarias gariepinus Burchell 1822) fingerlings. Nigerian Journal of Animal Production, 49(1), 169–176.
+Dorgham, H. M., Hussein, M. K., El-Dakar, A. Y., and Badran, M. F. (2025). Evaluation of smart fish feeding system using artificial intelligence and internet of things under desert regions. Mediterranean Aquaculture Journal, 12(1), 40–51.
+Food and Agriculture Organization of the United Nations. (2023). Catfish: A big business for a big nation. Food and Agriculture Organization of the United Nations.
+Food and Agriculture Organization of the United Nations. (2024). The State of World Fisheries and Aquaculture 2024: Blue transformation in action. Food and Agriculture Organization of the United Nations.
+Hamed, S., Shahin, S., Younis, E. M., Abdel-Warith, A. A., Reda, R. M., and Abbass, A. (2024). Temperature and feeding frequency: Interactions with growth performance, feed utilization, and physiological indices of Nile tilapia (Oreochromis niloticus). Aquaculture International, 32, 1–21.
+Indriastuti, R., Mokoginta, I., Affandi, R., and Suprayudi, M. A. (2022). Cannibalism, survival and growth performance of juvenile African catfish (Clarias gariepinus) in relation to photoperiod and 17β-oestradiol treatment. Aquaculture Research, 53(8), 2891–2903.
+Lai, F., Li, Y., and Liu, J. (2025). Influence of water temperature on feed intake, appetite control, and energy partitioning in teleost fish. Frontiers in Physiology, 16, 1646208.
+Liu, Y., Chen, L., Wang, X., Zhang, H., and Li, M. (2025). Effects of body weight, temperature, and daily time periods on oxygen consumption rate of juvenile silver pomfret (Pampus argenteus). Aquaculture Research. Advance online publication.
+Mundim, K. C., Barroso, L. A., and Rizzi, L. G. (2020). Temperature coefficient (Q10) and its applications in biological processes. Ecological Modelling, 431, 109127.
+Murgod, P., Patil, S., and Desai, A. (2025). IoT-driven smart feeding systems: Advancing precision aquaculture. Vigyan Varta, 6(9), 13–18.
+N’Gbaramou, C. N., Kone, T., Ouattara, N. I., and Kouame, L. P. (2020). Dry feeds produced based on locally available feedstuffs for African catfish (Clarias gariepinus) juveniles rearing in earthen ponds. European Journal of Agriculture and Food Sciences, 2(4), 1–8.
+Ogunji, J., and Wuertz, S. (2023). Aquaculture development in Nigeria: The second biggest aquaculture producer in Africa. Water, 15(24), 4224.
+Ojelade, O. C., Adeyemi, R. S., and Alade, A. A. (2025). Unpredictable feeding patterns modulate the growth rate and antioxidant capacity of African catfish, Clarias gariepinus under culture conditions. Scientific African, 19, e02766.
+Panessiti, M., Gartner, G. E., Westneat, M. W., and Hale, M. E. (2021). Thermal sensitivity of axolotl feeding behaviors. Integrative and Comparative Biology, 61(2), 423–435.
+Pratiwy, F. M., Pratiwi, D. Y., and Kohbara, J. (2021). Machinery feeding development for sustainable aquaculture: Self-feeding system. International Journal of Fisheries and Aquatic Studies, 9(4), 449–453.
+Reda, R. M., El-Hady, M. A., and Selim, K. M. (2024). Implications of ammonia stress for the pathogenicity of Shewanella spp. in Oreochromis niloticus. Microbial Pathogenesis, 186, 106450.
+Srikulnath, K., Panthum, T., Singchat, W., Chaiyes, A., Prasanpan, J., Uno, U., Edem, U., and Obidiegwu, J. E. (2025). Addressing catfish (Clarias spp.) supply gap in Nigeria: A perspective on strategies for sustainable aquaculture growth. Sustainability, 17(21), 9645.
+Thornburg, J., Anderson, J., Wendelborn, C., and Blersch, D. (2025). Feed the fish: A review of aquaculture feeders and their strategic implementation. Journal of the World Aquaculture Society, 56(1), e13226.
+Thornburg, J., Kumar, V., and Singh, R. (2025). Feed the fish: A review of aquaculture feeders and their comparative efficiency. Journal of the World Aquaculture Society. Advance online publication.
+Turnip, M., Simbolon, A. I., and Manurung, T. (2025). Model of integrated system for feeding catfish and monitoring pond temperature based on IoT. Journal of Electronics Technology Exploration, 2(2), 26–32.
+Zhou, C., Xu, D., Chen, L., Zhang, S., Sun, C., Yang, X., and Wang, Y. (2018). Evaluation of fish feeding intensity in aquaculture using a convolutional neural network and machine vision. Aquaculture, 507, 457–465.
+
+--- TABLE 1 ---
+Component | Specification | Quantity | Purpose
+LILYGO T-A7670 R2 | ESP32 + A7670G LTE | 1 | Main controller with cellular connectivity
+ESP32-CAM-MB | OV2640 2MP Camera | 1 | Feeding image capture and verification
+NEMA 23 Stepper Motor | 2.8A, 1.8°/step, 200 steps/rev | 1 | Auger drive motor
+DM542 Stepper Driver | 4.2A, 20-50V DC | 1 | Motor control with microstepping
+20mm Wood Drill Auger | Stainless steel, 20mm pitch | 1 | Feed dispensing (25g/rev)
+HX711 + 20kg Load Cell | 24-bit ADC | 1 | Feed weight measurement
+DS18B20 | Waterproof, 1M cable | 1 | Water temperature sensing
+JSN-SR04T | Waterproof ultrasonic, 25-400cm | 1 | Water level detection
+Solar Panel | 50-80W monocrystalline | 1 | Primary power source
+Charge Controller | MPPT/PWM 10-20A | 1 | Battery charging
+12V Battery | 12-20Ah Lead-acid/LiFePO4 | 1 | Backup power storage
+LM2596 DC-DC | Adjustable step-down | 2 | Voltage regulation (5V and 3.3V)
+
+--- TABLE 2 ---
+Sensor | Model | Range | Accuracy | Interface | Purpose
+Temperature | DS18B20 | -55 to 125°C | ±0.5°C | OneWire | Water temperature monitoring
+Weight | HX711 + Load Cell | 0-20kg | ±0.1g | Digital SPI | Feed level measurement
+Water Level | JSN-SR04T | 25-400cm | ±1cm | Ultrasonic | Water level detection
+Camera | OV2640 | 2MP JPEG | VGA/SVGA | UART | Feeding image capture
+
+--- TABLE 3 ---
+Parameter | Value | Unit | Description
+Motor Type | NEMA 23 | - | Bipolar stepper motor
+Steps per Revolution | 200 | Steps | 1.8 degrees per step
+Microstepping | 8 | Microsteps | Set via DM542 DIP switches
+Effective Steps/Rev | 1600 | Steps | 200 × 8 microsteps
+Motor Current | 2.8 | Amperes | Peak current per phase
+Pulse Width | 5 | Μs | Minimum HIGH time for step pulse
+Step Delay | 1250 | Μs | Time between steps at 800 steps/sec
+Max Speed | 800 | steps/second | Limited for torque at load
+Motor RPM | 30 | RPM | (800 × 60) / 1600 steps
+Auger Diameter | 20 | mm | Wood drill auger bit
+Grams per Revolution | 25 | grams | Calibrated feed output
+Dispensing Rate | 750 | grams/minute | 30 RPM × 25g per rev
+
+--- TABLE 4 ---
+Layer | Technology | Version | Purpose
+Firmware | PlatformIO | 6.x | ESP32 development environment
+Firmware | Arduino Framework | 2.x | Hardware abstraction layer
+Firmware | TinyGSM | 0.11.x | LTE modem communication
+Backend | Go | 1.21+ | Server-side programming language
+Backend | Gin | 1.9+ | HTTP web framework
+Backend | PostgreSQL | 15+ | Relational database
+Backend | Redis | 7+ | Caching and sessions
+Mobile | Flutter | 3.16+ | Cross-platform UI framework
+Mobile | Dart | 3.2+ | Programming language
+Mobile | Riverpod | 2.4+ | State management
+Cloud | Railway | - | Backend hosting platform
+Cloud | Cloudinary | - | Image storage CDN
+
+--- TABLE 5 ---
+Parameter | Symbol | Value | Unit | Description
+Q10 Coefficient | Q10 | 2.1 | - | Metabolic rate temperature sensitivity
+Reference Temperature | T_ref | 25 | °C | Standard temperature for calculations
+Optimal Range | T_opt | 26-32 | °C | Best growth temperature for catfish
+Critical Low | T_crit_low | 18 | °C | Feeding reduced below this temperature
+Critical High | T_crit_high | 32 | °C | Feeding reduced above this temperature
+Thermal Inhibition | TIF | 0.3-0.8 | - | Penalty during thermal stress
+Standard Feeding Rate | SFR | 2-5 | % BW/day | Base feeding rate by body weight
+
+--- TABLE 6 ---
+Step | Calculation | Value | Unit
+Target Feed Amount | User input | 100 | grams
+Q10 Adjustment Factor | Q10^((T-25)/10) | 1.15 | -
+Adjusted Feed Amount | 100 × 1.15 | 115 | grams
+Revolutions Needed | 115 / 25 | 4.6 | revolutions
+Steps per Revolution | 200 × 8 | 1600 | steps
+Total Steps Required | 4.6 × 1600 | 7360 | steps
+Time per Step | 1 / 800 | 1.25 | milliseconds
+Total Dispensing Time | 7360 × 1.25 | 9.2 | seconds
+
+--- TABLE 7 ---
+Parameter | Control Group | Treatment Group
+Feeding Method | Manual | Smart Automatic Feeder
+Feeding Schedule | Fixed 3× daily | Q10-adjusted dynamic
+Feed Amount | 3% body weight fixed | Temperature-adjusted
+Temperature Monitoring | Manual thermometer | Continuous DS18B20 sensor
+Data Recording | Manual logbook | Automatic cloud logging
+Feeding Verification | Visual observation | ESP32-CAM image capture
+Number of Fish | 50 | 50
+Tank Size | 500 liters | 500 liters
+Duration | 8 weeks | 8 weeks
+Feed Type | Commercial catfish pellets | Commercial catfish pellets
+Water Exchange | 30% weekly | 30% weekly
+
+--- TABLE 8 ---
+Parameter | Formula | Unit | Description
+Weight Gain (WG) | WG = W₂ - W₁ | grams | Final weight minus initial weight
+Specific Growth Rate (SGR) | SGR = (ln W₂ - ln W₁) / t × 100 | %/day | Daily percentage growth rate
+Average Daily Gain (ADG) | ADG = WG / Days | g/day | Average weight gained per day
+Feed Conversion Ratio (FCR) | FCR = Feed Consumed / Weight Gain | ratio | Feed efficiency measure
+Protein Efficiency Ratio (PER) | PER = WG / Protein Intake | ratio | Protein utilization efficiency
+Feed Efficiency (FE) | FE = (WG / Feed) × 100 | % | Percentage of feed converted
+Condition Factor (K) | K = (W / L³) × 100 | - | Fish body condition index
+Survival Rate (SR) | SR = (Final / Initial) × 100 | % | Percentage of fish surviving
+
+--- TABLE 9 ---
+Parameter | Description
+Statistical Test | Independent Samples t-Test
+Significance Level (α) | 0.05
+Confidence Interval | 95%
+Software | SPSS / Microsoft Excel / Python (SciPy)
+Normality Test | Shapiro-Wilk Test
+Variance Test | Levene's Test
+Effect Size | Cohen's d
+
+--- TABLE 10 ---
+ESP32 Pin | DM542 Pin | Function
+GPIO32 | PUL+ | Step pulse signal
+GPIO33 | DIR+ | Direction control
+GPIO0 | ENA+ | Enable (active LOW)
+GND | PUL-, DIR-, ENA- | Common ground
+- | Power (12-48V DC) | Motor power supply
+- | A+, A-, B+, B- | NEMA 23 motor coils
+
+--- TABLE 11 ---
+Sensor | ESP32 Pin | Function
+HX711 DOUT | GPIO39 (VN) | Load cell data output
+HX711 SCK | GPIO5 | Load cell clock
+DS18B20 Data | GPIO23 | Temperature data (with 4.7kΩ pullup)
+JSN-SR04T TRIG | GPIO17 | Ultrasonic trigger
+JSN-SR04T ECHO | GPIO34 | Ultrasonic echo

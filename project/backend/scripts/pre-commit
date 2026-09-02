@@ -1,0 +1,275 @@
+#!/bin/bash
+
+# Smart Fish Feeder - Pre-commit Hook
+# This script runs comprehensive checks before allowing commits
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if we're in the backend directory
+if [ ! -f "go.mod" ]; then
+    print_error "Not in Go project directory. Please run from backend directory."
+    exit 1
+fi
+
+# Check for required tools
+check_tools() {
+    print_status "Checking required tools..."
+    
+    local missing_tools=()
+    
+    if ! command -v go &> /dev/null; then
+        missing_tools+=("go")
+    fi
+    
+    if ! command -v golangci-lint &> /dev/null; then
+        missing_tools+=("golangci-lint")
+    fi
+    
+    if ! command -v gosec &> /dev/null; then
+        missing_tools+=("gosec")
+    fi
+    
+    if [ ${#missing_tools[@]} -ne 0 ]; then
+        print_error "Missing required tools: ${missing_tools[*]}"
+        print_status "Run 'make install-tools' to install missing tools"
+        exit 1
+    fi
+    
+    print_success "All required tools are available"
+}
+
+# Check Go modules
+check_modules() {
+    print_status "Verifying Go modules..."
+    
+    if ! go mod verify; then
+        print_error "Go module verification failed"
+        exit 1
+    fi
+    
+    # Check for unused dependencies
+    if ! go mod tidy -diff; then
+        print_warning "Go modules need tidying. Run 'go mod tidy'"
+        go mod tidy
+    fi
+    
+    print_success "Go modules verified"
+}
+
+# Format check
+format_check() {
+    print_status "Checking code formatting..."
+    
+    local unformatted_files=$(gofmt -l .)
+    if [ -n "$unformatted_files" ]; then
+        print_error "The following files are not formatted:"
+        echo "$unformatted_files"
+        print_status "Run 'make fmt' to format files"
+        exit 1
+    fi
+    
+    print_success "All files are properly formatted"
+}
+
+# Vet check
+vet_check() {
+    print_status "Running go vet..."
+    
+    if ! go vet ./...; then
+        print_error "go vet failed"
+        exit 1
+    fi
+    
+    print_success "go vet passed"
+}
+
+# Lint check
+lint_check() {
+    print_status "Running linter..."
+    
+    if ! golangci-lint run --timeout=5m; then
+        print_error "Linting failed"
+        exit 1
+    fi
+    
+    print_success "Linting passed"
+}
+
+# Security check
+security_check() {
+    print_status "Running security scan..."
+    
+    if ! gosec -quiet ./...; then
+        print_error "Security scan failed"
+        exit 1
+    fi
+    
+    print_success "Security scan passed"
+}
+
+# Unit tests
+unit_tests() {
+    print_status "Running unit tests..."
+    
+    if ! go test -timeout=30s ./internal/services/...; then
+        print_error "Unit tests failed"
+        exit 1
+    fi
+    
+    print_success "Unit tests passed"
+}
+
+# Algorithm tests
+algorithm_tests() {
+    print_status "Running algorithm tests..."
+    
+    if ! go test -timeout=30s ./internal/algorithms/...; then
+        print_error "Algorithm tests failed"
+        exit 1
+    fi
+    
+    print_success "Algorithm tests passed"
+}
+
+# Coverage check
+coverage_check() {
+    print_status "Checking test coverage..."
+    
+    local coverage_file="coverage.out"
+    
+    # Generate coverage
+    if ! go test -coverprofile="$coverage_file" -covermode=atomic ./...; then
+        print_error "Coverage generation failed"
+        exit 1
+    fi
+    
+    # Check coverage threshold
+    local coverage=$(go tool cover -func="$coverage_file" | grep total | awk '{print $3}' | sed 's/%//')
+    local min_coverage=40
+    
+    if (( $(echo "$coverage < $min_coverage" | bc -l) )); then
+        print_error "Coverage $coverage% is below minimum $min_coverage%"
+        rm -f "$coverage_file"
+        exit 1
+    fi
+    
+    print_success "Coverage $coverage% meets minimum $min_coverage%"
+    rm -f "$coverage_file"
+}
+
+# Build check
+build_check() {
+    print_status "Checking build..."
+    
+    if ! go build -o /tmp/smart-fish-feeder ./cmd/server; then
+        print_error "Build failed"
+        exit 1
+    fi
+    
+    rm -f /tmp/smart-fish-feeder
+    print_success "Build successful"
+}
+
+# Check for large files
+large_files_check() {
+    print_status "Checking for large files..."
+    
+    local large_files=$(find . -type f -size +1M -not -path "./.git/*" -not -path "./vendor/*")
+    if [ -n "$large_files" ]; then
+        print_warning "Large files detected:"
+        echo "$large_files"
+        print_status "Consider using Git LFS for large files"
+    else
+        print_success "No large files detected"
+    fi
+}
+
+# Check for sensitive data (only actual hardcoded secrets, not variable names)
+sensitive_data_check() {
+    print_status "Checking for sensitive data..."
+    
+    # Only check for actual hardcoded credentials in config files
+    # Exclude: .go files (code), test files, scripts, binary files
+    local found_sensitive=false
+    
+    # Check .env files for real secrets (but not .env.example)
+    if [ -f ".env" ]; then
+        if grep -E "^(PASSWORD|SECRET|API_KEY|PRIVATE_KEY)=.+" .env 2>/dev/null | grep -v "=\$" | grep -v "=your_" | grep -v "=changeme"; then
+            print_warning "Potential secrets in .env file - ensure this is not committed"
+            found_sensitive=true
+        fi
+    fi
+    
+    # Check for AWS/cloud credentials
+    if grep -r -l "AKIA[0-9A-Z]{16}" --include="*.yaml" --include="*.yml" --include="*.json" --exclude-dir=.git --exclude-dir=vendor . 2>/dev/null; then
+        print_error "AWS access key found in config files"
+        found_sensitive=true
+    fi
+    
+    # Check for private keys in non-test files
+    if grep -r -l "BEGIN.*PRIVATE KEY" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.pem" --exclude-dir=.git --exclude-dir=vendor --exclude="*_test.go" . 2>/dev/null; then
+        print_error "Private key found in config files"
+        found_sensitive=true
+    fi
+    
+    if [ "$found_sensitive" = true ]; then
+        print_error "Potential sensitive data found"
+        print_status "Please review and remove sensitive data before committing"
+        exit 1
+    fi
+    
+    print_success "No sensitive data detected"
+}
+
+# Main execution
+main() {
+    echo "🚀 Smart Fish Feeder Pre-commit Checks"
+    echo "======================================"
+    
+    # Run all checks
+    check_tools
+    check_modules
+    format_check
+    vet_check
+    lint_check
+    security_check
+    sensitive_data_check
+    large_files_check
+    unit_tests
+    algorithm_tests
+    coverage_check
+    build_check
+    
+    echo ""
+    print_success "🎉 All pre-commit checks passed!"
+    print_status "Commit is ready to proceed"
+}
+
+# Run main function
+main "$@"

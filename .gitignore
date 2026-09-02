@@ -48,3 +48,28 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Large simulation files & binaries
+*.raw
+*.op.raw
+*.zip
+*.db
+*.log
+*.exe
+
+# Go
+backend/bin/
+backend/tmp/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins*
+
+# Graphify cache
+graphify-out/

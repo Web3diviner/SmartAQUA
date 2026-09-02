@@ -1,0 +1,49 @@
+# Smart Fish Feeder Backend - golangci-lint configuration
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  errcheck:
+    # Don't check error returns in test files for cleaner test code
+    exclude-functions:
+      - (smart-fish-feeder/internal/algorithms/math.Matrix).Set
+      - (smart-fish-feeder/internal/algorithms/math.Optimizer).SetBounds
+      - (smart-fish-feeder/internal/algorithms/math.Interpolator).SetData
+      - (smart-fish-feeder/internal/algorithms/sensor_fusion.KalmanFilter).SetObservationMatrix
+      - (smart-fish-feeder/internal/algorithms/sensor_fusion.KalmanFilter).SetMeasurementNoise
+      - (smart-fish-feeder/internal/algorithms/sensor_fusion.KalmanFilter).Update
+      - (smart-fish-feeder/internal/algorithms/sensor_fusion.ConfidenceCalculator).AddReading
+      - (smart-fish-feeder/internal/algorithms/sensor_fusion.OutlierFilter).AddSample
+      - (smart-fish-feeder/internal/services.FCRAnalyticsService).RecordFeedingData
+      - (smart-fish-feeder/internal/services.FCRAnalyticsService).RecordGrowthData
+
+issues:
+  # Exclude test files from certain checks
+  exclude-rules:
+    # Exclude errcheck in test files - test code often ignores errors for brevity
+    - path: _test\.go
+      linters:
+        - errcheck
+    
+    # Exclude staticcheck SA5011 (nil pointer) in test files where we check nil first
+    - path: _test\.go
+      linters:
+        - staticcheck
+      text: "SA5011"
+
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 10

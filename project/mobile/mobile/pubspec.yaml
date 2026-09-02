@@ -1,0 +1,106 @@
+name: smart_fish_feeder
+description: SmartAqua - IoT-enabled automated aquaculture monitoring and feeding system
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0-0
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^17.0.0
+
+  # Network & API
+  dio: ^5.4.3+1
+  retrofit: ^4.1.0
+  json_annotation: ^4.9.0
+
+  # BLE Communication
+  flutter_blue_plus: 1.32.12
+
+  # Local Storage
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.2.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Authentication
+  local_auth: ^2.2.0
+
+  # Push Notifications
+  firebase_core: ^4.3.0
+  firebase_messaging: ^16.1.0
+
+  # WebSocket
+  web_socket_channel: ^3.0.3
+
+  # Charts & Visualization
+  fl_chart: ^0.69.0
+
+  # QR Code Scanner
+  mobile_scanner: ^7.1.4
+
+  # Utilities
+  intl: ^0.20.2
+  logger: ^2.3.0
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
+  uuid: ^4.4.0
+  connectivity_plus: ^7.0.0
+  permission_handler: ^12.0.1
+
+  # Video Player
+  video_player: ^2.9.3
+  chewie: ^1.10.0
+
+  # Cryptography for ECDH
+  pointycastle: ^3.9.1
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
+  build_runner: ^2.4.9
+  retrofit_generator: ^8.2.1
+  json_serializable: ^6.8.0
+  freezed: ^2.5.2
+  riverpod_generator: ^2.4.0
+  hive_generator: ^2.0.1
+  mockito: ^5.4.4
+  mocktail: ^1.0.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/logo.png
+  adaptive_icon_background: "#A9DCD7"
+  adaptive_icon_foreground: assets/images/logo.png
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#EAF7F6"
+  image: assets/images/native_splash_logo.png
+  android_gravity: center
+  ios_content_mode: center
+  android_12:
+    color: "#EAF7F6"
+    image: assets/images/native_splash_logo.png

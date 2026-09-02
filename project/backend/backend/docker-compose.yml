@@ -1,0 +1,76 @@
+# Docker Compose configuration for Smart Fish Feeder Backend API
+# Includes the API, PostgreSQL database, and Redis cache
+
+version: '3.8'
+
+services:
+  # Go Backend Service
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SFF_DATABASE_HOST=db
+      - SFF_DATABASE_PORT=5432
+      - SFF_DATABASE_USER=smartfeeder
+      - SFF_DATABASE_PASSWORD=smartfeeder123
+      - SFF_DATABASE_DBNAME=smart_fish_feeder
+      - SFF_REDIS_HOST=redis
+      - SFF_REDIS_PORT=6379
+      - SFF_SERVER_DEBUG=true
+      - SFF_LOGGING_LEVEL=debug
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./configs:/root/configs
+    restart: unless-stopped
+    networks:
+      - smartfeeder-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=smart_fish_feeder
+      - POSTGRES_USER=smartfeeder
+      - POSTGRES_PASSWORD=smartfeeder123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - smartfeeder-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - smartfeeder-network
+    command: redis-server --appendonly yes
+
+  # Database Administration (optional)
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - smartfeeder-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  smartfeeder-network:
+    driver: bridge

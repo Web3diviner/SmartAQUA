@@ -1,0 +1,99 @@
+# Smart Fish Feeder API Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "30s"
+  write_timeout: "30s"
+  debug: true
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "smartfeeder"
+  password: "smartfeeder123"
+  dbname: "smart_fish_feeder"
+  sslmode: "disable"
+  timezone: "UTC"
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  secret_key: "your-secret-key-change-in-production"
+  access_token_duration: "1h"
+  refresh_token_duration: "720h" # 30 days
+
+logging:
+  level: "info"
+  format: "json"
+
+device:
+  binding_code_expiration: "10m"
+  max_binding_attempts: 3
+
+vision:
+  storage_path: "./storage/videos"
+  image_storage_path: "./storage/images"
+  max_storage_mb: 1024  # 1GB (fallback for local dev)
+  compression_on: true
+
+# Cloudinary Configuration (Production media storage)
+# Sign up at https://cloudinary.com and get credentials from Dashboard
+cloudinary:
+  cloud_name: ""        # Your Cloudinary cloud name
+  api_key: ""           # Your API key
+  api_secret: ""        # Your API secret
+  folder: "smart-fish-feeder"  # Root folder for all uploads
+  enabled: false        # Set to true when credentials are configured
+
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "smart-fish-feeder-backend"
+  username: ""
+  password: ""
+  clean_session: true
+  keep_alive: "60s"
+  connect_timeout: "30s"
+  reconnect_backoff: "5s"
+  max_reconnect: 10
+  qos: 1
+  tls_enabled: false
+
+ble:
+  session_timeout: "30m"
+  device_name_prefix: "SmartFeeder_"
+  max_active_sessions: 5
+
+websocket:
+  ping_interval: "54s"
+  write_timeout: "10s"
+  read_timeout: "60s"
+  max_message_size: 512
+  buffer_size: 256
+
+offline_sync:
+  max_retries: 5
+  retry_backoff: "30s"
+  cleanup_interval: "24h"
+  data_retention: "168h"  # 7 days
+  high_priority_min: 4
+  compression_level: 9
+
+cellular:
+  data_limit_mb: 500
+  cost_per_mb: 0.01
+  low_signal_threshold: 10
+  report_interval: "1h"
+  alert_threshold_pct: 80.0
+
+power:
+  low_battery_threshold: 20.0
+  critical_battery_threshold: 10.0
+  solar_min_voltage: 12.0
+  battery_full_voltage: 14.4
+  battery_empty_voltage: 11.0
+  power_check_interval: "5m"
