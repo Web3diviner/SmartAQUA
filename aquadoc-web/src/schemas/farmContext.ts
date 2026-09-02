@@ -216,7 +216,7 @@ export function formToFarmContext(form: FarmContextForm): FarmContext {
 
 /** Which water measurements the simulator is currently leaving unknown. */
 export function unmeasuredParameters(form: FarmContextForm): string[] {
-  const labels = {
+  const labels: Record<keyof WaterQuality, string> = {
     temperature_c: 'Temperature',
     ph: 'pH',
     dissolved_oxygen_mg_l: 'Dissolved Oxygen',
@@ -231,9 +231,9 @@ export function unmeasuredParameters(form: FarmContextForm): string[] {
     water_level_cm: 'Water Level',
     alkalinity_mg_l: 'Alkalinity',
     hardness_mg_l: 'Hardness',
-  } as const
+  }
   const water = formToFarmContext(form).water
-  return (Object.keys(labels) as (keyof typeof labels)[])
+  return (Object.keys(labels) as (keyof WaterQuality)[])
     .filter((key) => water[key] === null || water[key] === undefined)
     .map((key) => labels[key])
 }
