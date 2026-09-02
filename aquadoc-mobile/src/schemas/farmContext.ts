@@ -194,5 +194,5 @@ export function unmeasuredParameters(form: FarmContextForm): string[] {
   const water = formToFarmContext(form).water
   return (Object.keys(labels) as (keyof WaterQuality)[])
     .filter((key) => water[key] === null)
-    .map((key) => labels[key])
+    .map((key) => labels[key] ?? String(key))
 }
