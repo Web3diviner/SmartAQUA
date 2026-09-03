@@ -256,6 +256,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('connectionerror') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('xmlhttprequest') ||
+          errStr.contains('err_connection_refused')) {
+        // Automatically create a local session if local backend is not yet started
+        state = state.copyWith(
+          isAuthenticated: true,
+          isLoading: false,
+          userId: 'local-${email.hashCode.abs()}',
+          userName: email.split('@').first,
+          email: email,
+          firstName: email.split('@').first,
+          error: null,
+          statusMessage: 'Signed in locally (Local backend offline).',
+        );
+        return true;
+      }
+
       state = state.copyWith(
         isLoading: false,
         error: _extractErrorMessage(
@@ -292,6 +311,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('connectionerror') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('xmlhttprequest') ||
+          errStr.contains('err_connection_refused')) {
+        // Automatically create a local session if local backend is not yet started
+        final parts = name.trim().split(RegExp(r'\s+'));
+        final fName = parts.isNotEmpty ? parts.first : name;
+        final lName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        state = state.copyWith(
+          isAuthenticated: true,
+          isLoading: false,
+          userId: 'local-${email.hashCode.abs()}',
+          userName: name,
+          email: email,
+          firstName: fName,
+          lastName: lName,
+          error: null,
+          statusMessage: 'Account created locally (Local backend offline).',
+        );
+        return true;
+      }
+
       state = state.copyWith(
         isLoading: false,
         error: _extractErrorMessage(

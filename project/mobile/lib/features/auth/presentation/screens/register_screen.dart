@@ -39,7 +39,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
 
       if (success && mounted) {
-        context.go('/login');
+        final authState = ref.read(authStateProvider);
+        if (authState.isAuthenticated) {
+          context.go('/dashboard');
+        } else {
+          context.go('/login');
+        }
       }
     }
   }

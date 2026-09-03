@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/device.dart';
 import '../../../../core/models/feeding.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/device_provider.dart';
@@ -288,7 +289,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: _HeroStat(
                   label: 'Connected',
                   value: '${devices.length} Units',
-                  sub: '${devices.where((d) => d.isOnline).length} Active Online',
+                  sub: '${devices.where((Device d) => d.isOnline).length} Active Online',
                   icon: Icons.hub_outlined,
                   color: AppTheme.primaryCyan,
                 ),
@@ -331,7 +332,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
         : 'Q10: 1.05x';
 
-    final onlineCount = deviceState.devices.where((d) => d.isOnline).length;
+    final List<Device> devList = deviceState.devices is List<Device>
+        ? (deviceState.devices as List<Device>)
+        : <Device>[];
+    final onlineCount = devList.where((Device d) => d.isOnline).length;
 
     return GridView.count(
       crossAxisCount: 2,
