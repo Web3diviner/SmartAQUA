@@ -331,7 +331,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
         : 'Q10: 1.05x';
 
-    final onlineCount = deviceState.devices.where((d) => d.status.name == 'online').length;
+    final onlineCount = deviceState.devices.where((d) => d.isOnline).length;
 
     return GridView.count(
       crossAxisCount: 2,
