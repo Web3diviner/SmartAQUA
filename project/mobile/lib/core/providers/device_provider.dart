@@ -124,63 +124,12 @@ class DeviceListNotifier extends StateNotifier<DeviceListState> {
         _logger.w('DeviceList load failed (status=$status)');
       }
     } catch (e) {
-      final mockDevices = [
-        Device(
-          id: 'SFF-001',
-          name: 'Pond 1 Feeder (SmartAQUA)',
-          serialNumber: 'SFF-ESP32-84920',
-          isOnline: true,
-          lastSeen: DateTime.now(),
-          status: const DeviceStatus(
-            batteryLevel: 94.0,
-            feedLevel: 78.0,
-            waterTemperature: 28.4,
-            signalStrength: 4,
-            isSolarCharging: true,
-            solarVoltage: 4.15,
-            connectionType: 'wifi',
-          ),
-          config: const DeviceConfig(
-            timezone: 'Africa/Lagos',
-            notificationsEnabled: true,
-            lowFeedThreshold: 20.0,
-            lowBatteryThreshold: 20.0,
-            highTempThreshold: 32.0,
-            lowTempThreshold: 20.0,
-          ),
-        ),
-        Device(
-          id: 'CAM-01',
-          name: 'Pond 1 AquaVision Cam',
-          serialNumber: 'CAM-OV2640-3910',
-          isOnline: true,
-          lastSeen: DateTime.now(),
-          status: const DeviceStatus(
-            batteryLevel: 88.0,
-            feedLevel: 0.0,
-            waterTemperature: 28.5,
-            signalStrength: 4,
-            isSolarCharging: true,
-            solarVoltage: 4.10,
-            connectionType: 'wifi',
-          ),
-          config: const DeviceConfig(
-            timezone: 'Africa/Lagos',
-            notificationsEnabled: true,
-            lowFeedThreshold: 20.0,
-            lowBatteryThreshold: 20.0,
-            highTempThreshold: 32.0,
-            lowTempThreshold: 20.0,
-          ),
-        ),
-      ];
-
       state = state.copyWith(
-        devices: mockDevices,
+        devices: const [],
         isLoading: false,
         error: null,
       );
-      _logger.w('DeviceList using offline demo devices (remote unreachable: $e)');
+      _logger.w('DeviceList empty or remote unreachable: $e');
     }
   }
 

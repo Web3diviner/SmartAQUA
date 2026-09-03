@@ -219,7 +219,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         : 'Connect Feeder';
 
     final facilitySub = devices.isEmpty
-        ? 'No feeders connected • Tap + to pair'
+        ? 'No device connected • Tap + to pair'
         : '${devices.length} Connected Unit${devices.length == 1 ? '' : 's'} • Live Monitoring';
 
     return Container(
@@ -288,10 +288,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Expanded(
                 child: _HeroStat(
                   label: 'Connected',
-                  value: '${devices.length} Units',
-                  sub: '${devices.where((Device d) => d.isOnline).length} Active Online',
+                  value: devices.isEmpty ? '0 Connected' : '${devices.length} Units',
+                  sub: devices.isEmpty ? 'No Machine Linked' : '${devices.where((Device d) => d.isOnline).length} Active Online',
                   icon: Icons.hub_outlined,
-                  color: AppTheme.primaryCyan,
+                  color: devices.isEmpty ? Colors.grey : AppTheme.primaryCyan,
                 ),
               ),
               Container(width: 1, height: 45, color: Colors.white12),
@@ -301,7 +301,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   value: sensorData != null && sensorData.waterTemperature > 0
                       ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
                       : '-- °C',
-                  sub: sensorData != null ? 'Telemetry Sync' : 'Awaiting Sensor',
+                  sub: sensorData != null ? 'Telemetry Sync' : (devices.isEmpty ? 'No Sensor' : 'Awaiting Sensor'),
                   icon: Icons.thermostat,
                   color: AppTheme.primaryTeal,
                 ),
@@ -327,10 +327,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final sensorData = ref.watch(sensorDataProvider).currentData;
     final tempStr = sensorData != null && sensorData.waterTemperature > 0
         ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
-        : '28.4 °C';
+        : '-- °C';
     final q10Factor = sensorData != null && sensorData.waterTemperature > 0
         ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
-        : 'Q10: 1.05x';
+        : 'Q10: --';
 
     final List<Device> devList = deviceState.devices is List<Device>
         ? (deviceState.devices as List<Device>)
@@ -347,34 +347,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         _SensorCard(
           title: 'Dissolved Oxygen',
-          value: '5.8 mg/L',
-          badge: 'OPTIMAL',
+          value: sensorData != null && sensorData.dissolvedOxygen > 0 ? '${sensorData.dissolvedOxygen.toStringAsFixed(1)} mg/L' : '-- mg/L',
+          badge: devList.isEmpty ? 'OFFLINE' : 'OPTIMAL',
           icon: Icons.air,
-          color: AppTheme.primaryCyan,
+          color: devList.isEmpty ? Colors.grey : AppTheme.primaryCyan,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
           title: 'Water Temperature',
           value: tempStr,
-          badge: q10Factor,
+          badge: devList.isEmpty ? 'OFFLINE' : q10Factor,
           icon: Icons.thermostat,
-          color: Colors.orangeAccent,
+          color: devList.isEmpty ? Colors.grey : Colors.orangeAccent,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
           title: 'Ammonia TAN',
-          value: '0.15 mg/L',
-          badge: 'SAFE (<2.0)',
+          value: sensorData != null && sensorData.ammoniaTAN > 0 ? '${sensorData.ammoniaTAN.toStringAsFixed(2)} mg/L' : '-- mg/L',
+          badge: devList.isEmpty ? 'OFFLINE' : 'SAFE (<2.0)',
           icon: Icons.science_outlined,
-          color: Colors.purpleAccent,
+          color: devList.isEmpty ? Colors.grey : Colors.purpleAccent,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
-          title: 'Active Feeders',
-          value: deviceState.devices.isEmpty ? '0 Registered' : '$onlineCount / ${deviceState.devices.length} Online',
-          badge: '${todayFeedings.length} Feeds Today',
+          title: 'Connected Feeder',
+          value: devList.isEmpty ? 'No device connected' : '$onlineCount / ${devList.length} Online',
+          badge: devList.isEmpty ? '0 Paired' : '${todayFeedings.length} Feeds Today',
           icon: Icons.router_outlined,
-          color: AppTheme.primaryTeal,
+          color: devList.isEmpty ? Colors.grey : AppTheme.primaryTeal,
           onTap: () => context.go('/devices'),
         ),
       ],
