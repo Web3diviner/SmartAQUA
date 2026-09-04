@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/farm_provider.dart';
 import '../../../../core/providers/monitoring_provider.dart';
 
 class LiteratureCitation {
@@ -242,26 +243,54 @@ class _AquaDocChatScreenState extends ConsumerState<AquaDocChatScreen> {
       body: Column(
         children: [
           // Live Injected Context Strip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey.withOpacity(0.08),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _ContextChip(icon: Icons.waves, label: 'Pond 1', value: 'Catfish 1.5t'),
-                  const SizedBox(width: 8),
-                  _ContextChip(icon: Icons.air, label: 'DO', value: '5.8 mg/L'),
-                  const SizedBox(width: 8),
-                  _ContextChip(icon: Icons.thermostat, label: 'Temp', value: '28.4°C'),
-                  const SizedBox(width: 8),
-                  _ContextChip(icon: Icons.science, label: 'TAN', value: '0.15 mg/L'),
-                  const SizedBox(width: 8),
-                  _ContextChip(icon: Icons.warning_amber, label: 'Missing', value: 'NO2, Alk', isWarning: true),
-                ],
+          Builder(builder: (context) {
+            final farmUnits = ref.watch(farmUnitsProvider).units;
+            final sensorData = ref.watch(sensorDataProvider).currentData;
+            final activeUnit = farmUnits.firstOrNull;
+
+            final pondLabel = activeUnit != null ? activeUnit.name : 'No Ponds Set';
+            final pondValue = activeUnit != null ? '${activeUnit.species.split(" ").first} (${activeUnit.totalBiomassKg.toStringAsFixed(0)}kg)' : 'Manual Setup';
+            
+            final doValue = activeUnit?.manualDO != null
+                ? '${activeUnit!.manualDO!.toStringAsFixed(1)} mg/L (Lab)'
+                : '-- mg/L (Unmeasured)';
+            
+            final tempValue = (sensorData != null && sensorData.waterTemperature > 0)
+                ? '${sensorData.waterTemperature.toStringAsFixed(1)}°C (Live)'
+                : (activeUnit?.manualTemp != null
+                    ? '${activeUnit!.manualTemp!.toStringAsFixed(1)}°C (Lab)'
+                    : '-- °C');
+            
+            final tanValue = activeUnit?.manualTAN != null
+                ? '${activeUnit!.manualTAN!.toStringAsFixed(2)} mg/L (Lab)'
+                : '-- mg/L (Unmeasured)';
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey.withOpacity(0.08),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _ContextChip(icon: Icons.waves, label: pondLabel, value: pondValue),
+                    const SizedBox(width: 8),
+                    _ContextChip(icon: Icons.air, label: 'DO', value: doValue),
+                    const SizedBox(width: 8),
+                    _ContextChip(icon: Icons.thermostat, label: 'Temp', value: tempValue),
+                    const SizedBox(width: 8),
+                    _ContextChip(icon: Icons.science, label: 'TAN', value: tanValue),
+                    const SizedBox(width: 8),
+                    _ContextChip(
+                      icon: Icons.warning_amber,
+                      label: 'Missing Tests',
+                      value: activeUnit?.manualDO == null ? 'DO, TAN, Alk' : 'Alkalinity, NO2',
+                      isWarning: true,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }),
 
           // Message List
           Expanded(

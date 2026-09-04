@@ -7,6 +7,7 @@ import '../../../../core/models/feeding.dart';
 import '../../../../core/providers/app_preferences_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/farm_provider.dart';
 import '../../../../core/providers/feeding_provider.dart';
 import '../../../../core/providers/monitoring_provider.dart';
 
@@ -219,20 +220,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildHeroFarmCard(BuildContext context) {
     final devices = ref.watch(devicesProvider);
+    final farmUnits = ref.watch(farmUnitsProvider).units;
     final sensorData = ref.watch(sensorDataProvider).currentData;
     final alerts = ref.watch(alertsProvider).alerts;
 
+    final totalBiomass = farmUnits.fold<double>(0, (sum, u) => sum + u.totalBiomassKg);
+    final totalFishCount = farmUnits.fold<int>(0, (sum, u) => sum + u.fishCount);
     final healthScore = alerts.isEmpty ? 100 : (100 - (alerts.length * 10)).clamp(50, 100);
+
+    final unitWithTemp = farmUnits.where((u) => u.manualTemp != null).firstOrNull;
+    final String tempStr = (sensorData != null && sensorData.waterTemperature > 0)
+        ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
+        : (unitWithTemp?.manualTemp != null
+            ? '${unitWithTemp!.manualTemp!.toStringAsFixed(1)} °C'
+            : '-- °C');
+    final String tempSub = (sensorData != null && sensorData.waterTemperature > 0)
+        ? 'Live DS18B20'
+        : (unitWithTemp?.manualTemp != null ? 'Manual Lab Test' : 'No Probe / Test');
+
     final hopperStr = sensorData != null && sensorData.feedLevel > 0
         ? '${sensorData.feedLevel.toStringAsFixed(0)}% Full'
-        : (devices.isNotEmpty ? 'Hopper OK' : 'No Hardware');
+        : (devices.isNotEmpty ? 'Hopper OK' : 'No Feeder');
     final hopperSub = sensorData != null && sensorData.feedLevel > 0
         ? '${(sensorData.feedLevel * 0.05).toStringAsFixed(1)} kg Remaining'
-        : 'Connect Feeder';
+        : (devices.isNotEmpty ? 'Linked to Machine' : 'No Feeder Linked');
 
-    final facilitySub = devices.isEmpty
-        ? 'No device connected • Tap + to pair'
-        : '${devices.length} Connected Unit${devices.length == 1 ? '' : 's'} • Live Monitoring';
+    final facilitySub = farmUnits.isEmpty
+        ? (devices.isEmpty ? 'No units configured • Tap "My Ponds" to add' : '${devices.length} Hardware Node${devices.length == 1 ? '' : 's'} Linked')
+        : '${farmUnits.length} Production Unit${farmUnits.length == 1 ? '' : 's'} • $totalFishCount Fish Stored';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -299,23 +314,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Expanded(
                 child: _HeroStat(
-                  label: 'Connected',
-                  value: devices.isEmpty ? '0 Connected' : '${devices.length} Units',
-                  sub: devices.isEmpty ? 'No Machine Linked' : '${devices.where((Device d) => d.isOnline).length} Active Online',
-                  icon: Icons.hub_outlined,
-                  color: devices.isEmpty ? Colors.grey : AppTheme.primaryCyan,
+                  label: 'Farm Biomass',
+                  value: farmUnits.isEmpty ? '0.0 kg' : '${totalBiomass.toStringAsFixed(1)} kg',
+                  sub: farmUnits.isEmpty ? 'No Ponds Set' : '$totalFishCount Stocked Fish',
+                  icon: Icons.waves,
+                  color: farmUnits.isEmpty ? Colors.grey : AppTheme.primaryCyan,
                 ),
               ),
               Container(width: 1, height: 45, color: Colors.white12),
               Expanded(
                 child: _HeroStat(
                   label: 'Water Temp',
-                  value: sensorData != null && sensorData.waterTemperature > 0
-                      ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
-                      : '-- °C',
-                  sub: sensorData != null ? 'Telemetry Sync' : (devices.isEmpty ? 'No Sensor' : 'Awaiting Sensor'),
+                  value: tempStr,
+                  sub: tempSub,
                   icon: Icons.thermostat,
-                  color: AppTheme.primaryTeal,
+                  color: (sensorData != null && sensorData.waterTemperature > 0 || unitWithTemp != null)
+                      ? AppTheme.primaryTeal
+                      : Colors.grey,
                 ),
               ),
               Container(width: 1, height: 45, color: Colors.white12),
@@ -325,7 +340,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   value: hopperStr,
                   sub: hopperSub,
                   icon: Icons.inventory_2_outlined,
-                  color: AppTheme.neonAmber,
+                  color: devices.isEmpty ? Colors.grey : AppTheme.neonAmber,
                 ),
               ),
             ],
@@ -337,17 +352,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildSensorMatrix(BuildContext context, dynamic deviceState, dynamic todayFeedings, dynamic alertsState) {
     final sensorData = ref.watch(sensorDataProvider).currentData;
-    final tempStr = sensorData != null && sensorData.waterTemperature > 0
-        ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
-        : '-- °C';
-    final q10Factor = sensorData != null && sensorData.waterTemperature > 0
-        ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
-        : 'Q10: --';
+    final farmUnits = ref.watch(farmUnitsProvider).units;
+    final unitWithDO = farmUnits.where((u) => u.manualDO != null).firstOrNull;
+    final unitWithTAN = farmUnits.where((u) => u.manualTAN != null).firstOrNull;
+    final unitWithTemp = farmUnits.where((u) => u.manualTemp != null).firstOrNull;
 
     final List<Device> devList = deviceState.devices is List<Device>
         ? (deviceState.devices as List<Device>)
         : <Device>[];
     final onlineCount = devList.where((Device d) => d.isOnline).length;
+
+    // Dissolved Oxygen: Hardware Sensor > Manual Lab Entry > Unmeasured
+    final String doStr = unitWithDO?.manualDO != null
+        ? '${unitWithDO!.manualDO!.toStringAsFixed(1)} mg/L'
+        : '-- mg/L';
+    final String doBadge = unitWithDO?.manualDO != null
+        ? (unitWithDO!.manualDO! >= 4.0 ? 'OPTIMAL (LAB)' : 'LOW DO (<4.0)')
+        : 'UNMEASURED (NO PROBE)';
+    final Color doColor = unitWithDO?.manualDO != null
+        ? (unitWithDO!.manualDO! >= 4.0 ? AppTheme.primaryCyan : Colors.orangeAccent)
+        : Colors.grey;
+
+    // Water Temp: Hardware Sensor > Manual Lab Entry > Unmeasured
+    final String tempStr = (sensorData != null && sensorData.waterTemperature > 0)
+        ? '${sensorData.waterTemperature.toStringAsFixed(1)} °C'
+        : (unitWithTemp?.manualTemp != null
+            ? '${unitWithTemp!.manualTemp!.toStringAsFixed(1)} °C'
+            : '-- °C');
+    final String tempBadge = (sensorData != null && sensorData.waterTemperature > 0)
+        ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
+        : (unitWithTemp?.manualTemp != null
+            ? 'MANUAL LAB'
+            : 'UNMEASURED (NO PROBE)');
+    final Color tempColor = (sensorData != null && sensorData.waterTemperature > 0 || unitWithTemp != null)
+        ? Colors.orangeAccent
+        : Colors.grey;
+
+    // Ammonia TAN: Hardware Sensor > Manual Lab Entry > Unmeasured
+    final String tanStr = unitWithTAN?.manualTAN != null
+        ? '${unitWithTAN!.manualTAN!.toStringAsFixed(2)} mg/L'
+        : '-- mg/L';
+    final String tanBadge = unitWithTAN?.manualTAN != null
+        ? (unitWithTAN!.manualTAN! < 0.5 ? 'SAFE (<0.5)' : 'ELEVATED')
+        : 'UNMEASURED (NO PROBE)';
+    final Color tanColor = unitWithTAN?.manualTAN != null
+        ? (unitWithTAN!.manualTAN! < 0.5 ? Colors.purpleAccent : Colors.orangeAccent)
+        : Colors.grey;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -359,26 +409,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         _SensorCard(
           title: 'Dissolved Oxygen',
-          value: devList.isEmpty ? '-- mg/L' : '5.8 mg/L',
-          badge: devList.isEmpty ? 'OFFLINE' : 'OPTIMAL',
+          value: doStr,
+          badge: doBadge,
           icon: Icons.air,
-          color: devList.isEmpty ? Colors.grey : AppTheme.primaryCyan,
+          color: doColor,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
           title: 'Water Temperature',
           value: tempStr,
-          badge: devList.isEmpty ? 'OFFLINE' : q10Factor,
+          badge: tempBadge,
           icon: Icons.thermostat,
-          color: devList.isEmpty ? Colors.grey : Colors.orangeAccent,
+          color: tempColor,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
           title: 'Ammonia TAN',
-          value: devList.isEmpty ? '-- mg/L' : '0.15 mg/L',
-          badge: devList.isEmpty ? 'OFFLINE' : 'SAFE (<2.0)',
+          value: tanStr,
+          badge: tanBadge,
           icon: Icons.science_outlined,
-          color: devList.isEmpty ? Colors.grey : Colors.purpleAccent,
+          color: tanColor,
           onTap: () => context.go('/monitoring'),
         ),
         _SensorCard(
@@ -394,6 +444,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAquaDocCard(BuildContext context) {
+    final farmUnits = ref.watch(farmUnitsProvider).units;
+    final sensorData = ref.watch(sensorDataProvider).currentData;
+    final unitWithDO = farmUnits.where((u) => u.manualDO != null).firstOrNull;
+    final totalBiomass = farmUnits.fold<double>(0, (sum, u) => sum + u.totalBiomassKg);
+    final totalFishCount = farmUnits.fold<int>(0, (sum, u) => sum + u.fishCount);
+
+    String aquadocSummary;
+    if (farmUnits.isEmpty) {
+      aquadocSummary = 'No production units configured yet. Tap "My Ponds" to add your ponds and activate clinical bioenergetic tracking.';
+    } else if (sensorData == null && unitWithDO == null) {
+      aquadocSummary = '${farmUnits.length} pond${farmUnits.length == 1 ? '' : 's'} registered ($totalFishCount fish, ${totalBiomass.toStringAsFixed(0)} kg). Enter water test measurements in Farm Operations to evaluate DO/TAN biosecurity.';
+    } else {
+      aquadocSummary = 'Monitoring ${farmUnits.length} unit${farmUnits.length == 1 ? '' : 's'} (${totalBiomass.toStringAsFixed(1)} kg standing biomass). Bioenergetics aligned for ${farmUnits.first.species.split(" ").first}.';
+    }
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -439,7 +504,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'DO & TAN nominal. Bioenergetic model projecting 800g table size in 48 days.',
+                  aquadocSummary,
                   style: TextStyle(color: Colors.grey[300], fontSize: 12, height: 1.3),
                 ),
               ],

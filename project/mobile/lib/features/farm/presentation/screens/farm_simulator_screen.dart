@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/farm_unit.dart';
+import '../../../../core/providers/farm_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../widgets/digital_twin_3d_visualizer.dart';
 
@@ -170,8 +172,30 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
     });
   }
 
+  void _importFromUnit(FarmUnit unit) {
+    setState(() {
+      _selectedPreset = 'custom';
+      _tankLengthM = unit.lengthM;
+      _tankWidthM = unit.widthM;
+      _tankDepthM = unit.depthM;
+      _population = unit.fishCount;
+      _initialWeightG = unit.avgWeightGrams;
+      _productionDay = unit.daysInProduction.clamp(1, 180);
+      if (unit.manualTemp != null) _waterTempC = unit.manualTemp!;
+      if (unit.manualDO != null) _dissolvedOxygenMgL = unit.manualDO!;
+      if (unit.manualTAN != null) _ammoniaTanMgL = unit.manualTAN!;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Imported "${unit.name}" (${unit.lengthM}m × ${unit.widthM}m, ${unit.fishCount} fish) into Simulator!'),
+        backgroundColor: AppTheme.deviceOnline,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final farmUnits = ref.watch(farmUnitsProvider).units;
     final sgr = _effectiveSGR;
     final harvestDays = _daysToHarvest;
     final projectedBiomass = _projectedHarvestBiomassKg;
@@ -206,6 +230,44 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (farmUnits.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.waves, color: Theme.of(context).colorScheme.primary, size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Import Real Pond Configuration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text('Load your exact pond dimensions & stock', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<FarmUnit>(
+                    icon: const Icon(Icons.file_download_outlined),
+                    tooltip: 'Select Pond to Import',
+                    onSelected: _importFromUnit,
+                    itemBuilder: (ctx) => farmUnits
+                        .map((u) => PopupMenuItem(
+                              value: u,
+                              child: Text('${u.name} (${u.fishCount} fish, ${u.lengthM}×${u.widthM}m)'),
+                            ))
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           // Scenario Preset Chips
           Text(
             'Preset Scenarios',
@@ -250,6 +312,14 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
                   isSelected: _selectedPreset == 'ras_dense',
                   onTap: () => _applyPreset('ras_dense'),
                 ),
+                if (_selectedPreset == 'custom') ...[
+                  const SizedBox(width: 8),
+                  _PresetChip(
+                    label: '📌 Custom / Imported Pond',
+                    isSelected: true,
+                    onTap: () {},
+                  ),
+                ],
               ],
             ),
           ),

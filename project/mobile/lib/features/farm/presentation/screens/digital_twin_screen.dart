@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/device.dart';
+import '../../../../core/models/farm_unit.dart';
 import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/farm_provider.dart';
+import '../../../../core/providers/monitoring_provider.dart';
 import '../widgets/digital_twin_3d_visualizer.dart';
 
 class DigitalTwinScreen extends ConsumerStatefulWidget {
@@ -13,31 +17,64 @@ class DigitalTwinScreen extends ConsumerStatefulWidget {
 }
 
 class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
-  double _timelineHour = 14.0; // Current time: 14:00 (2:00 PM)
-  String _selectedUnit = 'Earthen Pond 1';
-
-  // Digital Twin Facets calculated based on timeline hour
-  double get _calcDO => (5.8 + 0.8 * (1 - ((_timelineHour - 14).abs() / 12))).clamp(2.8, 7.2);
-  double get _calcTemp => (28.4 + 1.2 * (1 - ((_timelineHour - 15).abs() / 12))).clamp(25.0, 31.0);
-  double get _calcTAN => (0.15 + (_timelineHour >= 12 && _timelineHour <= 18 ? 0.05 : 0.0)).clamp(0.05, 0.4);
-  double get _calcSurfaceBoil => (_timelineHour == 8 || _timelineHour == 13 || _timelineHour == 17) ? 82.0 : 24.0;
-  bool get _isInterlockActive => _calcDO < 3.0;
+  double _timelineHour = 14.0; // 14:00 (2:00 PM)
+  String? _selectedUnitId;
 
   @override
   Widget build(BuildContext context) {
+    final farmUnits = ref.watch(farmUnitsProvider).units;
     final devices = ref.watch(devicesProvider);
-    final availableUnits = devices.isNotEmpty
-        ? devices.map((d) => d.name).toList()
-        : ['Production Pond 1', 'Nursery Tank 2', 'RAS Alpha'];
-    if (!availableUnits.contains(_selectedUnit)) {
-      _selectedUnit = availableUnits.first;
+    final sensorData = ref.watch(sensorDataProvider).currentData;
+
+    // Resolve selected farm unit
+    FarmUnit? activeUnit;
+    if (farmUnits.isNotEmpty) {
+      if (_selectedUnitId != null && farmUnits.any((u) => u.id == _selectedUnitId)) {
+        activeUnit = farmUnits.firstWhere((u) => u.id == _selectedUnitId);
+      } else {
+        activeUnit = farmUnits.first;
+        _selectedUnitId = activeUnit.id;
+      }
     }
 
-    final doValue = _calcDO;
-    final tempValue = _calcTemp;
-    final tanValue = _calcTAN;
-    final boilScore = _calcSurfaceBoil;
-    final isBlocked = _isInterlockActive;
+    // Resolve Physical Dimensions & Fish Stock
+    final tankLength = activeUnit?.lengthM ?? 15.0;
+    final tankWidth = activeUnit?.widthM ?? 9.0;
+    final tankDepth = activeUnit?.depthM ?? 1.5;
+    final population = activeUnit?.fishCount ?? 3000;
+    final avgWeight = activeUnit?.avgWeightGrams ?? 250.0;
+    final biomass = activeUnit?.totalBiomassKg ?? (population * avgWeight / 1000.0);
+    final species = activeUnit?.species ?? 'African Catfish (Clarias gariepinus)';
+    final productionDays = activeUnit?.daysInProduction ?? 60;
+    final volumeM3 = activeUnit?.volumeM3 ?? (tankLength * tankWidth * tankDepth);
+    final density = volumeM3 > 0 ? (biomass / volumeM3) : 0.0;
+
+    // Resolve Environmental Telemetry: Hardware Sensor > Manual Lab Entry > Timeline Estimation
+    final liveTemp = (sensorData != null && sensorData.waterTemperature > 0) ? sensorData.waterTemperature : null;
+    final manualTemp = activeUnit?.manualTemp;
+    final baseTemp = liveTemp ?? manualTemp ?? 28.0;
+    final tempValue = (baseTemp + 0.8 * (1 - ((_timelineHour - 14).abs() / 12))).clamp(22.0, 34.0);
+
+    final manualDO = activeUnit?.manualDO;
+    final baseDO = manualDO ?? 5.5;
+    final doValue = (baseDO + 0.9 * (1 - ((_timelineHour - 14).abs() / 12))).clamp(2.4, 8.0);
+
+    final manualTAN = activeUnit?.manualTAN;
+    final baseTAN = manualTAN ?? 0.18;
+    final tanValue = (baseTAN + (_timelineHour >= 12 && _timelineHour <= 18 ? 0.04 : 0.0)).clamp(0.02, 1.2);
+
+    final boilScore = (_timelineHour == 8 || _timelineHour == 13 || _timelineHour == 17) ? 82.0 : 24.0;
+    final isBlocked = doValue < 3.0;
+
+    // Estimated Survival & Mortality
+    final estMortality = ((productionDays * 0.0008 + (doValue < 3.5 ? 0.03 : 0.0)) * population).clamp(0, population * 0.4).toInt();
+    final survivalRate = population > 0 ? (((population - estMortality) / population) * 100.0).clamp(60.0, 100.0) : 100.0;
+
+    // Linked hardware device for selected unit
+    Device? linkedDevice;
+    if (activeUnit?.linkedDeviceId != null) {
+      linkedDevice = devices.where((d) => d.id == activeUnit!.linkedDeviceId).firstOrNull;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +101,7 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Pond Selector & State Header
+          // Unit Selector & State Header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -90,20 +127,29 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedUnit,
-                        dropdownColor: const Color(0xFF203A43),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                        items: availableUnits
-                            .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedUnit = val);
-                        },
+                    if (farmUnits.isNotEmpty)
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedUnitId,
+                          dropdownColor: const Color(0xFF203A43),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                          items: farmUnits
+                              .map((u) => DropdownMenuItem(
+                                    value: u.id,
+                                    child: Text('${u.name} (${u.volumeM3.toStringAsFixed(0)} m³)'),
+                                  ))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedUnitId = val);
+                          },
+                        ),
+                      )
+                    else
+                      const Text(
+                        'Sandbox / Unconfigured Farm',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -112,7 +158,7 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
                         border: Border.all(color: isBlocked ? Colors.white : Colors.greenAccent),
                       ),
                       child: Text(
-                        isBlocked ? 'SAFETY INTERLOCK ACTIVE' : 'TWIN STATE: OPTIMAL',
+                        isBlocked ? 'SAFETY INTERLOCK ACTIVE' : 'TWIN STATE: NOMINAL',
                         style: TextStyle(
                           color: isBlocked ? Colors.white : Colors.greenAccent,
                           fontSize: 10,
@@ -133,7 +179,7 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      'Biomass: 1,552 kg',
+                      'Biomass: ${biomass.toStringAsFixed(1)} kg',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ],
@@ -170,7 +216,35 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          if (farmUnits.isEmpty)
+            Card(
+              color: Colors.blueGrey.withOpacity(0.15),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.cyanAccent),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'You are viewing a Sandbox simulation. Add your real ponds in Farm Operations to synchronize physical dimensions and stock counts.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
+                      onPressed: () => context.go('/farm'),
+                      child: const Text('Add Pond', style: TextStyle(fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (farmUnits.isEmpty) const SizedBox(height: 16),
 
           // Interlock Alert Banner if active
           if (isBlocked) ...[
@@ -205,16 +279,16 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             dissolvedOxygen: doValue,
             temperature: tempValue,
             ammoniaTan: tanValue,
-            avgWeightG: 320.0,
-            biomassKg: 1511.0,
-            population: 4850,
-            tankLengthM: 15.0,
-            tankWidthM: 9.0,
-            tankDepthM: 1.5,
-            productionPeriodDays: 85,
-            survivalRate: 97.4,
-            mortalityCount: 126,
-            species: 'Clarias gariepinus',
+            avgWeightG: avgWeight,
+            biomassKg: biomass,
+            population: population,
+            tankLengthM: tankLength,
+            tankWidthM: tankWidth,
+            tankDepthM: tankDepth,
+            productionPeriodDays: productionDays,
+            survivalRate: survivalRate,
+            mortalityCount: estMortality,
+            species: species,
           ),
           const SizedBox(height: 20),
 
@@ -231,10 +305,26 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             icon: Icons.thermostat,
             iconColor: Colors.blue,
             metrics: [
-              _MetricItem(label: 'Dissolved Oxygen', value: '${doValue.toStringAsFixed(1)} mg/L', isAlert: doValue < 3.0),
-              _MetricItem(label: 'Water Temperature', value: '${tempValue.toStringAsFixed(1)} °C', isAlert: tempValue < 20 || tempValue > 34),
-              _MetricItem(label: 'pH Level', value: '7.4', isAlert: false),
-              _MetricItem(label: 'TAN Ammonia', value: '${tanValue.toStringAsFixed(2)} mg/L', isAlert: tanValue > 1.0),
+              _MetricItem(
+                label: 'Dissolved Oxygen',
+                value: manualDO != null ? '${doValue.toStringAsFixed(1)} mg/L (Lab)' : '${doValue.toStringAsFixed(1)} mg/L (Sim)',
+                isAlert: doValue < 3.0,
+              ),
+              _MetricItem(
+                label: 'Water Temperature',
+                value: liveTemp != null ? '${tempValue.toStringAsFixed(1)} °C (Live)' : '${tempValue.toStringAsFixed(1)} °C',
+                isAlert: tempValue < 20 || tempValue > 34,
+              ),
+              _MetricItem(
+                label: 'pH Level',
+                value: activeUnit?.manualPh != null ? activeUnit!.manualPh!.toStringAsFixed(1) : '7.2 (Nominal)',
+                isAlert: false,
+              ),
+              _MetricItem(
+                label: 'TAN Ammonia',
+                value: manualTAN != null ? '${tanValue.toStringAsFixed(2)} mg/L (Lab)' : '${tanValue.toStringAsFixed(2)} mg/L (Sim)',
+                isAlert: tanValue > 0.8,
+              ),
               _MetricItem(label: 'DO Saturation', value: '${(doValue / 7.8 * 100).toInt()}%', isAlert: false),
               _MetricItem(label: 'Nitrite (NO2)', value: '0.02 mg/L', isAlert: false),
             ],
@@ -248,83 +338,88 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             icon: Icons.set_meal,
             iconColor: Colors.teal,
             metrics: [
-              const _MetricItem(label: 'Species', value: 'Clarias gariepinus'),
-              const _MetricItem(label: 'Initial Stock Set', value: '4,850 fish'),
-              const _MetricItem(label: 'Active Surviving Stock', value: '4,724 fish (97.4% Survival)'),
-              const _MetricItem(label: 'Cumulative Mortality', value: '126 fish (Natural baseline)'),
-              const _MetricItem(label: 'Stocking Density', value: '7.46 kg/m³ (202.5 m³ Pond)'),
-              const _MetricItem(label: 'Production Timeline', value: 'Day 85 / 180 (Growout)'),
-              const _MetricItem(label: 'Average Weight', value: '320 g'),
-              const _MetricItem(label: 'Total Standing Biomass', value: '1,511 kg'),
-              const _MetricItem(label: 'Specific Growth Rate', value: '2.45 %/day'),
+              _MetricItem(label: 'Species', value: species.split('(').first.trim()),
+              _MetricItem(label: 'Initial Stock Set', value: '$population fish'),
+              _MetricItem(label: 'Surviving Stock', value: '${population - estMortality} fish (${survivalRate.toStringAsFixed(1)}%)'),
+              _MetricItem(label: 'Cumulative Mortality', value: '$estMortality fish'),
+              _MetricItem(label: 'Stocking Density', value: '${density.toStringAsFixed(1)} kg/m³ (${volumeM3.toStringAsFixed(0)} m³)'),
+              _MetricItem(label: 'Production Timeline', value: 'Day $productionDays / 180'),
+              _MetricItem(label: 'Average Weight', value: '${avgWeight.toStringAsFixed(0)} g'),
+              _MetricItem(label: 'Total Standing Biomass', value: '${biomass.toStringAsFixed(1)} kg'),
             ],
           ),
           const SizedBox(height: 12),
 
-          // FACET 3: Feeding
+          // FACET 3: Feeding Automation
           _FacetCard(
             facetNumber: '3',
             facetName: 'Feeding Automation Facet',
             icon: Icons.restaurant,
             iconColor: Colors.orange,
             metrics: [
-              const _MetricItem(label: 'Dispensed Today', value: '550 g'),
-              const _MetricItem(label: 'Daily Target', value: '800 g (3 rations)'),
-              const _MetricItem(label: 'Cumulative FCR', value: '1.18'),
-              _MetricItem(label: 'Q10 Factor', value: '${(1.0 + (tempValue - 28.0) * 0.05).clamp(0.8, 1.2).toStringAsFixed(2)}x'),
+              _MetricItem(label: 'Daily Target Feed', value: '${(biomass * 0.025).toStringAsFixed(1)} kg (2.5% BW)'),
+              _MetricItem(label: 'Target FCR', value: '1.20'),
+              _MetricItem(label: 'Q10 Factor', value: '${(1.0 + (tempValue - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'),
               _MetricItem(label: 'Interlock Status', value: isBlocked ? 'LOCKED (NO FEED)' : 'UNLOCKED (SAFE)', isAlert: isBlocked),
-              const _MetricItem(label: 'Next Feed Event', value: '17:00 (250g)'),
+              _MetricItem(label: 'Rations / Day', value: '3 feeds (08:00, 13:00, 17:00)'),
+              _MetricItem(label: 'Next Feed Quantity', value: '${(biomass * 0.025 / 3.0).toStringAsFixed(2)} kg'),
             ],
           ),
           const SizedBox(height: 12),
 
-          // FACET 4: Equipment
-          const _FacetCard(
+          // FACET 4: Equipment & Actuation
+          _FacetCard(
             facetNumber: '4',
             facetName: 'Physical Equipment Facet',
             icon: Icons.devices,
             iconColor: Colors.indigo,
             metrics: [
-              _MetricItem(label: 'Feeder Node', value: 'SFF-ESP32-84920 (ONLINE)'),
-              _MetricItem(label: 'Hopper Feed Level', value: '78% (3.9 kg left)'),
-              _MetricItem(label: 'Battery Charge', value: '94% (LiFePO4)'),
-              _MetricItem(label: 'Solar Panel Voltage', value: '4.15 V (Charging)'),
-              _MetricItem(label: 'Aerator Relay', value: 'ON (10 hrs/day)'),
-              _MetricItem(label: 'WiFi Signal (RSSI)', value: '-58 dBm'),
+              _MetricItem(
+                label: 'Linked Feeder Node',
+                value: linkedDevice != null ? '${linkedDevice.name} (${linkedDevice.isOnline ? "ONLINE" : "OFFLINE"})' : 'No Hardware Node',
+              ),
+              _MetricItem(
+                label: 'Hopper Feed Level',
+                value: (sensorData != null && sensorData.feedLevel > 0) ? '${sensorData.feedLevel.toInt()}% Full' : (linkedDevice != null ? 'Connected' : 'Unlinked'),
+              ),
+              _MetricItem(
+                label: 'Battery Charge',
+                value: (sensorData != null && sensorData.batteryLevel > 0) ? '${sensorData.batteryLevel.toInt()}%' : '--',
+              ),
+              _MetricItem(
+                label: 'Solar Voltage',
+                value: (sensorData != null && sensorData.solarVoltage > 0) ? '${sensorData.solarVoltage.toStringAsFixed(1)} V' : '--',
+              ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // FACET 5: Vision
+          // FACET 5: Vision & Behavior
           _FacetCard(
             facetNumber: '5',
             facetName: 'AquaVision Edge Facet',
             icon: Icons.videocam,
             iconColor: Colors.purple,
             metrics: [
-              const _MetricItem(label: 'Camera Node', value: 'CAM-OV2640-3910 (ONLINE)'),
               _MetricItem(label: 'Surface Boil Score', value: '${boilScore.toInt()} / 100'),
-              _MetricItem(label: 'Feeding Activity', value: boilScore > 60 ? 'HIGH (Aggressive)' : 'QUIET (Basal)'),
-              _MetricItem(label: 'Gasping Score', value: isBlocked ? '84% (SURFACE PIPING)' : '4% (Normal)', isAlert: isBlocked),
-              const _MetricItem(label: 'Turbidity Index', value: '14.2 NTU'),
-              const _MetricItem(label: 'Model FPS', value: '12.4 fps (Edge ESP32)'),
+              _MetricItem(label: 'Feeding Appetite', value: boilScore > 60 ? 'HIGH (Aggressive)' : 'NORMAL'),
+              _MetricItem(label: 'Gasping Indicator', value: isBlocked ? 'SURFACE PIPING (DO Low)' : 'Normal', isAlert: isBlocked),
+              const _MetricItem(label: 'Turbidity Index', value: 'Normal'),
             ],
           ),
           const SizedBox(height: 12),
 
-          // FACET 6: Intelligence
+          // FACET 6: Intelligence & Bioenergetics
           _FacetCard(
             facetNumber: '6',
             facetName: 'Intelligence & Decision Facet',
             icon: Icons.psychology,
             iconColor: Colors.blueAccent,
             metrics: [
-              const _MetricItem(label: 'AquaDoc Agent', value: 'CONNECTED (Hybrid RAG)'),
-              _MetricItem(label: 'Clinical State', value: isBlocked ? 'HYPOXIA WARNING' : 'NOMINAL (HEALTHY)', isAlert: isBlocked),
-              const _MetricItem(label: 'Literature Grounding', value: 'Active (Boyd et al. 2021)'),
-              const _MetricItem(label: 'Missing Parameters', value: 'Alkalinity, Hardness (UNKNOWN)'),
-              const _MetricItem(label: 'Active Alerts', value: '0 Unresolved'),
-              const _MetricItem(label: 'Next Recommended Action', value: 'Maintain current feeding schedule'),
+              const _MetricItem(label: 'AquaDoc Agent', value: 'ACTIVE (Grounding)'),
+              _MetricItem(label: 'Clinical Assessment', value: isBlocked ? 'HYPOXIA INTERVENT' : 'NOMINAL HEALTH', isAlert: isBlocked),
+              _MetricItem(label: 'Harvest Projection', value: '${activeUnit?.targetHarvestWeightGrams.toInt() ?? 800}g Target'),
+              _MetricItem(label: 'Biosecurity Risk', value: doValue < 3.5 ? 'ELEVATED' : 'LOW RISK', isAlert: doValue < 3.5),
             ],
           ),
           const SizedBox(height: 24),

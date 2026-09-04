@@ -2,40 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/farm_unit.dart';
+import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/farm_provider.dart';
+import '../../../../core/providers/monitoring_provider.dart';
 import '../../../../core/theme/app_theme.dart';
-
-class ProductionUnitItem {
-  final String id;
-  final String name;
-  final String type; // pond, tank, ras, cage
-  final String species;
-  final int fishCount;
-  final double avgWeightGrams;
-  final double targetHarvestWeightGrams;
-  final double dissolvedOxygen;
-  final double temperature;
-  final double ph;
-  final double tanAmmonia;
-  final String status;
-
-  const ProductionUnitItem({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.species,
-    required this.fishCount,
-    required this.avgWeightGrams,
-    required this.targetHarvestWeightGrams,
-    required this.dissolvedOxygen,
-    required this.temperature,
-    required this.ph,
-    required this.tanAmmonia,
-    this.status = 'optimal',
-  });
-
-  double get totalBiomassKg => (fishCount * avgWeightGrams) / 1000.0;
-  double get growthProgress => (avgWeightGrams / targetHarvestWeightGrams).clamp(0.0, 1.0);
-}
 
 class FarmManagementScreen extends ConsumerStatefulWidget {
   const FarmManagementScreen({super.key});
@@ -45,53 +16,294 @@ class FarmManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
-  final List<ProductionUnitItem> _units = [
-    const ProductionUnitItem(
-      id: 'unit-01',
-      name: 'Earthen Pond 1 (Main Growout)',
-      type: 'Earthen Pond',
-      species: 'African Catfish (Clarias)',
-      fishCount: 4850,
-      avgWeightGrams: 320.0,
-      targetHarvestWeightGrams: 800.0,
-      dissolvedOxygen: 5.8,
-      temperature: 28.4,
-      ph: 7.4,
-      tanAmmonia: 0.15,
-      status: 'optimal',
-    ),
-    const ProductionUnitItem(
-      id: 'unit-02',
-      name: 'Concrete Tank 2 (Nursery)',
-      type: 'Concrete Tank',
-      species: 'Nile Tilapia (Oreochromis)',
-      fishCount: 8200,
-      avgWeightGrams: 45.0,
-      targetHarvestWeightGrams: 450.0,
-      dissolvedOxygen: 6.2,
-      temperature: 27.9,
-      ph: 7.8,
-      tanAmmonia: 0.22,
-      status: 'optimal',
-    ),
-    const ProductionUnitItem(
-      id: 'unit-03',
-      name: 'RAS Tank Alpha (Broodstock)',
-      type: 'RAS High-Density',
-      species: 'African Catfish (Broodstock)',
-      fishCount: 350,
-      avgWeightGrams: 1450.0,
-      targetHarvestWeightGrams: 2000.0,
-      dissolvedOxygen: 6.8,
-      temperature: 28.1,
-      ph: 7.2,
-      tanAmmonia: 0.08,
-      status: 'optimal',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(deviceListProvider.notifier).loadDevices();
+    });
+  }
 
-  void _showLogSamplingDialog(ProductionUnitItem unit) {
-    final weightController = TextEditingController(text: '${unit.avgWeightGrams}');
+  void _showAddUnitDialog() {
+    final nameController = TextEditingController(text: 'Pond ${_unitsCount() + 1}');
+    String selectedType = 'Earthen Pond';
+    String selectedSpecies = 'African Catfish (Clarias gariepinus)';
+    final populationController = TextEditingController(text: '3000');
+    final weightController = TextEditingController(text: '150');
+    final targetWeightController = TextEditingController(text: '800');
+    final lengthController = TextEditingController(text: '15.0');
+    final widthController = TextEditingController(text: '9.0');
+    final depthController = TextEditingController(text: '1.5');
+    String? selectedDeviceId;
+
+    final devices = ref.read(devicesProvider);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.add_circle_outline, color: AppTheme.primaryCyan),
+              SizedBox(width: 8),
+              Text('Add Production Unit'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Unit Name / Label'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  decoration: const InputDecoration(labelText: 'System / Enclosure Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'Earthen Pond', child: Text('Earthen Pond')),
+                    DropdownMenuItem(value: 'Concrete Tank', child: Text('Concrete Tank')),
+                    DropdownMenuItem(value: 'Tarpaulin Tank', child: Text('Tarpaulin Tank')),
+                    DropdownMenuItem(value: 'RAS High-Density', child: Text('RAS High-Density')),
+                    DropdownMenuItem(value: 'Cage Enclosure', child: Text('Cage Enclosure')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedType = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedSpecies,
+                  decoration: const InputDecoration(labelText: 'Cultured Species'),
+                  items: const [
+                    DropdownMenuItem(value: 'African Catfish (Clarias gariepinus)', child: Text('African Catfish (Clarias)')),
+                    DropdownMenuItem(value: 'Nile Tilapia (Oreochromis niloticus)', child: Text('Nile Tilapia (Oreochromis)')),
+                    DropdownMenuItem(value: 'Heterobranchus longifilis', child: Text('Heterobranchus (Vundu)')),
+                    DropdownMenuItem(value: 'Heterobranchus × Clarias Hybrid', child: Text('Hetero-clarias Hybrid')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedSpecies = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: populationController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Initial Stock Count', suffixText: 'fish'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: weightController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Current Avg Weight', suffixText: 'g'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: targetWeightController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Target Harvest Weight', suffixText: 'g'),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Physical Dimensions (Meters)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.cyanAccent),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: lengthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Length (m)'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: widthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Width (m)'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: depthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Depth (m)'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (devices.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String?>(
+                    value: selectedDeviceId,
+                    decoration: const InputDecoration(labelText: 'Link Hardware Feeder Node (Optional)'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('No Hardware Link (Manual unit)')),
+                      ...devices.map((d) => DropdownMenuItem(
+                            value: d.id,
+                            child: Text('${d.name} (${d.isOnline ? "Online" : "Offline"})'),
+                          )),
+                    ],
+                    onChanged: (val) => setDialogState(() => selectedDeviceId = val),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                final pop = int.tryParse(populationController.text) ?? 1000;
+                final weight = double.tryParse(weightController.text) ?? 100.0;
+                final targetW = double.tryParse(targetWeightController.text) ?? 800.0;
+                final length = double.tryParse(lengthController.text) ?? 12.0;
+                final width = double.tryParse(widthController.text) ?? 8.0;
+                final depth = double.tryParse(depthController.text) ?? 1.5;
+
+                final newUnit = FarmUnit(
+                  id: 'unit-${DateTime.now().millisecondsSinceEpoch}',
+                  name: nameController.text.trim().isEmpty ? 'Pond' : nameController.text.trim(),
+                  type: selectedType,
+                  species: selectedSpecies,
+                  fishCount: pop,
+                  avgWeightGrams: weight,
+                  targetHarvestWeightGrams: targetW,
+                  lengthM: length,
+                  widthM: width,
+                  depthM: depth,
+                  linkedDeviceId: selectedDeviceId,
+                  stockedAt: DateTime.now(),
+                  lastSampledAt: DateTime.now(),
+                );
+
+                ref.read(farmUnitsProvider.notifier).addUnit(newUnit);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Added ${newUnit.name}! Dimensions: ${length}m × ${width}m (${newUnit.volumeM3.toStringAsFixed(0)} m³)'),
+                    backgroundColor: AppTheme.deviceOnline,
+                  ),
+                );
+              },
+              child: const Text('Create Unit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _unitsCount() {
+    return ref.read(farmUnitsProvider).units.length;
+  }
+
+  void _showEditUnitDialog(FarmUnit unit) {
+    final nameController = TextEditingController(text: unit.name);
+    final countController = TextEditingController(text: '${unit.fishCount}');
+    final targetController = TextEditingController(text: '${unit.targetHarvestWeightGrams.toInt()}');
+    final lengthController = TextEditingController(text: '${unit.lengthM}');
+    final widthController = TextEditingController(text: '${unit.widthM}');
+    final depthController = TextEditingController(text: '${unit.depthM}');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit ${unit.name}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Unit Name'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: countController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Current Fish Stock Count', suffixText: 'fish'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: targetController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Target Harvest Weight', suffixText: 'g'),
+              ),
+              const SizedBox(height: 14),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Dimensions (m)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: lengthController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Length'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: widthController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Width'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: depthController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Depth'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final updated = unit.copyWith(
+                name: nameController.text.trim().isEmpty ? unit.name : nameController.text.trim(),
+                fishCount: int.tryParse(countController.text) ?? unit.fishCount,
+                targetHarvestWeightGrams: double.tryParse(targetController.text) ?? unit.targetHarvestWeightGrams,
+                lengthM: double.tryParse(lengthController.text) ?? unit.lengthM,
+                widthM: double.tryParse(widthController.text) ?? unit.widthM,
+                depthM: double.tryParse(depthController.text) ?? unit.depthM,
+              );
+              ref.read(farmUnitsProvider.notifier).updateUnit(updated);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogSamplingDialog(FarmUnit unit) {
+    final weightController = TextEditingController(text: '${unit.avgWeightGrams.toInt()}');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -101,7 +313,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Enter the new average fish weight (grams) measured during pond sampling.',
+              'Enter the measured average fish weight from sampling:',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -109,9 +321,8 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               controller: weightController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: 'Average Weight (g)',
+                labelText: 'Average Fish Weight (g)',
                 suffixText: 'g',
-                border: OutlineInputBorder(),
               ),
             ),
           ],
@@ -121,28 +332,11 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
           FilledButton(
             onPressed: () {
               final newWeight = double.tryParse(weightController.text) ?? unit.avgWeightGrams;
-              setState(() {
-                final idx = _units.indexWhere((u) => u.id == unit.id);
-                if (idx != -1) {
-                  _units[idx] = ProductionUnitItem(
-                    id: unit.id,
-                    name: unit.name,
-                    type: unit.type,
-                    species: unit.species,
-                    fishCount: unit.fishCount,
-                    avgWeightGrams: newWeight,
-                    targetHarvestWeightGrams: unit.targetHarvestWeightGrams,
-                    dissolvedOxygen: unit.dissolvedOxygen,
-                    temperature: unit.temperature,
-                    ph: unit.ph,
-                    tanAmmonia: unit.tanAmmonia,
-                  );
-                }
-              });
+              ref.read(farmUnitsProvider.notifier).recordSampling(unit.id, newWeight);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Biometrics updated for ${unit.name}! Biomass: ${((unit.fishCount * newWeight)/1000).toStringAsFixed(1)} kg'),
+                  content: Text('Sampling saved for ${unit.name}! Biomass: ${((unit.fishCount * newWeight) / 1000).toStringAsFixed(1)} kg'),
                   backgroundColor: AppTheme.deviceOnline,
                 ),
               );
@@ -154,7 +348,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
     );
   }
 
-  void _showRecordMortalityDialog(ProductionUnitItem unit) {
+  void _showRecordMortalityDialog(FarmUnit unit) {
     final countController = TextEditingController(text: '1');
     final reasonController = TextEditingController(text: 'Natural / Non-disease');
 
@@ -170,7 +364,6 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Mortality Count (Fish)',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -178,7 +371,6 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               controller: reasonController,
               decoration: const InputDecoration(
                 labelText: 'Observed Cause / Reason',
-                border: OutlineInputBorder(),
               ),
             ),
           ],
@@ -189,28 +381,11 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
             style: FilledButton.styleFrom(backgroundColor: AppTheme.feedLevelLow),
             onPressed: () {
               final lost = int.tryParse(countController.text) ?? 1;
-              setState(() {
-                final idx = _units.indexWhere((u) => u.id == unit.id);
-                if (idx != -1) {
-                  _units[idx] = ProductionUnitItem(
-                    id: unit.id,
-                    name: unit.name,
-                    type: unit.type,
-                    species: unit.species,
-                    fishCount: (unit.fishCount - lost).clamp(0, 1000000),
-                    avgWeightGrams: unit.avgWeightGrams,
-                    targetHarvestWeightGrams: unit.targetHarvestWeightGrams,
-                    dissolvedOxygen: unit.dissolvedOxygen,
-                    temperature: unit.temperature,
-                    ph: unit.ph,
-                    tanAmmonia: unit.tanAmmonia,
-                  );
-                }
-              });
+              ref.read(farmUnitsProvider.notifier).recordMortality(unit.id, lost);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Recorded $lost mortality in ${unit.name}. Cohort updated.'),
+                  content: Text('Recorded $lost mortality in ${unit.name}. Stock updated.'),
                   backgroundColor: Colors.orange[800],
                 ),
               );
@@ -222,10 +397,108 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
     );
   }
 
+  void _showManualWaterQualityDialog(FarmUnit unit) {
+    final doController = TextEditingController(text: unit.manualDO != null ? '${unit.manualDO}' : '');
+    final tempController = TextEditingController(text: unit.manualTemp != null ? '${unit.manualTemp}' : '');
+    final phController = TextEditingController(text: unit.manualPh != null ? '${unit.manualPh}' : '');
+    final tanController = TextEditingController(text: unit.manualTAN != null ? '${unit.manualTAN}' : '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Water Quality Entry: ${unit.name}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter manual test-kit measurements or calibrate probe readings:',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: doController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Dissolved Oxygen (DO)', suffixText: 'mg/L'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: tempController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Water Temperature', suffixText: '°C'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'pH Level'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: tanController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Total Ammonia Nitrogen (TAN)', suffixText: 'mg/L'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              ref.read(farmUnitsProvider.notifier).updateManualWaterQuality(
+                    unit.id,
+                    doMgL: double.tryParse(doController.text),
+                    tempC: double.tryParse(tempController.text),
+                    ph: double.tryParse(phController.text),
+                    tanMgL: double.tryParse(tanController.text),
+                  );
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Water quality parameters updated!'),
+                  backgroundColor: AppTheme.deviceOnline,
+                ),
+              );
+            },
+            child: const Text('Save Readings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteUnit(FarmUnit unit) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${unit.name}?'),
+        content: const Text('Are you sure you want to delete this pond unit? This will permanently remove its biometric logs and dimensions.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              ref.read(farmUnitsProvider.notifier).deleteUnit(unit.id);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Deleted ${unit.name}.')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final totalFarmBiomass = _units.fold<double>(0, (sum, u) => sum + u.totalBiomassKg);
-    final totalFishCount = _units.fold<int>(0, (sum, u) => sum + u.fishCount);
+    final farmState = ref.watch(farmUnitsProvider);
+    final units = farmState.units;
+
+    final totalFarmBiomass = units.fold<double>(0, (sum, u) => sum + u.totalBiomassKg);
+    final totalFishCount = units.fold<int>(0, (sum, u) => sum + u.fishCount);
 
     return Scaffold(
       appBar: AppBar(
@@ -248,7 +521,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               gradient: LinearGradient(
                 colors: [
                   Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  const Color(0xFF0F2027),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -256,8 +529,8 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  blurRadius: 12,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                  blurRadius: 14,
                   offset: const Offset(0, 6),
                 ),
               ],
@@ -269,10 +542,10 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'TOTAL FARM BIOMASS',
+                      'TOTAL STANDING BIOMASS',
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 11,
                         letterSpacing: 1.2,
                         fontWeight: FontWeight.bold,
                       ),
@@ -280,11 +553,11 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_units.length} Active Units',
+                        '${units.length} Active Unit${units.length == 1 ? '' : 's'}',
                         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -304,14 +577,14 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                   children: [
                     _FarmMetricPill(
                       icon: Icons.bubble_chart,
-                      label: 'Population',
+                      label: 'Total Stock',
                       value: '$totalFishCount fish',
                     ),
                     const SizedBox(width: 12),
-                    const _FarmMetricPill(
-                      icon: Icons.shield,
-                      label: 'Bio-Status',
-                      value: 'Nominal',
+                    _FarmMetricPill(
+                      icon: Icons.aspect_ratio,
+                      label: 'Water Volume',
+                      value: '${units.fold<double>(0, (s, u) => s + u.volumeM3).toStringAsFixed(0)} m³',
                     ),
                   ],
                 ),
@@ -332,7 +605,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF0F2027),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.cyan.withOpacity(0.4)),
+                      border: Border.all(color: Colors.cyan.withValues(alpha: 0.4)),
                     ),
                     child: const Row(
                       children: [
@@ -343,7 +616,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('AquaTwin 6-Facet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                              Text('Live Timeline & Sensors', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                              Text('Live 3D & Timeline', style: TextStyle(color: Colors.white60, fontSize: 10)),
                             ],
                           ),
                         ),
@@ -363,7 +636,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A2A3A),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.blueAccent.withOpacity(0.4)),
+                      border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.4)),
                     ),
                     child: const Row(
                       children: [
@@ -374,7 +647,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Farm Simulator', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                              Text('Growth & Policy Model', style: TextStyle(color: Colors.white60, fontSize: 10)),
+                              Text('Mortality & Growth', style: TextStyle(color: Colors.white60, fontSize: 10)),
                             ],
                           ),
                         ),
@@ -394,30 +667,73 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               Text(
                 'Production Units',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-              TextButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Add Unit: New pond template ready')),
-                  );
-                },
+              FilledButton.icon(
+                onPressed: _showAddUnitDialog,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Pond'),
+                label: const Text('Add Unit / Pond'),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // List of Production Units
-          ..._units.map((unit) => _buildUnitCard(context, unit)),
+          if (units.isEmpty)
+            Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    const Icon(Icons.waves, size: 48, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    const Text('No Production Units Configured', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Add your ponds or tanks to configure their dimensions, stocking population, and track live sensor telemetry.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _showAddUnitDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add First Unit'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // List of Real User-Defined Production Units
+          ...units.map((unit) => _buildUnitCard(context, unit)),
         ],
       ),
     );
   }
 
-  Widget _buildUnitCard(BuildContext context, ProductionUnitItem unit) {
+  Widget _buildUnitCard(BuildContext context, FarmUnit unit) {
+    final sensorData = ref.watch(sensorDataProvider).currentData;
+    final hasLiveDevice = unit.linkedDeviceId != null && sensorData != null;
+
+    // Resolve Telemetry: Hardware Sensor > Manual Lab Entry > Unmeasured
+    final tempDisplay = hasLiveDevice && sensorData.waterTemperature > 0
+        ? '${sensorData.waterTemperature.toStringAsFixed(1)}°C'
+        : (unit.manualTemp != null ? '${unit.manualTemp!.toStringAsFixed(1)}°C (manual)' : '-- (Unmeasured)');
+
+    final doDisplay = unit.manualDO != null
+        ? '${unit.manualDO!.toStringAsFixed(1)} mg/L'
+        : '-- mg/L (No Probe)';
+
+    final phDisplay = unit.manualPh != null
+        ? unit.manualPh!.toStringAsFixed(1)
+        : '-- (No Probe)';
+
+    final tanDisplay = unit.manualTAN != null
+        ? '${unit.manualTAN!.toStringAsFixed(2)} mg/L'
+        : '-- mg/L (No Probe)';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -432,7 +748,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -454,49 +770,48 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                         ),
                       ),
                       Text(
-                        '${unit.type} • ${unit.species}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        '${unit.type} • ${unit.lengthM.toStringAsFixed(1)}m × ${unit.widthM.toStringAsFixed(1)}m × ${unit.depthM.toStringAsFixed(1)}m (${unit.volumeM3.toStringAsFixed(0)} m³)',
+                        style: TextStyle(fontSize: 11.5, color: Colors.grey[400]),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.deviceOnline.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'HEALTHY',
-                    style: TextStyle(
-                      color: AppTheme.deviceOnline,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (val) {
+                    if (val == 'edit') _showEditUnitDialog(unit);
+                    if (val == 'water') _showManualWaterQualityDialog(unit);
+                    if (val == 'delete') _confirmDeleteUnit(unit);
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Edit Unit & Dimensions')])),
+                    const PopupMenuItem(value: 'water', child: Row(children: [Icon(Icons.science, size: 16), SizedBox(width: 8), Text('Enter Water Measurements')])),
+                    const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 16), SizedBox(width: 8), Text('Delete Unit', style: TextStyle(color: Colors.red))])),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Live Telemetry Row
+            // Live Telemetry or Unmeasured Badges
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _TelemetryBadge(label: 'DO', value: '${unit.dissolvedOxygen} mg/L', color: Colors.blue),
-                  _TelemetryBadge(label: 'Temp', value: '${unit.temperature}°C', color: Colors.orange),
-                  _TelemetryBadge(label: 'pH', value: '${unit.ph}', color: Colors.green),
-                  _TelemetryBadge(label: 'TAN', value: '${unit.tanAmmonia} mg/L', color: Colors.purple),
+                  _TelemetryBadge(label: 'DO', value: doDisplay, color: unit.manualDO != null ? Colors.blue : Colors.grey),
+                  _TelemetryBadge(label: 'Temp', value: tempDisplay, color: (hasLiveDevice || unit.manualTemp != null) ? Colors.orange : Colors.grey),
+                  _TelemetryBadge(label: 'pH', value: phDisplay, color: unit.manualPh != null ? Colors.green : Colors.grey),
+                  _TelemetryBadge(label: 'TAN', value: tanDisplay, color: unit.manualTAN != null ? Colors.purple : Colors.grey),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Biomass & Stocking Row
             Row(
@@ -505,7 +820,7 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total Biomass', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text('Total Biomass', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
                     const SizedBox(height: 2),
                     Text(
                       '${unit.totalBiomassKg.toStringAsFixed(1)} kg',
@@ -516,10 +831,10 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Fish Count', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text('Stock Count', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
                     const SizedBox(height: 2),
                     Text(
-                      '${unit.fishCount}',
+                      '${unit.fishCount} fish',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -527,7 +842,18 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Avg Weight', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text('Stocking Density', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${unit.densityKgM3.toStringAsFixed(1)} kg/m³',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Avg Weight', style: TextStyle(fontSize: 11, color: Colors.grey[400])),
                     const SizedBox(height: 2),
                     Text(
                       '${unit.avgWeightGrams.toStringAsFixed(0)} g',
@@ -545,17 +871,23 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               child: LinearProgressIndicator(
                 value: unit.growthProgress,
                 minHeight: 6,
-                backgroundColor: Colors.grey.withOpacity(0.2),
+                backgroundColor: Colors.grey.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               ),
             ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Target: ${unit.targetHarvestWeightGrams.toInt()}g (${(unit.growthProgress * 100).toInt()}% progress)',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-              ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Day ${unit.daysInProduction} in Production (${unit.species.split(" ").first})',
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey[400]),
+                ),
+                Text(
+                  'Target: ${unit.targetHarvestWeightGrams.toInt()}g (${(unit.growthProgress * 100).toInt()}%)',
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey[400]),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
@@ -564,34 +896,32 @@ class _FarmManagementScreenState extends ConsumerState<FarmManagementScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 8)),
                     onPressed: () => _showLogSamplingDialog(unit),
-                    icon: const Icon(Icons.scale_outlined, size: 16),
-                    label: const Text('Log Sampling', style: TextStyle(fontSize: 12)),
+                    icon: const Icon(Icons.scale_outlined, size: 15),
+                    label: const Text('Log Sampling', style: TextStyle(fontSize: 11.5)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange[800],
+                      foregroundColor: Colors.orangeAccent,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                     onPressed: () => _showRecordMortalityDialog(unit),
-                    icon: const Icon(Icons.warning_amber_outlined, size: 16),
-                    label: const Text('Mortality', style: TextStyle(fontSize: 12)),
+                    icon: const Icon(Icons.warning_amber_outlined, size: 15),
+                    label: const Text('Mortality', style: TextStyle(fontSize: 11.5)),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   ),
                   tooltip: 'AquaDoc Clinical Check',
                   onPressed: () => context.go('/aquadoc'),
-                  icon: Icon(Icons.psychology, color: Theme.of(context).colorScheme.primary, size: 20),
+                  icon: Icon(Icons.psychology, color: Theme.of(context).colorScheme.primary, size: 18),
                 ),
               ],
             ),
@@ -618,7 +948,7 @@ class _FarmMetricPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -653,12 +983,12 @@ class _TelemetryBadge extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 10.5, color: Colors.grey[400], fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold),
         ),
       ],
     );

@@ -26,6 +26,7 @@ class StorageService {
   static const String _temperatureUnitKey = 'temperature_unit';
   static const String _weightUnitKey = 'weight_unit';
   static const String _onboardingCompleteKey = 'onboarding_complete';
+  static const String _farmUnitsKey = 'user_farm_units';
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -162,5 +163,14 @@ class StorageService {
 
   static bool isOnboardingComplete() {
     return _prefs.getBool(_onboardingCompleteKey) ?? false;
+  }
+
+  // Farm Units Storage
+  static Future<void> setFarmUnitsJson(String json) async {
+    await _prefs.setString(_farmUnitsKey, json);
+  }
+
+  static String? getFarmUnitsJson() {
+    return _prefs.getString(_farmUnitsKey);
   }
 }

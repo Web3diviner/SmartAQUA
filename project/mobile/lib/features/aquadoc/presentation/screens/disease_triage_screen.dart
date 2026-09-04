@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/farm_unit.dart';
+import '../../../../core/providers/farm_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class DiseaseTriageScreen extends ConsumerStatefulWidget {
@@ -158,7 +160,71 @@ class _DiseaseTriageScreenState extends ConsumerState<DiseaseTriageScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
+
+          // Load from My Ponds Selector
+          Builder(builder: (context) {
+            final farmUnits = ref.watch(farmUnitsProvider).units;
+            if (farmUnits.isEmpty) return const SizedBox.shrink();
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.cyan.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.waves, color: Colors.cyanAccent, size: 18),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Load Pond Water & Stock Profile:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  PopupMenuButton<FarmUnit>(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Select Pond', style: TextStyle(fontSize: 12, color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                          Icon(Icons.arrow_drop_down, color: Colors.cyanAccent, size: 18),
+                        ],
+                      ),
+                    ),
+                    onSelected: (unit) {
+                      setState(() {
+                        _species = unit.species;
+                        if (unit.manualTemp != null) _waterTempC = unit.manualTemp!;
+                        if (unit.manualDO != null) _dissolvedOxygen = unit.manualDO!;
+                        if (unit.manualTAN != null) _ammoniaTan = unit.manualTAN!;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Loaded ${unit.name} telemetry & species profile!'),
+                          backgroundColor: AppTheme.deviceOnline,
+                        ),
+                      );
+                    },
+                    itemBuilder: (ctx) => farmUnits
+                        .map((u) => PopupMenuItem(
+                              value: u,
+                              child: Text('${u.name} (${u.species.split(" ").first})'),
+                            ))
+                        .toList(),
+                  ),
+                ],
+              ),
+            );
+          }),
 
           // Symptoms Multi-Select Checklist
           Text(

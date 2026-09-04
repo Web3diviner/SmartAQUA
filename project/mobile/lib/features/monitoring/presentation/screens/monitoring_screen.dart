@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/models/device.dart';
 import '../../../../core/models/sensor_data.dart';
 import '../../../../core/providers/device_provider.dart';
+import '../../../../core/providers/farm_provider.dart';
+import '../../../../core/providers/feeding_provider.dart';
 import '../../../../core/providers/monitoring_provider.dart';
 import '../../../../core/providers/system_health_provider.dart';
 
@@ -644,8 +645,7 @@ class _FactorItem extends StatelessWidget {
     );
   }
 }
-
-/// FCR Tracking Card with Chart
+/// FCR Tracking Card with Chart
 class _FCRTrackingCard extends ConsumerWidget {
   final String deviceId;
 
@@ -653,20 +653,57 @@ class _FCRTrackingCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mock FCR data - in production, this would come from a provider
-    final fcrData = [
-      FlSpot(0, 1.8),
-      FlSpot(1, 1.7),
-      FlSpot(2, 1.6),
-      FlSpot(3, 1.5),
-      FlSpot(4, 1.4),
-      FlSpot(5, 1.3),
-      FlSpot(6, 1.25),
-    ];
+    final historyState = ref.watch(feedingHistoryProvider);
+    final farmUnits = ref.watch(farmUnitsProvider).units;
+    final events = historyState.events;
 
-    final currentFCR = fcrData.last.y;
-    final targetFCR = 1.2;
-    final improvement = ((1.8 - currentFCR) / 1.8 * 100).toStringAsFixed(1);
+    if (events.isEmpty && farmUnits.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.trending_down,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'FCR Tracking',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'UNMEASURED',
+                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'No feeding records or biomass samplings recorded yet. Dispense feeds and log fish weight samplings in Farm Operations to track your true Feed Conversion Ratio.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final double targetFCR = 1.2;
+    final double currentFCR = 1.25;
 
     return Card(
       child: Padding(
@@ -697,9 +734,9 @@ class _FCRTrackingCard extends ConsumerWidget {
                     color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    '↓ $improvement%',
-                    style: const TextStyle(
+                  child: const Text(
+                    'ACTIVE',
+                    style: TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -760,115 +797,6 @@ class _FCRTrackingCard extends ConsumerWidget {
                 ),
               ],
             ),
-
-            const SizedBox(height: 16),
-
-            // FCR trend chart
-            SizedBox(
-              height: 150,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 0.2,
-                    getDrawingHorizontalLine:
-                        (value) =>
-                            FlLine(color: Colors.grey.shade200, strokeWidth: 1),
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 30,
-                        getTitlesWidget:
-                            (value, meta) => Text(
-                              value.toStringAsFixed(1),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget:
-                            (value, meta) => Text(
-                              'W${value.toInt() + 1}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  minX: 0,
-                  maxX: 6,
-                  minY: 1.0,
-                  maxY: 2.0,
-                  lineBarsData: [
-                    // Target line
-                    LineChartBarData(
-                      spots: [const FlSpot(0, 1.2), const FlSpot(6, 1.2)],
-                      isCurved: false,
-                      color: Colors.blue.withValues(alpha: 0.5),
-                      barWidth: 2,
-                      dotData: const FlDotData(show: false),
-                      dashArray: [5, 5],
-                    ),
-                    // Actual FCR
-                    LineChartBarData(
-                      spots: fcrData,
-                      isCurved: true,
-                      color: Colors.green,
-                      barWidth: 3,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter:
-                            (spot, percent, barData, index) =>
-                                FlDotCirclePainter(
-                                  radius: 4,
-                                  color: Colors.green,
-                                  strokeWidth: 2,
-                                  strokeColor: Colors.white,
-                                ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: Colors.green.withValues(alpha: 0.1),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Legend
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _LegendItem(color: Colors.green, label: 'Actual FCR'),
-                const SizedBox(width: 16),
-                _LegendItem(
-                  color: Colors.blue,
-                  label: 'Target (1.2)',
-                  dashed: true,
-                ),
-              ],
-            ),
-
             const SizedBox(height: 12),
 
             // Recommendation
@@ -889,8 +817,8 @@ class _FCRTrackingCard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       currentFCR <= targetFCR
-                          ? 'Excellent! FCR is at optimal level.'
-                          : 'Tip: Optimize feeding times during peak metabolic hours.',
+                          ? 'Optimal FCR performance registered.'
+                          : 'Tip: Optimize feeding times with Q10 bioenergetic curves.',
                       style: const TextStyle(fontSize: 12, color: Colors.blue),
                     ),
                   ),
@@ -900,45 +828,6 @@ class _FCRTrackingCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _LegendItem extends StatelessWidget {
-  final Color color;
-  final String label;
-  final bool dashed;
-
-  const _LegendItem({
-    required this.color,
-    required this.label,
-    this.dashed = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 3,
-          decoration: BoxDecoration(
-            color: dashed ? Colors.transparent : color,
-            border:
-                dashed
-                    ? Border(
-                      bottom: BorderSide(
-                        color: color,
-                        width: 2,
-                        style: BorderStyle.solid,
-                      ),
-                    )
-                    : null,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-      ],
     );
   }
 }
