@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -193,6 +194,331 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
     );
   }
 
+  String _generatePlanReportText() {
+    final vol = _tankVolumeM3;
+    final harvestSurv = _survivingStock;
+    final harvestBio = _projectedHarvestBiomassKg;
+    final feed = _estimatedFeedNeededKg;
+    final bags = (feed / 15.0).ceil();
+    final survRate = _calculatedSurvivalRate;
+    final initDensity = _densityKgM3;
+    final harvDensity = vol > 0 ? (harvestBio / vol) : 0.0;
+
+    return '''
+========================================================
+   SMARTAQUA FARMER PRODUCTION PLAN & BIOENERGETICS
+========================================================
+Report Generated: ${DateTime.now().toLocal().toString().split('.')[0]}
+Cultured Species: $_species
+Target Cycle Duration: 180 Days (Current Timeline: Day $_productionDay)
+Stage: $_productionPhaseName
+
+--------------------------------------------------------
+1. FACILITY GEOMETRY & STOCKING CAPACITY
+--------------------------------------------------------
+- Tank Dimensions: ${_tankLengthM.toStringAsFixed(1)}m (L) × ${_tankWidthM.toStringAsFixed(1)}m (W) × ${_tankDepthM.toStringAsFixed(1)}m (Depth)
+- Water Volume: ${vol.toStringAsFixed(1)} m³ (${(vol * 1000).toStringAsFixed(0)} Litres)
+- Water Surface Area: ${_tankSurfaceAreaM2.toStringAsFixed(1)} m²
+- Initial Stock Population: $_population fish
+- Initial Average Weight: ${_initialWeightG.toStringAsFixed(0)} g
+- Initial Standing Biomass: ${_currentBiomassKg.toStringAsFixed(1)} kg
+- Initial Stocking Density: ${initDensity.toStringAsFixed(1)} kg/m³
+- Projected Harvest Density: ${harvDensity.toStringAsFixed(1)} kg/m³
+- Aeration Recommendation: ${harvDensity > 30 ? "HIGH DENSITY: Continuous mechanical diffuser aeration required (min 1.5 HP/1000kg)." : "STANDARD DENSITY: Night/Dawn aeration recommended during peak growout."}
+
+--------------------------------------------------------
+2. HARVEST & MORTALITY PROJECTIONS
+--------------------------------------------------------
+- Projected Survival Rate: ${survRate.toStringAsFixed(1)}%
+- Estimated Surviving Fish at Harvest: $harvestSurv fish
+- Cumulative Mortality Budget: $_mortalityCount fish
+- Target Harvest Weight: ${_targetWeightG.toStringAsFixed(0)} g / fish
+- Total Projected Harvest Biomass: ${harvestBio.toStringAsFixed(1)} kg (${(harvestBio / 1000).toStringAsFixed(2)} Metric Tons)
+- Days to Target Weight: $_daysToHarvest days (at current ${_effectiveSGR.toStringAsFixed(2)}%/day SGR)
+
+--------------------------------------------------------
+3. FEED BUDGET & 4-PHASE PELLET SIZING SCHEDULE
+--------------------------------------------------------
+- Phase 1 (Days 1–30, 10g → 50g):
+  * Pellet Size: 1.5mm – 2.0mm Micro-Pellets
+  * Protein Level: 45% Crude Protein
+  * Daily Ration: 6.0% of Body Weight (4 feeds/day)
+- Phase 2 (Days 31–70, 50g → 180g):
+  * Pellet Size: 3.0mm Extruded Floating
+  * Protein Level: 40% Crude Protein
+  * Daily Ration: 4.5% of Body Weight (3 feeds/day)
+- Phase 3 (Days 71–130, 180g → 500g):
+  * Pellet Size: 4.5mm Grower Pellets
+  * Protein Level: 38% Crude Protein
+  * Daily Ration: 3.0% of Body Weight (2–3 feeds/day)
+- Phase 4 (Days 131–180, 500g → 800g):
+  * Pellet Size: 6.0mm Finisher Floating Pellets
+  * Protein Level: 35% Crude Protein
+  * Daily Ration: 2.0% of Body Weight (2 feeds/day)
+
+- Total Commercial Feed Required: ${feed.toStringAsFixed(1)} kg
+- Standard 15-kg Bag Count: $bags Bags
+- Projected Feed Conversion Ratio (FCR): 1.18
+
+--------------------------------------------------------
+4. WATER QUALITY SAFEGUARDS & THRESHOLDS
+--------------------------------------------------------
+- Dissolved Oxygen (DO): Min ≥ 4.5 mg/L (Safety Cutoff < 3.0 mg/L)
+- Water Temperature: 26°C – 30°C (Metabolic Q10 factor: ${_q10Factor.toStringAsFixed(2)}x)
+- Total Ammonia Nitrogen (TAN): < 0.5 mg/L (Gill Stress Cutoff > 2.0 mg/L)
+- Water pH: 6.8 – 8.0
+
+--------------------------------------------------------
+5. ECONOMIC PROJECTIONS
+--------------------------------------------------------
+- Estimated Farm-Gate Value (@ \$3.50/kg): \$${(harvestBio * 3.50).toStringAsFixed(2)}
+- Estimated Feed Cost (@ \$1.80/kg): \$${(feed * 1.80).toStringAsFixed(2)}
+- Estimated Gross Profit Margin: \$${((harvestBio * 3.50) - (feed * 1.80)).toStringAsFixed(2)}
+========================================================
+''';
+  }
+
+  void _showFarmerPlanReportSheet(BuildContext context) {
+    final reportText = _generatePlanReportText();
+    final harvestBio = _projectedHarvestBiomassKg;
+    final feed = _estimatedFeedNeededKg;
+    final bags = (feed / 15.0).ceil();
+    final survRate = _calculatedSurvivalRate;
+    final vol = _tankVolumeM3;
+    final harvDensity = vol > 0 ? (harvestBio / vol) : 0.0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F1B2B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (ctx, scrollController) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: ListView(
+            controller: scrollController,
+            children: [
+              // Handle Bar
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.assignment, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Farmer Production Plan',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          Text(
+                            '180-Day Bioenergetic Cycle Roadmap',
+                            style: TextStyle(fontSize: 11.5, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Summary Highlight Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF6FB1FC)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _species.toUpperCase(),
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${survRate.toStringAsFixed(1)}% Survival',
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '${harvestBio.toStringAsFixed(1)} kg Harvest',
+                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Initial Stock: $_population fish (${_initialWeightG.toStringAsFixed(0)}g) • Target: ${_targetWeightG.toStringAsFixed(0)}g table size in $_daysToHarvest days',
+                      style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Section 1: Geometry & Carrying Capacity
+              _ReportSectionCard(
+                title: '1. Facility Geometry & Carrying Capacity',
+                icon: Icons.aspect_ratio,
+                iconColor: Colors.cyanAccent,
+                rows: [
+                  _ReportRow(label: 'Enclosure Dimensions', value: '${_tankLengthM.toStringAsFixed(1)}m × ${_tankWidthM.toStringAsFixed(1)}m × ${_tankDepthM.toStringAsFixed(1)}m'),
+                  _ReportRow(label: 'Effective Water Volume', value: '${vol.toStringAsFixed(1)} m³ (${(vol * 1000).toStringAsFixed(0)} L)'),
+                  _ReportRow(label: 'Initial Stocking Density', value: '${_densityKgM3.toStringAsFixed(1)} kg/m³'),
+                  _ReportRow(label: 'Final Harvest Density', value: '${harvDensity.toStringAsFixed(1)} kg/m³', isHighlight: true),
+                  _ReportRow(
+                    label: 'Aeration Protocol',
+                    value: harvDensity > 30 ? 'High Density (24/7 Diffusers Req.)' : 'Standard (Night/Dawn)',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Section 2: 4-Phase Feeding Roadmap
+              _ReportSectionCard(
+                title: '2. 4-Phase Feeding & Feed Budget Plan',
+                icon: Icons.restaurant_menu,
+                iconColor: Colors.orangeAccent,
+                rows: [
+                  const _ReportRow(label: 'Phase 1 (Day 1-30, 10-50g)', value: '1.5-2mm (45% CP) @ 6% BW (4x/day)'),
+                  const _ReportRow(label: 'Phase 2 (Day 31-70, 50-180g)', value: '3.0mm (40% CP) @ 4.5% BW (3x/day)'),
+                  const _ReportRow(label: 'Phase 3 (Day 71-130, 180-500g)', value: '4.5mm (38% CP) @ 3% BW (2-3x/day)'),
+                  const _ReportRow(label: 'Phase 4 (Day 131-180, 500-800g)', value: '6.0mm (35% CP) @ 2% BW (2x/day)'),
+                  _ReportRow(label: 'Total Feed Required', value: '${feed.toStringAsFixed(1)} kg ($bags × 15-kg bags)', isHighlight: true),
+                  const _ReportRow(label: 'Target FCR', value: '1.18'),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Section 3: Water Quality Thresholds
+              _ReportSectionCard(
+                title: '3. Water Quality Safety Guardrails',
+                icon: Icons.science_outlined,
+                iconColor: Colors.purpleAccent,
+                rows: [
+                  const _ReportRow(label: 'Dissolved Oxygen (DO)', value: '≥ 4.5 mg/L (Cutoff: <3.0 mg/L)'),
+                  _ReportRow(label: 'Optimal Temperature', value: '26°C - 30°C (Q10: ${_q10Factor.toStringAsFixed(2)}x)'),
+                  const _ReportRow(label: 'Ammonia (TAN)', value: '< 0.5 mg/L (Cutoff: >2.0 mg/L)'),
+                  const _ReportRow(label: 'Target pH Window', value: '6.8 - 8.0'),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Section 4: Economic Projections
+              _ReportSectionCard(
+                title: '4. Economic & Revenue Forecast',
+                icon: Icons.monetization_on_outlined,
+                iconColor: Colors.greenAccent,
+                rows: [
+                  _ReportRow(label: 'Est. Gross Revenue (@ \$3.50/kg)', value: '\$${(harvestBio * 3.50).toStringAsFixed(2)}', isHighlight: true),
+                  _ReportRow(label: 'Est. Feed Expenditure (@ \$1.80/kg)', value: '\$${(feed * 1.80).toStringAsFixed(2)}'),
+                  _ReportRow(label: 'Projected Gross Operating Margin', value: '\$${((harvestBio * 3.50) - (feed * 1.80)).toStringAsFixed(2)}', isHighlight: true),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryCyan,
+                        foregroundColor: const Color(0xFF0A192F),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: reportText));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Copied Farmer Production Plan Report to clipboard!'),
+                            backgroundColor: AppTheme.deviceOnline,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('Copy Plan Report', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.go('/aquadoc');
+                    },
+                    icon: const Icon(Icons.psychology, size: 18),
+                    label: const Text('Ask AquaDoc'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final farmUnits = ref.watch(farmUnitsProvider).units;
@@ -212,6 +538,11 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
       appBar: AppBar(
         title: const Text('Farm Environmental & Growth Simulator'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.assignment_outlined, color: Colors.cyanAccent),
+            tooltip: 'Generate Farmer Production Plan Report',
+            onPressed: () => _showFarmerPlanReportSheet(context),
+          ),
           IconButton(
             icon: const Icon(Icons.psychology),
             tooltip: 'Consult AquaDoc AI',
@@ -323,7 +654,61 @@ class _FarmSimulatorScreenState extends ConsumerState<FarmSimulatorScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          // FARMER PLAN REPORT QUICK TRIGGER CARD
+          InkWell(
+            onTap: () => _showFarmerPlanReportSheet(context),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.cyan.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.cyanAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.assignment, color: Colors.cyanAccent, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Farmer Production Plan Report',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'View 180-day feeding budget, density & harvest roadmap',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.cyanAccent, size: 20),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // Primary Projection & Interlock Banner
           Container(
@@ -923,3 +1308,104 @@ class _SliderCard extends StatelessWidget {
     );
   }
 }
+
+class _ReportSectionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final List<_ReportRow> rows;
+
+  const _ReportSectionCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.rows,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: iconColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: Colors.white12),
+          const SizedBox(height: 8),
+          ...rows,
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isHighlight;
+
+  const _ReportRow({
+    required this.label,
+    required this.value,
+    this.isHighlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11.5,
+                fontWeight: isHighlight ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isHighlight ? Colors.cyanAccent : Colors.white,
+                fontSize: 12,
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

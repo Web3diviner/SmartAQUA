@@ -7,6 +7,7 @@ import '../../../../core/models/farm_unit.dart';
 import '../../../../core/providers/device_provider.dart';
 import '../../../../core/providers/farm_provider.dart';
 import '../../../../core/providers/monitoring_provider.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../widgets/digital_twin_3d_visualizer.dart';
 
 class DigitalTwinScreen extends ConsumerStatefulWidget {
@@ -19,6 +20,70 @@ class DigitalTwinScreen extends ConsumerStatefulWidget {
 class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
   double _timelineHour = 14.0; // 14:00 (2:00 PM)
   String? _selectedUnitId;
+  int? _customStock;
+
+  void _showSetStockDialog(BuildContext context, int currentStock, FarmUnit? activeUnit) {
+    final controller = TextEditingController(text: currentStock.toString());
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.set_meal, color: Colors.tealAccent),
+            SizedBox(width: 8),
+            Text('Set Initial Stock Count'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              activeUnit != null ? 'Pond: ${activeUnit.name}' : 'Digital Twin Simulation',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Number of Stocked Fish',
+                suffixText: 'fish',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = int.tryParse(controller.text.trim());
+              if (val != null && val > 0) {
+                setState(() => _customStock = val);
+                if (activeUnit != null) {
+                  final updated = activeUnit.copyWith(fishCount: val);
+                  ref.read(farmUnitsProvider.notifier).updateUnit(updated);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Updated ${activeUnit.name} stock to $val fish!'),
+                      backgroundColor: AppTheme.deviceOnline,
+                    ),
+                  );
+                }
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply Stock'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +106,9 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
     final tankLength = activeUnit?.lengthM ?? 15.0;
     final tankWidth = activeUnit?.widthM ?? 9.0;
     final tankDepth = activeUnit?.depthM ?? 1.5;
-    final population = activeUnit?.fishCount ?? 3000;
+    final population = _customStock ?? (activeUnit?.fishCount ?? 3000);
     final avgWeight = activeUnit?.avgWeightGrams ?? 250.0;
-    final biomass = activeUnit?.totalBiomassKg ?? (population * avgWeight / 1000.0);
+    final biomass = (population * avgWeight / 1000.0);
     final species = activeUnit?.species ?? 'African Catfish (Clarias gariepinus)';
     final productionDays = activeUnit?.daysInProduction ?? 60;
     final volumeM3 = activeUnit?.volumeM3 ?? (tankLength * tankWidth * tankDepth);
@@ -273,6 +338,179 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             ),
             const SizedBox(height: 16),
           ],
+
+          // INTERACTIVE INITIAL STOCK SETTER CARD
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F2027),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.tealAccent.withOpacity(0.35)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.tealAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.set_meal, color: Colors.tealAccent, size: 20),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Set Initial Fish Stock',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            Text(
+                              activeUnit != null ? 'Pond: ${activeUnit.name}' : 'Twin Stock Simulation',
+                              style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    InkWell(
+                      onTap: () => _showSetStockDialog(context, population, activeUnit),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.tealAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.tealAccent),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$population fish',
+                              style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.edit, color: Colors.tealAccent, size: 14),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Interactive Slider
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Colors.tealAccent,
+                    inactiveTrackColor: Colors.white12,
+                    thumbColor: Colors.white,
+                    trackHeight: 4,
+                  ),
+                  child: Slider(
+                    value: population.toDouble().clamp(100, 15000),
+                    min: 100,
+                    max: 15000,
+                    divisions: 149,
+                    label: '$population fish',
+                    onChanged: (val) {
+                      setState(() => _customStock = val.toInt());
+                    },
+                  ),
+                ),
+
+                // Quick Increment / Decrement Steppers & Save Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            final next = (population - 500).clamp(100, 20000);
+                            setState(() => _customStock = next);
+                          },
+                          child: const Text('-500', style: TextStyle(fontSize: 10.5)),
+                        ),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            final next = (population - 100).clamp(100, 20000);
+                            setState(() => _customStock = next);
+                          },
+                          child: const Text('-100', style: TextStyle(fontSize: 10.5)),
+                        ),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            final next = (population + 100).clamp(100, 20000);
+                            setState(() => _customStock = next);
+                          },
+                          child: const Text('+100', style: TextStyle(fontSize: 10.5)),
+                        ),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            final next = (population + 500).clamp(100, 20000);
+                            setState(() => _customStock = next);
+                          },
+                          child: const Text('+500', style: TextStyle(fontSize: 10.5)),
+                        ),
+                      ],
+                    ),
+                    if (activeUnit != null && _customStock != null && _customStock != activeUnit.fishCount)
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.tealAccent,
+                          foregroundColor: const Color(0xFF0A192F),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () {
+                          final updated = activeUnit!.copyWith(fishCount: _customStock!);
+                          ref.read(farmUnitsProvider.notifier).updateUnit(updated);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Saved $population fish stock to ${updated.name}!'),
+                              backgroundColor: AppTheme.deviceOnline,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.save, size: 14),
+                        label: const Text('Save to Pond', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // 3D Animated Culture Tank Visualizer
           DigitalTwin3DVisualizer(
