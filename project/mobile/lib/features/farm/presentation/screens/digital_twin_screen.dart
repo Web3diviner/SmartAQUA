@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/device_provider.dart';
 import '../widgets/digital_twin_3d_visualizer.dart';
 
@@ -207,8 +206,15 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             temperature: tempValue,
             ammoniaTan: tanValue,
             avgWeightG: 320.0,
-            biomassKg: 1552.0,
+            biomassKg: 1511.0,
             population: 4850,
+            tankLengthM: 15.0,
+            tankWidthM: 9.0,
+            tankDepthM: 1.5,
+            productionPeriodDays: 85,
+            survivalRate: 97.4,
+            mortalityCount: 126,
+            species: 'Clarias gariepinus',
           ),
           const SizedBox(height: 20),
 
@@ -235,7 +241,7 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
           ),
           const SizedBox(height: 12),
 
-          // FACET 2: Biological
+          // FACET 2: Biological & Fish Stock
           _FacetCard(
             facetNumber: '2',
             facetName: 'Biological & Fish Facet',
@@ -243,11 +249,14 @@ class _DigitalTwinScreenState extends ConsumerState<DigitalTwinScreen> {
             iconColor: Colors.teal,
             metrics: [
               const _MetricItem(label: 'Species', value: 'Clarias gariepinus'),
-              const _MetricItem(label: 'Population', value: '4,850 fish'),
+              const _MetricItem(label: 'Initial Stock Set', value: '4,850 fish'),
+              const _MetricItem(label: 'Active Surviving Stock', value: '4,724 fish (97.4% Survival)'),
+              const _MetricItem(label: 'Cumulative Mortality', value: '126 fish (Natural baseline)'),
+              const _MetricItem(label: 'Stocking Density', value: '7.46 kg/m³ (202.5 m³ Pond)'),
+              const _MetricItem(label: 'Production Timeline', value: 'Day 85 / 180 (Growout)'),
               const _MetricItem(label: 'Average Weight', value: '320 g'),
-              const _MetricItem(label: 'Total Biomass', value: '1,552 kg'),
+              const _MetricItem(label: 'Total Standing Biomass', value: '1,511 kg'),
               const _MetricItem(label: 'Specific Growth Rate', value: '2.45 %/day'),
-              const _MetricItem(label: 'Survival Rate', value: '97.4 %'),
             ],
           ),
           const SizedBox(height: 12),

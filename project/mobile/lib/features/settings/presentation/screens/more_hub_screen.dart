@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/app_preferences_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 
@@ -10,9 +11,27 @@ class MoreHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(appPreferencesProvider);
+    final isDark = prefs.themeMode == ThemeMode.dark ||
+        (prefs.themeMode == ThemeMode.system &&
+            Theme.of(context).brightness == Brightness.dark);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Precision Hub & Settings'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? const Color(0xFFFFD166) : const Color(0xFF0077B6),
+            ),
+            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            onPressed: () {
+              ref.read(appPreferencesProvider.notifier).toggleThemeMode(currentIsDark: isDark);
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -163,11 +182,62 @@ class MoreHubScreen extends ConsumerWidget {
 
           // Settings & Account
           const _SectionHeader(title: 'PREFERENCES & SYSTEM'),
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (isDark ? const Color(0xFFFFD166) : const Color(0xFF0077B6)).withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (isDark ? const Color(0xFFFFD166) : const Color(0xFF0077B6)).withOpacity(0.25),
+                      ),
+                    ),
+                    child: Icon(
+                      isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                      color: isDark ? const Color(0xFFFFD166) : const Color(0xFF0077B6),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Dark Mode',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          isDark ? 'Dark theme active' : 'Light theme active',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: isDark,
+                    activeThumbColor: AppTheme.primaryCyan,
+                    onChanged: (bool value) {
+                      ref.read(appPreferencesProvider.notifier).setThemeMode(
+                            value ? ThemeMode.dark : ThemeMode.light,
+                          );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
           _HubTile(
             icon: Icons.settings,
             iconColor: Colors.grey,
             title: 'App Settings & Units',
-            subtitle: 'Notifications, metric/imperial units, and theme',
+            subtitle: 'Notifications, metric/imperial units, and advanced theme',
             onTap: () => context.go('/settings'),
           ),
           _HubTile(

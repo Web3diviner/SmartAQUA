@@ -82,6 +82,13 @@ class AppPreferencesNotifier extends StateNotifier<AppPreferencesState> {
     state = state.copyWith(themeMode: themeMode);
   }
 
+  Future<void> toggleThemeMode({bool? currentIsDark}) async {
+    final isCurrentlyDark = state.themeMode == ThemeMode.dark ||
+        (state.themeMode == ThemeMode.system && (currentIsDark ?? false));
+    final nextMode = isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
+    await setThemeMode(nextMode);
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     await StorageService.setNotificationsEnabled(enabled);
     state = state.copyWith(notificationsEnabled: enabled);

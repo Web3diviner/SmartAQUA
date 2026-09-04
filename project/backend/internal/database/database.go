@@ -9,6 +9,7 @@ import (
 
 	"smart-fish-feeder/internal/models"
 
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,10 +25,15 @@ func New(dsn string, debug bool, appLogLevel string) (*gorm.DB, error) {
 		},
 	}
 
-	// Connect to database
+	// Connect to database (with fallback to SQLite for local development)
 	db, err := gorm.Open(postgres.Open(dsn), config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		log.Printf("[database] PostgreSQL connection failed (%v). Falling back to embedded SQLite...", err)
+		db, err = gorm.Open(sqlite.Open("smart_fish_feeder.db"), config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to database: %w", err)
+		}
+		log.Printf("[database] Initialized local SQLite database: smart_fish_feeder.db")
 	}
 
 	// Configure connection pool

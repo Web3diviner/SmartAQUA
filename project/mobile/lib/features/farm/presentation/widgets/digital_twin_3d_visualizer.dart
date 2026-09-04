@@ -15,6 +15,7 @@ class Fish3D {
   double phase;
   double speed;
   Color color;
+  bool isDistressed;
 
   Fish3D({
     required this.x,
@@ -28,6 +29,7 @@ class Fish3D {
     required this.phase,
     required this.speed,
     required this.color,
+    this.isDistressed = false,
   });
 }
 
@@ -59,6 +61,15 @@ class DigitalTwin3DVisualizer extends StatefulWidget {
   final String systemType; // 'concrete', 'tarpaulin', 'earthen', 'ras'
   final bool autoRotate;
 
+  // Dimensional, Population, and Production Period additions
+  final double tankLengthM;
+  final double tankWidthM;
+  final double tankDepthM;
+  final int productionPeriodDays;
+  final double survivalRate;
+  final int? mortalityCount;
+  final String species;
+
   const DigitalTwin3DVisualizer({
     super.key,
     this.dissolvedOxygen = 5.8,
@@ -69,6 +80,13 @@ class DigitalTwin3DVisualizer extends StatefulWidget {
     this.population = 4850,
     this.systemType = 'concrete',
     this.autoRotate = true,
+    this.tankLengthM = 14.0,
+    this.tankWidthM = 8.5,
+    this.tankDepthM = 1.5,
+    this.productionPeriodDays = 85,
+    this.survivalRate = 97.4,
+    this.mortalityCount,
+    this.species = 'Clarias gariepinus',
   });
 
   @override
@@ -82,11 +100,19 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
   final List<Bubble3D> _bubbles = [];
   final math.Random _rng = math.Random();
 
-  double _rotX = 0.45; // pitch
-  double _rotY = -0.65; // yaw
+  double _rotX = 0.42; // pitch
+  double _rotY = -0.62; // yaw
   double _zoom = 1.0;
   CameraPreset _preset = CameraPreset.isometric;
   bool _isAutoRotating = true;
+
+  // Dimension & Aspect-ratio Scaled Bounds
+  double get halfX => (0.85 * math.sqrt(widget.tankLengthM / 10.0)).clamp(0.70, 1.85);
+  double get halfZ => (0.85 * math.sqrt(widget.tankWidthM / 10.0)).clamp(0.55, 1.45);
+  double get halfY => (0.85 * (widget.tankDepthM / 1.5)).clamp(0.50, 1.15);
+  double get volumeM3 => widget.tankLengthM * widget.tankWidthM * widget.tankDepthM;
+  int get survivingCount => (widget.population * (widget.survivalRate / 100.0)).round();
+  int get mortalities => widget.mortalityCount ?? (widget.population - survivingCount);
 
   @override
   void initState() {
@@ -102,6 +128,21 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
   }
 
   @override
+  void didUpdateWidget(covariant DigitalTwin3DVisualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.population != widget.population ||
+        oldWidget.survivalRate != widget.survivalRate ||
+        oldWidget.avgWeightG != widget.avgWeightG ||
+        oldWidget.tankLengthM != widget.tankLengthM ||
+        oldWidget.tankWidthM != widget.tankWidthM ||
+        oldWidget.tankDepthM != widget.tankDepthM ||
+        oldWidget.productionPeriodDays != widget.productionPeriodDays) {
+      _initFishes();
+      _initBubbles();
+    }
+  }
+
+  @override
   void dispose() {
     _animController.dispose();
     super.dispose();
@@ -109,25 +150,43 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
 
   void _initFishes() {
     _fishes.clear();
-    const fishCount = 28;
+    final hX = halfX;
+    final hZ = halfZ;
+    final isCriticalMortality = widget.survivalRate < 82.0 || widget.dissolvedOxygen < 2.5;
+
+    // Accurate representative stock scaling
+    int fishCount;
+    if (widget.population <= 35) {
+      fishCount = survivingCount.clamp(1, 35);
+    } else {
+      // Swarm proportional scaling: 18 to 60 visible animated entities
+      fishCount = (18 + (survivingCount / 10000.0) * 38).round().clamp(16, 58);
+    }
+
+    final weightScale = _getWeightScale();
     for (int i = 0; i < fishCount; i++) {
       final yaw = _rng.nextDouble() * 2 * math.pi;
-      final speed = 0.008 + _rng.nextDouble() * 0.008;
+      final speed = 0.007 + _rng.nextDouble() * 0.008;
+      final isDistressed = isCriticalMortality && (i % 4 == 0);
+
       _fishes.add(
         Fish3D(
-          x: (_rng.nextDouble() - 0.5) * 1.4,
-          y: 0.2 + _rng.nextDouble() * 0.6,
-          z: (_rng.nextDouble() - 0.5) * 1.4,
+          x: (_rng.nextDouble() - 0.5) * (hX * 1.6),
+          y: isDistressed ? 0.05 : (0.15 + _rng.nextDouble() * 0.68),
+          z: (_rng.nextDouble() - 0.5) * (hZ * 1.6),
           vx: math.cos(yaw) * speed,
           vy: (_rng.nextDouble() - 0.5) * 0.002,
           vz: math.sin(yaw) * speed,
           yaw: yaw,
-          length: (0.18 + _rng.nextDouble() * 0.12) * _getWeightScale(),
+          length: (0.16 + _rng.nextDouble() * 0.12) * weightScale,
           phase: _rng.nextDouble() * 2 * math.pi,
-          speed: speed,
-          color: i % 4 == 0
-              ? const Color(0xFF2C3E50)
-              : (i % 2 == 0 ? const Color(0xFF34495E) : const Color(0xFF1B2631)),
+          speed: isDistressed ? speed * 0.25 : speed,
+          isDistressed: isDistressed,
+          color: isDistressed
+              ? const Color(0xFF95A5A6)
+              : (i % 4 == 0
+                  ? const Color(0xFF2C3E50)
+                  : (i % 2 == 0 ? const Color(0xFF34495E) : const Color(0xFF1B2631))),
         ),
       );
     }
@@ -135,12 +194,16 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
 
   void _initBubbles() {
     _bubbles.clear();
-    for (int i = 0; i < 40; i++) {
+    final hX = halfX;
+    final hZ = halfZ;
+    final bubbleCount = (25 * (hX / 0.85)).round().clamp(20, 50);
+
+    for (int i = 0; i < bubbleCount; i++) {
       _bubbles.add(
         Bubble3D(
-          x: (_rng.nextDouble() - 0.5) * 0.8,
+          x: (_rng.nextDouble() - 0.5) * (hX * 1.4),
           y: 0.1 + _rng.nextDouble() * 0.9,
-          z: (_rng.nextDouble() - 0.5) * 0.8,
+          z: (_rng.nextDouble() - 0.5) * (hZ * 1.4),
           speed: 0.006 + _rng.nextDouble() * 0.008,
           size: 2.0 + _rng.nextDouble() * 3.5,
           wobblePhase: _rng.nextDouble() * 2 * math.pi,
@@ -151,7 +214,8 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
 
   double _getWeightScale() {
     final w = widget.avgWeightG;
-    return (math.pow(w / 150.0, 0.33)).clamp(0.6, 1.8).toDouble();
+    final periodFactor = (widget.productionPeriodDays / 140.0).clamp(0.5, 1.3);
+    return (math.pow(w / 200.0, 0.35) * periodFactor).clamp(0.45, 1.75).toDouble();
   }
 
   void _updatePhysics() {
@@ -165,11 +229,14 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
     double speedMultiplier = 1.0;
     if (isCold) speedMultiplier = 0.5;
     if (isSeverelyHypoxic) speedMultiplier = 0.35;
-    if (isAmmoniaToxic) speedMultiplier = 1.6;
+    if (isAmmoniaToxic) speedMultiplier = 1.5;
 
     if (_isAutoRotating) {
-      _rotY += 0.003;
+      _rotY += 0.0025;
     }
+
+    final hX = halfX;
+    final hZ = halfZ;
 
     // Update Bubbles
     for (var b in _bubbles) {
@@ -178,20 +245,23 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
       b.x += math.sin(b.wobblePhase) * 0.002;
       if (b.y < 0.0) {
         b.y = 1.0;
-        b.x = (_rng.nextDouble() - 0.5) * 0.8;
-        b.z = (_rng.nextDouble() - 0.5) * 0.8;
+        b.x = (_rng.nextDouble() - 0.5) * (hX * 1.4);
+        b.z = (_rng.nextDouble() - 0.5) * (hZ * 1.4);
       }
     }
 
-    // Update Fishes
+    // Update Fishes within Dynamic Tank Boundaries
+    final boundX = hX - 0.08;
+    final boundZ = hZ - 0.08;
+
     for (var f in _fishes) {
       f.phase += 0.18 * speedMultiplier;
 
       // In hypoxia, fish seek the surface (y near 0.05) and pipe
-      if (isHypoxic) {
+      if (isHypoxic || f.isDistressed) {
         f.y += (0.05 - f.y) * 0.04;
       } else if (isCold) {
-        // In cold weather, fish stay near bottom (y near 0.8)
+        // In cold weather, fish stay near bottom (y near 0.75)
         f.y += (0.75 - f.y) * 0.02;
       }
 
@@ -199,9 +269,7 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
       f.y += f.vy * speedMultiplier;
       f.z += f.vz * speedMultiplier;
 
-      // Tank boundaries
-      const boundX = 0.75;
-      const boundZ = 0.75;
+      // Dynamic Tank boundaries
       if (f.x.abs() > boundX) {
         f.vx = -f.vx;
         f.x = f.x.clamp(-boundX, boundX);
@@ -237,24 +305,24 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
       _isAutoRotating = false;
       switch (preset) {
         case CameraPreset.isometric:
-          _rotX = 0.45;
-          _rotY = -0.65;
+          _rotX = 0.42;
+          _rotY = -0.62;
           _zoom = 1.0;
           break;
         case CameraPreset.topDown:
           _rotX = math.pi / 2 - 0.05;
           _rotY = 0.0;
-          _zoom = 1.1;
+          _zoom = 1.05;
           break;
         case CameraPreset.surface:
           _rotX = 0.15;
           _rotY = -0.4;
-          _zoom = 1.25;
+          _zoom = 1.2;
           break;
         case CameraPreset.underwater:
           _rotX = -0.1;
           _rotY = -0.8;
-          _zoom = 1.35;
+          _zoom = 1.3;
           break;
       }
     });
@@ -265,30 +333,39 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
     final isHypoxic = widget.dissolvedOxygen < 3.5;
     final isAmmoniaToxic = widget.ammoniaTan > 1.5;
     final isCold = widget.temperature < 22.0;
+    final isSurvivalCritical = widget.survivalRate < 85.0;
 
-    String behaviorLabel = 'Optimal Cruising (28.4°C)';
+    String behaviorLabel = 'Optimal Cruising (${widget.temperature.toStringAsFixed(1)}°C)';
     Color behaviorColor = Colors.greenAccent;
     if (isHypoxic) {
       behaviorLabel = '🚨 Hypoxic Surface Piping (DO < 3.5)';
       behaviorColor = Colors.redAccent;
     } else if (isAmmoniaToxic) {
-      behaviorLabel = '⚡ Ammonia Agitation Stress';
+      behaviorLabel = '⚡ Ammonia Agitation Stress (TAN > 1.5)';
       behaviorColor = Colors.orangeAccent;
     } else if (isCold) {
       behaviorLabel = '❄️ Cold-Water Sluggish Stupor (<22°C)';
       behaviorColor = Colors.lightBlueAccent;
+    } else if (isSurvivalCritical) {
+      behaviorLabel = '⚠️ Elevated Mortality Stress';
+      behaviorColor = Colors.amberAccent;
     }
 
+    final densityKgM3 = volumeM3 > 0 ? (widget.biomassKg / volumeM3) : 0.0;
+
     return Container(
-      height: 380,
+      height: 400,
       decoration: BoxDecoration(
         color: const Color(0xFF071118),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 1.5),
+        border: Border.all(
+          color: isSurvivalCritical ? Colors.redAccent.withValues(alpha: 0.6) : Colors.cyan.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 16,
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 18,
             offset: const Offset(0, 6),
           ),
         ],
@@ -317,36 +394,40 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
                   temperature: widget.temperature,
                   systemType: widget.systemType,
                   animTime: _animController.value * 2 * math.pi,
+                  halfX: halfX,
+                  halfZ: halfZ,
+                  halfY: halfY,
+                  survivalRate: widget.survivalRate,
                 ),
                 child: const SizedBox.expand(),
               ),
             ),
 
-            // Top HUD Bar
+            // Top HUD Bar Layer 1 (Diagnostics & Stock Status)
             Positioned(
-              top: 12,
-              left: 14,
-              right: 14,
+              top: 10,
+              left: 12,
+              right: 12,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
+                      color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: behaviorColor.withOpacity(0.5)),
+                      border: Border.all(color: behaviorColor.withValues(alpha: 0.6)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.hub, color: behaviorColor, size: 14),
-                        const SizedBox(width: 6),
+                        Icon(Icons.hub, color: behaviorColor, size: 13),
+                        const SizedBox(width: 5),
                         Text(
                           behaviorLabel,
                           style: TextStyle(
                             color: behaviorColor,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -354,14 +435,57 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
+                      color: (widget.survivalRate >= 92.0 ? Colors.green : Colors.red)
+                          .withValues(alpha: 0.22),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (widget.survivalRate >= 92.0 ? Colors.greenAccent : Colors.redAccent)
+                            .withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Text(
-                      '${_fishes.length} Animated Fish (${widget.avgWeightG.toInt()}g)',
-                      style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                      '${widget.survivalRate.toStringAsFixed(1)}% Survival ($survivingCount Alive)',
+                      style: TextStyle(
+                        color: widget.survivalRate >= 92.0 ? Colors.greenAccent : Colors.redAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Top HUD Bar Layer 2 (Dimensions & Production Period)
+            Positioned(
+              top: 42,
+              left: 12,
+              right: 12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Tank: ${widget.tankLengthM.toStringAsFixed(1)}m × ${widget.tankWidthM.toStringAsFixed(1)}m × ${widget.tankDepthM.toStringAsFixed(1)}m (${volumeM3.toStringAsFixed(0)} m³)',
+                      style: const TextStyle(color: Colors.white70, fontSize: 9.5),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Day ${widget.productionPeriodDays} • ${densityKgM3.toStringAsFixed(1)} kg/m³ • ${widget.avgWeightG.toInt()}g avg',
+                      style: const TextStyle(color: Colors.cyanAccent, fontSize: 9.5, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -376,7 +500,7 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
               child: Row(
                 children: [
                   _PresetButton(
-                    label: '3D Iso',
+                    label: '3D Wide',
                     icon: Icons.view_in_ar,
                     isSelected: _preset == CameraPreset.isometric,
                     onTap: () => _setPreset(CameraPreset.isometric),
@@ -406,7 +530,9 @@ class _DigitalTwin3DVisualizerState extends State<DigitalTwin3DVisualizer>
                   IconButton.filledTonal(
                     style: IconButton.styleFrom(
                       padding: const EdgeInsets.all(6),
-                      backgroundColor: _isAutoRotating ? Colors.cyan.withOpacity(0.3) : Colors.black45,
+                      backgroundColor: _isAutoRotating
+                          ? Colors.cyan.withValues(alpha: 0.3)
+                          : Colors.black45,
                       visualDensity: VisualDensity.compact,
                     ),
                     icon: Icon(
@@ -448,7 +574,9 @@ class _PresetButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.cyan.withOpacity(0.3) : Colors.black.withOpacity(0.6),
+          color: isSelected
+              ? Colors.cyan.withValues(alpha: 0.3)
+              : Colors.black.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? Colors.cyanAccent : Colors.white24,
@@ -485,6 +613,10 @@ class _CultureTank3DPainter extends CustomPainter {
   final double temperature;
   final String systemType;
   final double animTime;
+  final double halfX;
+  final double halfZ;
+  final double halfY;
+  final double survivalRate;
 
   _CultureTank3DPainter({
     required this.rotX,
@@ -496,13 +628,15 @@ class _CultureTank3DPainter extends CustomPainter {
     required this.temperature,
     required this.systemType,
     required this.animTime,
+    required this.halfX,
+    required this.halfZ,
+    required this.halfY,
+    required this.survivalRate,
   });
 
   // 3D to 2D projection
   Offset _project(double x, double y, double z, Size size) {
-    // Center of tank is (0, 0, 0)
-    // Scale up world coords
-    final scale = 110.0 * zoom;
+    final scale = 100.0 * zoom;
 
     // Rotate around Y axis
     final cosY = math.cos(rotY);
@@ -517,7 +651,7 @@ class _CultureTank3DPainter extends CustomPainter {
     final z2 = (y - 0.5) * sinX + z1 * cosX;
 
     // Perspective factor
-    const cameraDist = 3.2;
+    const cameraDist = 3.4;
     final pFactor = cameraDist / (cameraDist + z2);
 
     final screenX = size.width / 2 + x1 * scale * pFactor;
@@ -536,16 +670,15 @@ class _CultureTank3DPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Draw 3D Tank Floor & Grid
+    // 1. Draw 3D Tank Structure & Expanded Grid
     _drawTankStructure(canvas, size);
 
-    // 2. Draw Aerator Diffuser Ring on bottom
+    // 2. Draw Aerator Diffuser Rings / Lines on bottom
     _drawAerationDiffuser(canvas, size);
 
-    // 3. Collect all renderable entities for depth-sorting
+    // 3. Depth-sort all items (Bubbles + Fishes)
     final List<_RenderItem> items = [];
 
-    // Add Bubbles
     for (var b in bubbles) {
       items.add(_RenderItem(
         depth: _getDepth(b.x, b.y, b.z),
@@ -553,7 +686,6 @@ class _CultureTank3DPainter extends CustomPainter {
       ));
     }
 
-    // Add Fish
     for (var f in fishes) {
       items.add(_RenderItem(
         depth: _getDepth(f.x, f.y, f.z),
@@ -573,13 +705,11 @@ class _CultureTank3DPainter extends CustomPainter {
   }
 
   void _drawTankStructure(Canvas canvas, Size size) {
-    const half = 0.85;
-
     // Tank bottom vertices (y = 1.0)
-    final b0 = _project(-half, 1.0, -half, size);
-    final b1 = _project(half, 1.0, -half, size);
-    final b2 = _project(half, 1.0, half, size);
-    final b3 = _project(-half, 1.0, half, size);
+    final b0 = _project(-halfX, 1.0, -halfZ, size);
+    final b1 = _project(halfX, 1.0, -halfZ, size);
+    final b2 = _project(halfX, 1.0, halfZ, size);
+    final b3 = _project(-halfX, 1.0, halfZ, size);
 
     final floorPath = Path()
       ..moveTo(b0.dx, b0.dy)
@@ -588,35 +718,35 @@ class _CultureTank3DPainter extends CustomPainter {
       ..lineTo(b3.dx, b3.dy)
       ..close();
 
-    // Fill Floor
+    // Fill Floor with aquaculture substrate gradient
     final floorPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          const Color(0xFF0B1924),
-          const Color(0xFF0F2B3C),
-        ],
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF0B1924), Color(0xFF0F2B3C)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawPath(floorPath, floorPaint);
 
-    // Floor Grid Lines
+    // Floor Grid Lines adapted for wider dimensions
     final gridPaint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.12)
+      ..color = Colors.cyanAccent.withValues(alpha: 0.12)
       ..strokeWidth = 1.0;
-    for (double i = -half; i <= half; i += 0.34) {
-      canvas.drawLine(_project(i, 1.0, -half, size), _project(i, 1.0, half, size), gridPaint);
-      canvas.drawLine(_project(-half, 1.0, i, size), _project(half, 1.0, i, size), gridPaint);
+
+    for (double i = -halfX; i <= halfX + 0.05; i += 0.32) {
+      canvas.drawLine(_project(i, 1.0, -halfZ, size), _project(i, 1.0, halfZ, size), gridPaint);
+    }
+    for (double j = -halfZ; j <= halfZ + 0.05; j += 0.32) {
+      canvas.drawLine(_project(-halfX, 1.0, j, size), _project(halfX, 1.0, j, size), gridPaint);
     }
 
     // Tank Pillar Edges (y = 0.0 to y = 1.0)
-    final pTop0 = _project(-half, 0.0, -half, size);
-    final pTop1 = _project(half, 0.0, -half, size);
-    final pTop2 = _project(half, 0.0, half, size);
-    final pTop3 = _project(-half, 0.0, half, size);
+    final pTop0 = _project(-halfX, 0.0, -halfZ, size);
+    final pTop1 = _project(halfX, 0.0, -halfZ, size);
+    final pTop2 = _project(halfX, 0.0, halfZ, size);
+    final pTop3 = _project(-halfX, 0.0, halfZ, size);
 
     final wallEdgePaint = Paint()
-      ..color = Colors.cyan.withOpacity(0.35)
+      ..color = Colors.cyan.withValues(alpha: 0.35)
       ..strokeWidth = 1.5;
 
     canvas.drawLine(b0, pTop0, wallEdgePaint);
@@ -631,35 +761,49 @@ class _CultureTank3DPainter extends CustomPainter {
       ..lineTo(pTop1.dx, pTop1.dy)
       ..lineTo(pTop0.dx, pTop0.dy)
       ..close();
-    canvas.drawPath(backWallPath, Paint()..color = const Color(0xFF091620).withOpacity(0.6));
+    canvas.drawPath(
+      backWallPath,
+      Paint()..color = const Color(0xFF091620).withValues(alpha: 0.6),
+    );
   }
 
   void _drawAerationDiffuser(Canvas canvas, Size size) {
-    // Ring on bottom (y = 0.98)
     final diffPaint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.4)
+      ..color = Colors.cyanAccent.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
+    // Draw dual or elongated aeration diffuser loops for wide tanks
+    if (halfX > 1.1) {
+      // Left diffuser
+      final leftCenter = -halfX * 0.45;
+      final rightCenter = halfX * 0.45;
+      _drawDiffuserRing(canvas, size, leftCenter, 0.32, diffPaint);
+      _drawDiffuserRing(canvas, size, rightCenter, 0.32, diffPaint);
+    } else {
+      _drawDiffuserRing(canvas, size, 0.0, 0.42, diffPaint);
+    }
+  }
+
+  void _drawDiffuserRing(Canvas canvas, Size size, double cx, double radius, Paint paint) {
     final ringPath = Path();
-    const radius = 0.45;
-    for (int i = 0; i <= 36; i++) {
-      final angle = (i / 36) * 2 * math.pi;
-      final pt = _project(math.cos(angle) * radius, 0.98, math.sin(angle) * radius, size);
+    for (int i = 0; i <= 32; i++) {
+      final angle = (i / 32) * 2 * math.pi;
+      final pt = _project(cx + math.cos(angle) * radius, 0.98, math.sin(angle) * radius, size);
       if (i == 0) {
         ringPath.moveTo(pt.dx, pt.dy);
       } else {
         ringPath.lineTo(pt.dx, pt.dy);
       }
     }
-    canvas.drawPath(ringPath, diffPaint);
+    canvas.drawPath(ringPath, paint);
   }
 
   void _drawFish(Canvas canvas, Fish3D fish, Size size) {
     final headPt = _project(fish.x, fish.y, fish.z, size);
 
-    // Calculate tail point with sinusoidal oscillation
-    final tailWiggle = math.sin(fish.phase) * 0.08;
+    // Tail wiggle oscillation
+    final tailWiggle = math.sin(fish.phase) * (fish.isDistressed ? 0.03 : 0.08);
     final tailAngle = fish.yaw + math.pi + tailWiggle;
     final tailX = fish.x + math.cos(tailAngle) * fish.length;
     final tailZ = fish.z + math.sin(tailAngle) * fish.length;
@@ -670,32 +814,55 @@ class _CultureTank3DPainter extends CustomPainter {
     final midZ = (fish.z + tailZ) / 2 + math.sin(fish.yaw + math.pi / 2) * (tailWiggle * 0.5);
     final midPt = _project(midX, fish.y, midZ, size);
 
-    // Draw Fish Body
+    // Fish Body Stroke
     final bodyPaint = Paint()
       ..color = fish.color
-      ..strokeWidth = 4.5 * zoom
+      ..strokeWidth = (4.8 * zoom).clamp(2.5, 9.0)
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(headPt, midPt, bodyPaint);
 
     final tailPaint = Paint()
-      ..color = fish.color.withOpacity(0.85)
-      ..strokeWidth = 3.0 * zoom
+      ..color = fish.color.withValues(alpha: 0.85)
+      ..strokeWidth = (3.2 * zoom).clamp(1.8, 6.5)
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(midPt, tailPt, tailPaint);
 
     // Tail Fin (Fan)
-    final fin1Pt = _project(tailX + math.cos(tailAngle + 0.5) * 0.05, fish.y - 0.02, tailZ + math.sin(tailAngle + 0.5) * 0.05, size);
-    final fin2Pt = _project(tailX + math.cos(tailAngle - 0.5) * 0.05, fish.y + 0.02, tailZ + math.sin(tailAngle - 0.5) * 0.05, size);
+    final fin1Pt = _project(
+      tailX + math.cos(tailAngle + 0.5) * 0.05,
+      fish.y - 0.02,
+      tailZ + math.sin(tailAngle + 0.5) * 0.05,
+      size,
+    );
+    final fin2Pt = _project(
+      tailX + math.cos(tailAngle - 0.5) * 0.05,
+      fish.y + 0.02,
+      tailZ + math.sin(tailAngle - 0.5) * 0.05,
+      size,
+    );
     final finPath = Path()
       ..moveTo(tailPt.dx, tailPt.dy)
       ..lineTo(fin1Pt.dx, fin1Pt.dy)
       ..lineTo(fin2Pt.dx, fin2Pt.dy)
       ..close();
-    canvas.drawPath(finPath, Paint()..color = Colors.blueGrey.withOpacity(0.7));
+    canvas.drawPath(
+      finPath,
+      Paint()..color = (fish.isDistressed ? Colors.grey : Colors.blueGrey).withValues(alpha: 0.7),
+    );
 
-    // Barbels / Catfish whiskers if head is near
-    final w1 = _project(fish.x + math.cos(fish.yaw + 0.4) * 0.04, fish.y + 0.01, fish.z + math.sin(fish.yaw + 0.4) * 0.04, size);
-    final w2 = _project(fish.x + math.cos(fish.yaw - 0.4) * 0.04, fish.y + 0.01, fish.z + math.sin(fish.yaw - 0.4) * 0.04, size);
+    // Barbels / Catfish whiskers
+    final w1 = _project(
+      fish.x + math.cos(fish.yaw + 0.4) * 0.04,
+      fish.y + 0.01,
+      fish.z + math.sin(fish.yaw + 0.4) * 0.04,
+      size,
+    );
+    final w2 = _project(
+      fish.x + math.cos(fish.yaw - 0.4) * 0.04,
+      fish.y + 0.01,
+      fish.z + math.sin(fish.yaw - 0.4) * 0.04,
+      size,
+    );
     final whiskerPaint = Paint()
       ..color = Colors.white54
       ..strokeWidth = 1.0;
@@ -706,24 +873,22 @@ class _CultureTank3DPainter extends CustomPainter {
   void _drawBubble(Canvas canvas, Bubble3D b, Size size) {
     final pt = _project(b.x, b.y, b.z, size);
     final bubblePaint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.4)
+      ..color = Colors.cyanAccent.withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(pt, b.size * zoom, bubblePaint);
 
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
+      ..color = Colors.white.withValues(alpha: 0.7)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(pt.dx - b.size * 0.3, pt.dy - b.size * 0.3), b.size * 0.35, highlightPaint);
   }
 
   void _drawWaterSurfaceAndGlass(Canvas canvas, Size size) {
-    const half = 0.85;
-
-    // Water Surface Plane (y = 0.05)
-    final s0 = _project(-half, 0.05, -half, size);
-    final s1 = _project(half, 0.05, -half, size);
-    final s2 = _project(half, 0.05, half, size);
-    final s3 = _project(-half, 0.05, half, size);
+    // Water Surface Plane (y = 0.05) covering the wider geometry
+    final s0 = _project(-halfX, 0.05, -halfZ, size);
+    final s1 = _project(halfX, 0.05, -halfZ, size);
+    final s2 = _project(halfX, 0.05, halfZ, size);
+    final s3 = _project(-halfX, 0.05, halfZ, size);
 
     final surfacePath = Path()
       ..moveTo(s0.dx, s0.dy)
@@ -733,21 +898,21 @@ class _CultureTank3DPainter extends CustomPainter {
       ..close();
 
     final surfacePaint = Paint()
-      ..color = const Color(0xFF00E5FF).withOpacity(0.14)
+      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.14)
       ..style = PaintingStyle.fill;
     canvas.drawPath(surfacePath, surfacePaint);
 
     final surfaceRimPaint = Paint()
-      ..color = Colors.cyanAccent.withOpacity(0.5)
+      ..color = Colors.cyanAccent.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     canvas.drawPath(surfacePath, surfaceRimPaint);
 
     // Front Glass Wall Outline
-    final bTop0 = _project(-half, 0.0, half, size);
-    final bTop1 = _project(half, 0.0, half, size);
-    final bBot0 = _project(-half, 1.0, half, size);
-    final bBot1 = _project(half, 1.0, half, size);
+    final bTop0 = _project(-halfX, 0.0, halfZ, size);
+    final bTop1 = _project(halfX, 0.0, halfZ, size);
+    final bBot0 = _project(-halfX, 1.0, halfZ, size);
+    final bBot1 = _project(halfX, 1.0, halfZ, size);
 
     final frontGlassPath = Path()
       ..moveTo(bTop0.dx, bTop0.dy)
@@ -757,11 +922,17 @@ class _CultureTank3DPainter extends CustomPainter {
       ..close();
 
     final glassPaint = Paint()
-      ..color = Colors.cyan.withOpacity(0.04)
+      ..color = Colors.cyan.withValues(alpha: 0.04)
       ..style = PaintingStyle.fill;
     canvas.drawPath(frontGlassPath, glassPaint);
 
-    canvas.drawLine(bTop0, bTop1, Paint()..color = Colors.cyanAccent.withOpacity(0.6)..strokeWidth = 1.5);
+    canvas.drawLine(
+      bTop0,
+      bTop1,
+      Paint()
+        ..color = Colors.cyanAccent.withValues(alpha: 0.6)
+        ..strokeWidth = 1.5,
+    );
   }
 
   @override

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -223,15 +222,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               .setWeightUnit(v),
                     ),
               ),
+              SwitchListTile(
+                secondary: Icon(
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Icons.dark_mode_rounded
+                      : Icons.light_mode_rounded,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFFFD166)
+                      : const Color(0xFF0077B6),
+                ),
+                title: const Text('Dark Mode'),
+                subtitle: Text(
+                  prefs.themeMode == ThemeMode.system
+                      ? 'System (${Theme.of(context).brightness == Brightness.dark ? "Dark" : "Light"})'
+                      : _themeLabel(prefs.themeMode),
+                ),
+                value: prefs.themeMode == ThemeMode.dark ||
+                    (prefs.themeMode == ThemeMode.system &&
+                        Theme.of(context).brightness == Brightness.dark),
+                onChanged: (v) => ref
+                    .read(appPreferencesProvider.notifier)
+                    .setThemeMode(v ? ThemeMode.dark : ThemeMode.light),
+              ),
               ListTile(
                 leading: const Icon(Icons.palette),
-                title: const Text('Theme'),
+                title: const Text('Theme Mode Preference'),
                 subtitle: Text(_themeLabel(prefs.themeMode)),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap:
                     () => _showPicker<ThemeMode>(
                       context,
-                      title: 'Theme',
+                      title: 'Theme Mode Preference',
                       current: prefs.themeMode,
                       options: const {
                         ThemeMode.system: 'System default',
