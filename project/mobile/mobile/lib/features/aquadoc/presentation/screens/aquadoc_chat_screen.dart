@@ -446,51 +446,6 @@ class ChatBubble extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            ],
-            // Grounded Citations
-            if (message.sources.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              const Divider(),
-              const SizedBox(height: 4),
-              const Text('Scientific Evidence & Grounding:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 6),
-              ...message.sources.map((src) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.menu_book, size: 12, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${src.title} (${src.year > 0 ? src.year : 'Peer Reviewed'})',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text('${(src.score * 100).toStringAsFixed(0)}% match', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '"${src.excerpt}"',
-                        style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey[800]),
-                      ),
-                    ],
-                  ),
-                );
-              }),
             ],
           ],
         ),

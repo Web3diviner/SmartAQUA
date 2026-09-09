@@ -548,8 +548,11 @@ func (a *App) setupRouter(h *handlers.Handlers, svc *services.Services) *gin.Eng
 	router.GET("/health", h.Health.Basic)
 	router.GET("/health/detailed", h.Health.Detailed)
 
-	// Root endpoint
+	// Root and browser convenience endpoints
 	router.GET("/", h.Health.Root)
+	router.GET("/favicon.ico", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
