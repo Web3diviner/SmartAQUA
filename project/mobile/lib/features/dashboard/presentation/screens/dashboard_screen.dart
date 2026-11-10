@@ -367,8 +367,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? '${unitWithDO!.manualDO!.toStringAsFixed(1)} mg/L'
         : '-- mg/L';
     final String doBadge = unitWithDO?.manualDO != null
-        ? (unitWithDO!.manualDO! >= 4.0 ? 'OPTIMAL (LAB)' : 'LOW DO (<4.0)')
-        : 'UNMEASURED (NO PROBE)';
+        ? (unitWithDO!.manualDO! >= 4.0 ? 'OPTIMAL' : 'LOW (<4.0)')
+        : 'NO PROBE';
     final Color doColor = unitWithDO?.manualDO != null
         ? (unitWithDO!.manualDO! >= 4.0 ? AppTheme.primaryCyan : Colors.orangeAccent)
         : Colors.grey;
@@ -383,7 +383,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? 'Q10: ${(1.0 + (sensorData.waterTemperature - 28.0) * 0.05).clamp(0.8, 1.4).toStringAsFixed(2)}x'
         : (unitWithTemp?.manualTemp != null
             ? 'MANUAL LAB'
-            : 'UNMEASURED (NO PROBE)');
+            : 'NO PROBE');
     final Color tempColor = (sensorData != null && sensorData.waterTemperature > 0 || unitWithTemp != null)
         ? Colors.orangeAccent
         : Colors.grey;
@@ -394,7 +394,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         : '-- mg/L';
     final String tanBadge = unitWithTAN?.manualTAN != null
         ? (unitWithTAN!.manualTAN! < 0.5 ? 'SAFE (<0.5)' : 'ELEVATED')
-        : 'UNMEASURED (NO PROBE)';
+        : 'NO PROBE';
     final Color tanColor = unitWithTAN?.manualTAN != null
         ? (unitWithTAN!.manualTAN! < 0.5 ? Colors.purpleAccent : Colors.orangeAccent)
         : Colors.grey;
@@ -405,7 +405,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.35,
       children: [
         _SensorCard(
           title: 'Dissolved Oxygen',
@@ -460,7 +460,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF2A0845), Color(0xFF130924)],
@@ -478,34 +478,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: AppTheme.aquaDocGradient,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.psychology, color: Colors.white, size: 30),
+            child: const Icon(Icons.psychology, color: Colors.white, size: 28),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Row(
                   children: [
-                    Text(
-                      'AquaDoc Clinical AI',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    Flexible(
+                      child: Text(
+                        'AquaDoc Clinical AI',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    SizedBox(width: 6),
+                    SizedBox(width: 4),
                     Icon(Icons.verified, color: AppTheme.primaryCyan, size: 14),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   aquadocSummary,
-                  style: TextStyle(color: Colors.grey[300], fontSize: 12, height: 1.3),
+                  style: TextStyle(color: Colors.grey[300], fontSize: 11, height: 1.3),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -515,7 +523,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.primaryCyan,
               foregroundColor: const Color(0xFF0A192F),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => context.go('/aquadoc'),
@@ -741,29 +751,38 @@ class _SensorCard extends StatelessWidget {
                   ),
                   child: Icon(icon, color: color, size: 16),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    badge,
-                    style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(color: color, fontSize: 8.5, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   value,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey[500]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
